@@ -1,0 +1,11 @@
+{
+  "ticket_id": "TICKET-001",
+  "summary": "Describe actual implementation and changed files.",
+  "acceptance_criteria": [
+    {"id": "AC-1", "requirement": "Copy the first acceptance criterion verbatim.", "evidence": "Implementation location and actual verification evidence."}
+  ],
+  "tests": [
+    {"command": "The actual command you ran", "exit_code": 0, "result": "Actual result and log path; use null exit_code when not executed."}
+  ],
+  "open_items": []
+}

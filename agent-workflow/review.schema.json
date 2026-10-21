@@ -1,0 +1,153 @@
+{
+  "type": "object",
+  "properties": {
+    "ticket_id": {
+      "type": "string"
+    },
+    "base_commit": {
+      "type": "string"
+    },
+    "head_commit": {
+      "type": "string"
+    },
+    "decision": {
+      "type": "string",
+      "enum": [
+        "APPROVED",
+        "CHANGES_REQUESTED",
+        "BLOCKED"
+      ]
+    },
+    "criteria_complete": {
+      "type": "boolean"
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "criterion_id": {
+            "type": "string"
+          },
+          "requirement": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL",
+              "NOT_VERIFIED",
+              "NOT_APPLICABLE"
+            ]
+          },
+          "evidence": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "criterion_id",
+          "requirement",
+          "status",
+          "evidence"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "priority": {
+            "type": "string",
+            "enum": [
+              "P0",
+              "P1",
+              "P2",
+              "P3"
+            ]
+          },
+          "blocking": {
+            "type": "boolean"
+          },
+          "file": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "issue": {
+            "type": "string"
+          },
+          "impact": {
+            "type": "string"
+          },
+          "suggestion": {
+            "type": "string"
+          },
+          "verification": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "priority",
+          "blocking",
+          "file",
+          "location",
+          "issue",
+          "impact",
+          "suggestion",
+          "verification"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "tests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "command": {
+            "type": "string"
+          },
+          "execution": {
+            "type": "string",
+            "enum": [
+              "RUN_BY_REVIEWER",
+              "IMPLEMENTER_EVIDENCE_ONLY",
+              "NOT_RUN"
+            ]
+          },
+          "result": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "command",
+          "execution",
+          "result"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "limitations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "ticket_id",
+    "base_commit",
+    "head_commit",
+    "decision",
+    "criteria_complete",
+    "checks",
+    "findings",
+    "tests",
+    "limitations"
+  ],
+  "additionalProperties": false
+}
