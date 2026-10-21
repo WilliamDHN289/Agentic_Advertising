@@ -1,0 +1,57 @@
+# The original StoreLab run of 2026-08-14 as an offline local-LLM experiment.
+# Values are constants of the vendored code in features/storelab/legacy_2026_08/
+# (SL-00 baseline); SL-04 ports the environment and completes this config.
+schema_version: 1
+experiment: legacy_storelab_2026_08
+mode: offline
+seed: 20260812
+environment:
+  catalog: legacy_synthetic
+  # Fingerprint of build_catalog() recorded by SL-00 (legacy_2026_08/REPRODUCTION.md).
+  dataset:
+    name: legacy_storelab_2026_08_catalog
+    sha256: 9491773fa9aa2601d95f6396b39a08c6887f77a7bd053dff9e756b91872bbe07
+  legacy:
+    catalog_seed: 20260812        # storelab.py l.73
+    products_per_category: 334    # storelab.py l.73
+    store_seed: 11                # storelab.py l.174, l.179
+    ivt_seed: 3                   # storelab.py l.270
+    ivt_threshold: 0.55           # storelab.py l.270
+    task_seed_main: 99            # run_experiment.py l.52
+    task_seed_secondary: 555      # run_experiment.py l.197
+    episodes_main: 90             # run_experiment.py l.43
+    episodes_secondary: 40        # run_experiment.py l.44
+    ad_positions: [1, 2, 5, 9]    # storelab.py l.149
+    bottom_positions: [9, 10, 11, 12]  # run_experiment.py l.49
+design:
+  eligible_size: 334              # products per category
+  set_sizes: [12]                 # results per page, storelab.py l.150
+interfaces: [legacy_chatbot, legacy_gui_agent, legacy_api]
+agents:
+  offline_backend: local_llm
+  models:
+    - key: qwen2_7b
+      provider: ollama
+      model: "qwen2:7b"
+      temperatures: [0.7]         # agents.py l.44 (SL-00 defect D-05)
+      top_p: 0.9                  # agents.py l.56
+      max_output_tokens: 120      # num_predict, agents.py l.45
+humans:
+  model: legacy_cascade           # HumanSim, storelab.py l.338
+protocol:
+  prompt_templates:
+    legacy_chatbot: legacy_chatbot@1
+    legacy_gui_agent: legacy_gui_agent@1
+    legacy_api: legacy_api@1
+  legacy_parse_fallback: first_item  # agents.py l.212-214 (SL-00 defect D-03)
+repetitions: 1
+cache:
+  policy: "off"
+  namespace: legacy_storelab_2026_08
+failure_policy:
+  max_attempts: 3                 # agents.py l.61
+  trial_timeout_s: 180            # agents.py l.45
+budget:
+  max_usd: 0
+outputs:
+  root: runs

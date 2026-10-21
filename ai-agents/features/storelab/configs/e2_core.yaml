@@ -1,0 +1,45 @@
+# E2 core factorial (SL-19): alpha x organic regime x organic variation x mechanism,
+# 200 markets per configuration, other factors at baseline (K = 4, K^s = 1, uniform
+# values, fixed-point bidding). This is the dry run on stipulated parameters; the
+# main run replaces them with agent_params_e1.json. Human position weights are a
+# placeholder grid until A11 is extracted.
+schema_version: 1
+experiment: e2_core
+mode: offline
+seed: 2026102102
+environment:
+  catalog: simulated_market
+design:
+  eligible_size: 10
+  set_sizes: [4]
+  sponsored_slots: [1]
+interfaces: [text]
+agents:
+  offline_backend: simulated
+  simulated:
+    parameters: stipulated
+    sigma: 0.3
+    label_effect: -0.5
+    position_effects: [0.0, -0.1, -0.2, -0.3]
+    page_request_prob: 0.5
+    outside_value: -1.0
+  models:
+    - {key: gpt_4o_20240806, provider: openai, model: gpt-4o-2024-08-06}
+    - {key: claude_sonnet_45_20250929, provider: anthropic, model: claude-sonnet-4-5-20250929}
+humans:
+  model: position_weights
+  position_weights: [0.30, 0.20, 0.15, 0.12]
+mechanism:
+  mechanisms: [M1, M2, M3_set_blind, M3, M4, profit_rule]
+  markets_per_configuration: 200
+  agent_shares: [0.0, 0.25, 0.5, 0.75, 1.0]
+  organic_regimes: [human_optimised, agent_aware, gated]
+  organic_variation: [none, randomised]
+  value_distributions: [uniform]
+  bidding_rules: [fixed_point_value_per_click]
+repetitions: 1
+cache:
+  policy: "off"
+  namespace: e2_core
+outputs:
+  root: runs

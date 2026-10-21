@@ -1,0 +1,53 @@
+# E1 pilot (SL-17): 2 categories x 2 tasks, v = 10, K in {2, 4, 8}, r = 10, three
+# interfaces, default and zero temperature. Placeholders until their tickets fix them:
+# the model ids (A5, two pinned snapshots per provider), the categories (SL-05
+# screening) and the dataset snapshot (SL-05). Simulated parameters are stipulated
+# for the offline parity run.
+schema_version: 1
+experiment: e1_pilot
+mode: auto
+seed: 2026102101
+environment:
+  catalog: amazon_reviews_2023
+  dataset: null
+  categories: [Home_and_Kitchen, Electronics]
+  tasks_per_category: 2
+  description_chars: 300
+design:
+  eligible_size: 10
+  set_sizes: [2, 4, 8]
+  randomisation: per_set          # A15
+  label_rate: 0.3
+interfaces: [text, structured, browser_tool]
+agents:
+  offline_backend: simulated
+  simulated:
+    parameters: stipulated
+    sigma: 1.0
+    label_effect: -0.5
+    position_effects: [0.0, -0.1, -0.2, -0.3, -0.35, -0.4, -0.45, -0.5]
+    page_request_prob: 0.3
+    outside_value: -1.0
+  models:
+    - {key: gpt_4o_20240806, provider: openai, model: gpt-4o-2024-08-06, temperatures: [null, 0.0]}
+    - {key: gpt_41_20250414, provider: openai, model: gpt-4.1-2025-04-14, temperatures: [null, 0.0]}
+    - {key: claude_sonnet_4_20250514, provider: anthropic, model: claude-sonnet-4-20250514, temperatures: [null, 0.0]}
+    - {key: claude_sonnet_45_20250929, provider: anthropic, model: claude-sonnet-4-5-20250929, temperatures: [null, 0.0]}
+    - {key: gemini_20_flash_001, provider: google, model: gemini-2.0-flash-001, temperatures: [null, 0.0]}
+    - {key: gemini_20_flash_lite_001, provider: google, model: gemini-2.0-flash-lite-001, temperatures: [null, 0.0]}
+protocol:
+  prompt_templates:
+    text: e1_text@1
+    structured: e1_structured@1
+    browser_tool: e1_browser_tool@1
+  max_turns: 8
+repetitions: 10
+cache:
+  policy: read_write
+  namespace: e1_pilot
+budget:
+  max_usd: 150                    # A9 placeholder pilot cap
+  approval_usd: 50
+  max_concurrency: 8
+outputs:
+  root: runs

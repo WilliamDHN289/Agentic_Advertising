@@ -1,0 +1,36 @@
+# Smallest offline run: simulated agents, no credentials and no network. For CI and
+# dry runs; the dataset snapshot is pinned once SL-05 builds it.
+schema_version: 1
+experiment: smoke_offline
+mode: offline
+seed: 1
+environment:
+  catalog: amazon_reviews_2023
+  dataset: null
+  categories: [Home_and_Kitchen]
+  tasks_per_category: 1
+design:
+  eligible_size: 4
+  set_sizes: [2]
+interfaces: [text, structured]
+agents:
+  offline_backend: simulated
+  simulated:
+    parameters: stipulated
+    sigma: 1.0
+    label_effect: -0.5
+    position_effects: [0.0, -0.2]
+    page_request_prob: 0.0
+    outside_value: -1.0
+  models:
+    - {key: gpt_4o_20240806, provider: openai, model: gpt-4o-2024-08-06, temperatures: [null, 0.0]}
+protocol:
+  prompt_templates:
+    text: e1_text@1
+    structured: e1_structured@1
+repetitions: 2
+cache:
+  policy: "off"
+  namespace: smoke
+outputs:
+  root: runs

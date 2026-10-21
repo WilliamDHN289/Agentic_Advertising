@@ -1,0 +1,1327 @@
+{
+  "$defs": {
+    "AgentsConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "models": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/ModelConfig"
+          },
+          "title": "Models",
+          "type": "array"
+        },
+        "offline_backend": {
+          "default": "simulated",
+          "enum": [
+            "simulated",
+            "local_llm"
+          ],
+          "title": "Offline Backend",
+          "type": "string"
+        },
+        "simulated": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SimulatedAgents"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "AgentsConfig",
+      "type": "object"
+    },
+    "BreakerConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "cooldown_s": {
+          "default": 60.0,
+          "exclusiveMinimum": 0,
+          "title": "Cooldown S",
+          "type": "number"
+        },
+        "failure_threshold": {
+          "default": 5,
+          "exclusiveMinimum": 0,
+          "title": "Failure Threshold",
+          "type": "integer"
+        },
+        "max_auto_resumes": {
+          "default": 3,
+          "minimum": 0,
+          "title": "Max Auto Resumes",
+          "type": "integer"
+        }
+      },
+      "title": "BreakerConfig",
+      "type": "object"
+    },
+    "BudgetConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "approval_usd": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Approval Usd"
+        },
+        "max_concurrency": {
+          "default": 4,
+          "exclusiveMinimum": 0,
+          "title": "Max Concurrency",
+          "type": "integer"
+        },
+        "max_usd": {
+          "default": 0.0,
+          "minimum": 0,
+          "title": "Max Usd",
+          "type": "number"
+        }
+      },
+      "title": "BudgetConfig",
+      "type": "object"
+    },
+    "CacheConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "namespace": {
+          "default": "default",
+          "maxLength": 64,
+          "pattern": "^[a-z0-9][a-z0-9_]*$",
+          "title": "Namespace",
+          "type": "string"
+        },
+        "policy": {
+          "anyOf": [
+            {
+              "enum": [
+                "off",
+                "read_write",
+                "write_only",
+                "read_only"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Policy"
+        }
+      },
+      "title": "CacheConfig",
+      "type": "object"
+    },
+    "CacheRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "namespace": {
+          "maxLength": 64,
+          "pattern": "^[a-z0-9][a-z0-9_]*$",
+          "title": "Namespace",
+          "type": "string"
+        },
+        "policy": {
+          "enum": [
+            "off",
+            "read_write",
+            "write_only",
+            "read_only"
+          ],
+          "title": "Policy",
+          "type": "string"
+        }
+      },
+      "required": [
+        "policy",
+        "namespace"
+      ],
+      "title": "CacheRecord",
+      "type": "object"
+    },
+    "DatasetRef": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "maxLength": 64,
+          "pattern": "^[a-z0-9][a-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "sha256"
+      ],
+      "title": "DatasetRef",
+      "type": "object"
+    },
+    "DesignConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "eligible_size": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Eligible Size"
+        },
+        "label_rate": {
+          "default": 0.3,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Label Rate",
+          "type": "number"
+        },
+        "randomisation": {
+          "default": "per_set",
+          "enum": [
+            "per_set",
+            "per_repetition"
+          ],
+          "title": "Randomisation",
+          "type": "string"
+        },
+        "set_sizes": {
+          "default": [],
+          "items": {
+            "exclusiveMinimum": 0,
+            "type": "integer"
+          },
+          "title": "Set Sizes",
+          "type": "array"
+        },
+        "sponsored_slots": {
+          "default": [],
+          "items": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "title": "Sponsored Slots",
+          "type": "array"
+        }
+      },
+      "title": "DesignConfig",
+      "type": "object"
+    },
+    "EnvironmentConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "catalog": {
+          "enum": [
+            "amazon_reviews_2023",
+            "simulated_market",
+            "legacy_synthetic"
+          ],
+          "title": "Catalog",
+          "type": "string"
+        },
+        "categories": {
+          "default": [],
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Categories",
+          "type": "array"
+        },
+        "dataset": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DatasetRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "description_chars": {
+          "default": 300,
+          "exclusiveMinimum": 0,
+          "title": "Description Chars",
+          "type": "integer"
+        },
+        "legacy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/LegacyEnvironment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "tasks_per_category": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tasks Per Category"
+        }
+      },
+      "required": [
+        "catalog"
+      ],
+      "title": "EnvironmentConfig",
+      "type": "object"
+    },
+    "FailurePolicyConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "backoff_initial_s": {
+          "default": 1.0,
+          "exclusiveMinimum": 0,
+          "title": "Backoff Initial S",
+          "type": "number"
+        },
+        "backoff_max_s": {
+          "default": 60.0,
+          "exclusiveMinimum": 0,
+          "title": "Backoff Max S",
+          "type": "number"
+        },
+        "breaker": {
+          "$ref": "#/$defs/BreakerConfig"
+        },
+        "max_attempts": {
+          "default": 4,
+          "exclusiveMinimum": 0,
+          "title": "Max Attempts",
+          "type": "integer"
+        },
+        "missingness_threshold": {
+          "default": 0.05,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Missingness Threshold",
+          "type": "number"
+        },
+        "rate_limit_pause_share": {
+          "default": 0.5,
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Rate Limit Pause Share",
+          "type": "number"
+        },
+        "rate_limit_window_s": {
+          "default": 60.0,
+          "exclusiveMinimum": 0,
+          "title": "Rate Limit Window S",
+          "type": "number"
+        },
+        "trial_timeout_s": {
+          "default": 120.0,
+          "exclusiveMinimum": 0,
+          "title": "Trial Timeout S",
+          "type": "number"
+        }
+      },
+      "title": "FailurePolicyConfig",
+      "type": "object"
+    },
+    "FileRef": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "FileRef",
+      "type": "object"
+    },
+    "GitRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "dirty": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Dirty"
+        },
+        "sha": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{40}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Sha"
+        }
+      },
+      "required": [
+        "sha",
+        "dirty"
+      ],
+      "title": "GitRecord",
+      "type": "object"
+    },
+    "HumansConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "model": {
+          "default": "none",
+          "enum": [
+            "none",
+            "position_weights",
+            "legacy_cascade"
+          ],
+          "title": "Model",
+          "type": "string"
+        },
+        "position_weights": {
+          "default": [],
+          "items": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "title": "Position Weights",
+          "type": "array"
+        }
+      },
+      "title": "HumansConfig",
+      "type": "object"
+    },
+    "LegacyEnvironment": {
+      "additionalProperties": false,
+      "description": "Constants of the 2026-08-14 run, from the vendored legacy_2026_08/ code.",
+      "properties": {
+        "ad_positions": {
+          "items": {
+            "exclusiveMinimum": 0,
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Ad Positions",
+          "type": "array"
+        },
+        "bottom_positions": {
+          "items": {
+            "exclusiveMinimum": 0,
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Bottom Positions",
+          "type": "array"
+        },
+        "catalog_seed": {
+          "title": "Catalog Seed",
+          "type": "integer"
+        },
+        "episodes_main": {
+          "exclusiveMinimum": 0,
+          "title": "Episodes Main",
+          "type": "integer"
+        },
+        "episodes_secondary": {
+          "exclusiveMinimum": 0,
+          "title": "Episodes Secondary",
+          "type": "integer"
+        },
+        "ivt_seed": {
+          "title": "Ivt Seed",
+          "type": "integer"
+        },
+        "ivt_threshold": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Ivt Threshold",
+          "type": "number"
+        },
+        "products_per_category": {
+          "exclusiveMinimum": 0,
+          "title": "Products Per Category",
+          "type": "integer"
+        },
+        "store_seed": {
+          "title": "Store Seed",
+          "type": "integer"
+        },
+        "task_seed_main": {
+          "title": "Task Seed Main",
+          "type": "integer"
+        },
+        "task_seed_secondary": {
+          "title": "Task Seed Secondary",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "catalog_seed",
+        "products_per_category",
+        "store_seed",
+        "ivt_seed",
+        "ivt_threshold",
+        "task_seed_main",
+        "task_seed_secondary",
+        "episodes_main",
+        "episodes_secondary",
+        "ad_positions",
+        "bottom_positions"
+      ],
+      "title": "LegacyEnvironment",
+      "type": "object"
+    },
+    "MechanismConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "agent_shares": {
+          "items": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "type": "number"
+          },
+          "minItems": 1,
+          "title": "Agent Shares",
+          "type": "array"
+        },
+        "bidding_rules": {
+          "items": {
+            "enum": [
+              "fixed_point_value_per_click",
+              "human_conversion_rate"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Bidding Rules",
+          "type": "array"
+        },
+        "markets_per_configuration": {
+          "exclusiveMinimum": 0,
+          "title": "Markets Per Configuration",
+          "type": "integer"
+        },
+        "mechanisms": {
+          "items": {
+            "enum": [
+              "M1",
+              "M2",
+              "M3_set_blind",
+              "M3",
+              "M4",
+              "profit_rule"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Mechanisms",
+          "type": "array"
+        },
+        "organic_regimes": {
+          "items": {
+            "enum": [
+              "human_optimised",
+              "agent_aware",
+              "gated"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Organic Regimes",
+          "type": "array"
+        },
+        "organic_variation": {
+          "items": {
+            "enum": [
+              "none",
+              "randomised"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Organic Variation",
+          "type": "array"
+        },
+        "value_distributions": {
+          "items": {
+            "enum": [
+              "uniform",
+              "lognormal"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Value Distributions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "mechanisms",
+        "markets_per_configuration",
+        "agent_shares",
+        "organic_regimes",
+        "organic_variation",
+        "value_distributions",
+        "bidding_rules"
+      ],
+      "title": "MechanismConfig",
+      "type": "object"
+    },
+    "ModeRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "requested": {
+          "enum": [
+            "auto",
+            "offline",
+            "sandbox",
+            "replay"
+          ],
+          "title": "Requested",
+          "type": "string"
+        },
+        "resolved": {
+          "enum": [
+            "offline",
+            "sandbox",
+            "replay"
+          ],
+          "title": "Resolved",
+          "type": "string"
+        }
+      },
+      "required": [
+        "requested",
+        "resolved",
+        "reason"
+      ],
+      "title": "ModeRecord",
+      "type": "object"
+    },
+    "ModelConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "maxLength": 64,
+          "pattern": "^[a-z0-9][a-z0-9_]*$",
+          "title": "Key",
+          "type": "string"
+        },
+        "max_output_tokens": {
+          "default": 256,
+          "exclusiveMinimum": 0,
+          "title": "Max Output Tokens",
+          "type": "integer"
+        },
+        "model": {
+          "maxLength": 128,
+          "pattern": "^\\S+$",
+          "title": "Model",
+          "type": "string"
+        },
+        "provider": {
+          "enum": [
+            "openai",
+            "anthropic",
+            "google",
+            "ollama"
+          ],
+          "title": "Provider",
+          "type": "string"
+        },
+        "temperatures": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Temperatures",
+          "type": "array"
+        },
+        "top_p": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0.0,
+              "maximum": 1.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Top P"
+        }
+      },
+      "required": [
+        "key",
+        "provider",
+        "model"
+      ],
+      "title": "ModelConfig",
+      "type": "object"
+    },
+    "ModelRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "digest": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Digest"
+        },
+        "first_access_utc": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "First Access Utc"
+        },
+        "key": {
+          "maxLength": 64,
+          "pattern": "^[a-z0-9][a-z0-9_]*$",
+          "title": "Key",
+          "type": "string"
+        },
+        "last_access_utc": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Last Access Utc"
+        },
+        "provider": {
+          "minLength": 1,
+          "title": "Provider",
+          "type": "string"
+        },
+        "requested_id": {
+          "minLength": 1,
+          "title": "Requested Id",
+          "type": "string"
+        },
+        "returned_ids": {
+          "default": [],
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Returned Ids",
+          "type": "array"
+        },
+        "seed_supported": {
+          "title": "Seed Supported",
+          "type": "boolean"
+        },
+        "temperatures": {
+          "items": {
+            "anyOf": [
+              {
+                "const": "provider_default",
+                "type": "string"
+              },
+              {
+                "type": "number"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Temperatures",
+          "type": "array"
+        }
+      },
+      "required": [
+        "key",
+        "provider",
+        "requested_id",
+        "temperatures",
+        "seed_supported"
+      ],
+      "title": "ModelRecord",
+      "type": "object"
+    },
+    "OutputsConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "formats": {
+          "default": [
+            "jsonl",
+            "parquet"
+          ],
+          "items": {
+            "enum": [
+              "jsonl",
+              "parquet",
+              "csv"
+            ],
+            "type": "string"
+          },
+          "title": "Formats",
+          "type": "array"
+        },
+        "root": {
+          "default": "runs",
+          "minLength": 1,
+          "title": "Root",
+          "type": "string"
+        }
+      },
+      "title": "OutputsConfig",
+      "type": "object"
+    },
+    "PromptTemplateRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "pattern": "^[a-z0-9][a-z0-9_]*@[1-9][0-9]*$",
+          "title": "Id",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "sha256"
+      ],
+      "title": "PromptTemplateRecord",
+      "type": "object"
+    },
+    "ProtocolConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "legacy_parse_fallback": {
+          "default": "none",
+          "enum": [
+            "none",
+            "first_item"
+          ],
+          "title": "Legacy Parse Fallback",
+          "type": "string"
+        },
+        "max_turns": {
+          "default": 8,
+          "exclusiveMinimum": 0,
+          "title": "Max Turns",
+          "type": "integer"
+        },
+        "prompt_templates": {
+          "additionalProperties": {
+            "pattern": "^[a-z0-9][a-z0-9_]*@[1-9][0-9]*$",
+            "type": "string"
+          },
+          "default": {},
+          "propertyNames": {
+            "enum": [
+              "text",
+              "structured",
+              "browser_tool",
+              "legacy_chatbot",
+              "legacy_gui_agent",
+              "legacy_api"
+            ]
+          },
+          "title": "Prompt Templates",
+          "type": "object"
+        },
+        "reask_once": {
+          "default": false,
+          "title": "Reask Once",
+          "type": "boolean"
+        }
+      },
+      "title": "ProtocolConfig",
+      "type": "object"
+    },
+    "PythonRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "implementation": {
+          "minLength": 1,
+          "title": "Implementation",
+          "type": "string"
+        },
+        "platform": {
+          "minLength": 1,
+          "title": "Platform",
+          "type": "string"
+        },
+        "version": {
+          "minLength": 1,
+          "title": "Version",
+          "type": "string"
+        }
+      },
+      "required": [
+        "version",
+        "implementation",
+        "platform"
+      ],
+      "title": "PythonRecord",
+      "type": "object"
+    },
+    "RunConfig": {
+      "additionalProperties": false,
+      "properties": {
+        "agents": {
+          "$ref": "#/$defs/AgentsConfig"
+        },
+        "budget": {
+          "$ref": "#/$defs/BudgetConfig"
+        },
+        "cache": {
+          "$ref": "#/$defs/CacheConfig"
+        },
+        "design": {
+          "$ref": "#/$defs/DesignConfig"
+        },
+        "environment": {
+          "$ref": "#/$defs/EnvironmentConfig"
+        },
+        "experiment": {
+          "maxLength": 64,
+          "pattern": "^[a-z0-9][a-z0-9_]*$",
+          "title": "Experiment",
+          "type": "string"
+        },
+        "failure_policy": {
+          "$ref": "#/$defs/FailurePolicyConfig"
+        },
+        "humans": {
+          "$ref": "#/$defs/HumansConfig"
+        },
+        "interfaces": {
+          "default": [],
+          "items": {
+            "enum": [
+              "text",
+              "structured",
+              "browser_tool",
+              "legacy_chatbot",
+              "legacy_gui_agent",
+              "legacy_api"
+            ],
+            "type": "string"
+          },
+          "title": "Interfaces",
+          "type": "array"
+        },
+        "mechanism": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MechanismConfig"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "mode": {
+          "default": "auto",
+          "enum": [
+            "auto",
+            "offline",
+            "sandbox",
+            "replay"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "outputs": {
+          "$ref": "#/$defs/OutputsConfig"
+        },
+        "protocol": {
+          "$ref": "#/$defs/ProtocolConfig"
+        },
+        "repetitions": {
+          "default": 1,
+          "exclusiveMinimum": 0,
+          "title": "Repetitions",
+          "type": "integer"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "seed": {
+          "exclusiveMaximum": 9223372036854775808,
+          "minimum": 0,
+          "title": "Seed",
+          "type": "integer"
+        },
+        "source_run_id": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Run Id"
+        }
+      },
+      "required": [
+        "experiment",
+        "seed",
+        "environment"
+      ],
+      "title": "RunConfig",
+      "type": "object"
+    },
+    "SimulatedAgents": {
+      "additionalProperties": false,
+      "properties": {
+        "label_effect": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Label Effect"
+        },
+        "outside_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Outside Value"
+        },
+        "page_request_prob": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page Request Prob"
+        },
+        "parameters": {
+          "enum": [
+            "stipulated",
+            "estimated"
+          ],
+          "title": "Parameters",
+          "type": "string"
+        },
+        "params_file": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FileRef"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "position_effects": {
+          "default": [],
+          "items": {
+            "type": "number"
+          },
+          "title": "Position Effects",
+          "type": "array"
+        },
+        "sigma": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sigma"
+        }
+      },
+      "required": [
+        "parameters"
+      ],
+      "title": "SimulatedAgents",
+      "type": "object"
+    },
+    "StatusEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "at_utc": {
+          "format": "date-time",
+          "title": "At Utc",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        },
+        "status": {
+          "enum": [
+            "PLANNED",
+            "PENDING_APPROVAL",
+            "QUEUED",
+            "RUNNING",
+            "PAUSED",
+            "STALLED",
+            "LIMIT_REACHED",
+            "CANCELLED",
+            "FAILED",
+            "COMPLETED",
+            "COMPLETED_WITH_GAPS"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "at_utc"
+      ],
+      "title": "StatusEvent",
+      "type": "object"
+    },
+    "VersionsRecord": {
+      "additionalProperties": false,
+      "properties": {
+        "env_version": {
+          "minLength": 1,
+          "title": "Env Version",
+          "type": "string"
+        },
+        "git": {
+          "$ref": "#/$defs/GitRecord"
+        },
+        "packages": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Packages",
+          "type": "object"
+        },
+        "protocol_version": {
+          "minLength": 1,
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "python": {
+          "$ref": "#/$defs/PythonRecord"
+        }
+      },
+      "required": [
+        "git",
+        "python",
+        "packages",
+        "env_version",
+        "protocol_version"
+      ],
+      "title": "VersionsRecord",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "cache": {
+      "$ref": "#/$defs/CacheRecord"
+    },
+    "config": {
+      "$ref": "#/$defs/RunConfig"
+    },
+    "config_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Config Hash",
+      "type": "string"
+    },
+    "created_utc": {
+      "format": "date-time",
+      "title": "Created Utc",
+      "type": "string"
+    },
+    "dataset_snapshot": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DatasetRef"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "governance": {
+      "enum": [
+        "local",
+        "platform"
+      ],
+      "title": "Governance",
+      "type": "string"
+    },
+    "manifest_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Manifest Version",
+      "type": "integer"
+    },
+    "mode": {
+      "$ref": "#/$defs/ModeRecord"
+    },
+    "models": {
+      "items": {
+        "$ref": "#/$defs/ModelRecord"
+      },
+      "title": "Models",
+      "type": "array"
+    },
+    "overrides": {
+      "additionalProperties": true,
+      "default": {},
+      "title": "Overrides",
+      "type": "object"
+    },
+    "prompt_templates": {
+      "items": {
+        "$ref": "#/$defs/PromptTemplateRecord"
+      },
+      "title": "Prompt Templates",
+      "type": "array"
+    },
+    "run_id": {
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "status_history": {
+      "items": {
+        "$ref": "#/$defs/StatusEvent"
+      },
+      "minItems": 1,
+      "title": "Status History",
+      "type": "array"
+    },
+    "versions": {
+      "$ref": "#/$defs/VersionsRecord"
+    }
+  },
+  "required": [
+    "run_id",
+    "created_utc",
+    "config",
+    "config_hash",
+    "mode",
+    "versions",
+    "prompt_templates",
+    "dataset_snapshot",
+    "models",
+    "cache",
+    "governance",
+    "status_history"
+  ],
+  "title": "Manifest",
+  "type": "object"
+}
