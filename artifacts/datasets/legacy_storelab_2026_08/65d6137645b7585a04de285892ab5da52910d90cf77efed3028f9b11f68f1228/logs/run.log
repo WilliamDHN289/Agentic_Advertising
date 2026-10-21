@@ -1,0 +1,46 @@
+StoreLab -- interface-regime experiment
+model=qwen2:7b  N_main=90/regime  N_secondary=40/cell
+
+catalog: 2004 SKUs across 6 categories, 712 ad-eligible
+
+  human_sim   15/90  (0s)
+  human_sim   30/90  (0s)
+  human_sim   45/90  (0s)
+  human_sim   60/90  (0s)
+  human_sim   75/90  (0s)
+  human_sim   90/90  (0s)
+  human_sim  DONE in 0s  (checkpointed)
+
+  chatbot     15/90  (53s)
+  chatbot     30/90  (96s)
+  chatbot     45/90  (139s)
+  chatbot     60/90  (187s)
+  chatbot     75/90  (228s)
+  chatbot     90/90  (271s)
+  chatbot    DONE in 271s  (checkpointed)
+
+  gui_agent   15/90  (67s)
+  gui_agent   30/90  (128s)
+  gui_agent   45/90  (192s)
+  gui_agent   60/90  (252s)
+  gui_agent   75/90  (309s)
+  gui_agent   90/90  (375s)
+  gui_agent  DONE in 376s  (checkpointed)
+
+  api         15/90  (74s)
+  api         30/90  (136s)
+  api         45/90  (199s)
+  api         60/90  (259s)
+  api         75/90  (317s)
+  api         90/90  (381s)
+  api        DONE in 381s  (checkpointed)
+
+secondary 2x2 (label x position) within gui_agent
+  label=on|pos=top           n=40  (156s)
+  label=on|pos=bottom        n=40  (164s)
+  label=off|pos=top          n=40  (169s)
+  label=off|pos=bottom       n=40  (131s)
+
+520 episodes, 6584 events
+LLM: 430 calls, 9 parse failures (2.1%), 3.83s mean latency
+total runtime 1648.7s

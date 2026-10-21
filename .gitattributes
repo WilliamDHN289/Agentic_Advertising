@@ -1,0 +1,4 @@
+# SL-00: the vendored original StoreLab must stay byte-identical to its source on
+# every checkout, and the data snapshot is verified by hash, not by diff.
+ai-agents/features/storelab/legacy_2026_08/*.py -text
+artifacts/datasets/** binary

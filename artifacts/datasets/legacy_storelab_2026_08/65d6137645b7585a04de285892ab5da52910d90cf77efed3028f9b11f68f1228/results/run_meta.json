@@ -1,0 +1,12 @@
+{
+ "model": "qwen2:7b",
+ "n_main": 90,
+ "n_secondary": 40,
+ "catalog_size": 2004,
+ "llm_calls": 430,
+ "llm_parse_failures": 9,
+ "mean_llm_latency_s": 3.83,
+ "detect_cost_per_impression": 4e-05,
+ "runtime_s": 1648.7,
+ "run_utc": "2026-08-14T17:51:08Z"
+}

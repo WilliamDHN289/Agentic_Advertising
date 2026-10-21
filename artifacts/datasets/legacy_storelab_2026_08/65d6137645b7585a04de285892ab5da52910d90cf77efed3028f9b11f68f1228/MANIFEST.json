@@ -1,0 +1,76 @@
+{
+ "dataset": "legacy_storelab_2026_08",
+ "snapshot_sha256": "65d6137645b7585a04de285892ab5da52910d90cf77efed3028f9b11f68f1228",
+ "digest": "sha256 of compact JSON of sorted [path, sha256, size] rows",
+ "source": "~/Desktop/agentic_amazon/5_storelab",
+ "access_date": "2026-10-21",
+ "run_utc": "2026-08-14T17:51:08Z",
+ "model": "qwen2:7b",
+ "files": [
+  {
+   "path": "logs/events.json",
+   "sha256": "9aa7448c97cab624f31694b7f900a5f5bec44e2d6bdfb54027e6de15e7cbba71",
+   "size": 1556421
+  },
+  {
+   "path": "logs/run.log",
+   "sha256": "e4b25791e0534c3f3a13c0774c9d88f9a6b7af7460f7df9959aa5316de0f2a5c",
+   "size": 1305
+  },
+  {
+   "path": "results/_ckpt_api.json",
+   "sha256": "ebe46f0d8556082b3d010df259730910b92b741df23538eee6c0fdf0cb129c65",
+   "size": 100967
+  },
+  {
+   "path": "results/_ckpt_chatbot.json",
+   "sha256": "7be575ac7fd6dd596bf4500882bf8a6d0341e9665c0ab996e3efd264aaca7b6c",
+   "size": 241547
+  },
+  {
+   "path": "results/_ckpt_gui_agent.json",
+   "sha256": "10a0f48806b916f1d25e78fc393e4bed06924bf274710b7b6709624dc5ea398f",
+   "size": 389253
+  },
+  {
+   "path": "results/_ckpt_human_sim.json",
+   "sha256": "7873a9321d04dbc12d7e0dee1b9e47cd5b19158e01045f1dd1c4aadf8950e8cc",
+   "size": 468451
+  },
+  {
+   "path": "results/_ckpt_sec_labeloff_posbottom.json",
+   "sha256": "7e9781381644d0110a4aad0ea3fb849c907058f847f91a4ca013bfa2ad6063d3",
+   "size": 182576
+  },
+  {
+   "path": "results/_ckpt_sec_labeloff_postop.json",
+   "sha256": "19f7802872c087d67ab707b2e76eac1aa94ef8c2732228d7116c64cf19cd91f5",
+   "size": 182005
+  },
+  {
+   "path": "results/_ckpt_sec_labelon_posbottom.json",
+   "sha256": "cfda6dacae819b333a2f63f07fcf7e4d7efc00113285b99210159d062aca0a21",
+   "size": 182375
+  },
+  {
+   "path": "results/_ckpt_sec_labelon_postop.json",
+   "sha256": "49a3310da2f83dd7935c5f57fece983ff38fb68f8ee098036cae23d926105ee6",
+   "size": 180856
+  },
+  {
+   "path": "results/episodes.json",
+   "sha256": "b8f2436310e25464ba29da8e880c91457da06101b66270fd7405bf0562b56aec",
+   "size": 407835
+  },
+  {
+   "path": "results/findings.md",
+   "sha256": "da76128e6bb6017747f76f9d89146fce5e4979555bffd40b7b0e620425ecd9db",
+   "size": 13349
+  },
+  {
+   "path": "results/run_meta.json",
+   "sha256": "428dcaa60ec8ec2159647f247bf977826836d55425c32fa608b2f676d13bacba",
+   "size": 252
+  }
+ ]
+}
