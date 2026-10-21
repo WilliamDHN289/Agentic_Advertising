@@ -1,0 +1,9 @@
+# Coverage scope for the StoreLab subtree. In the ai-agents repository the legacy
+# entry is appended to the existing .coveragerc omit list.
+[run]
+source = .
+branch = True
+omit =
+    tests/*
+    # The original StoreLab, vendored byte-for-byte (SL-00).
+    */features/storelab/legacy_2026_08/*

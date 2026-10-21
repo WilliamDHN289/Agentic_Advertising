@@ -1,0 +1,12 @@
+# Tooling for the StoreLab subtree. In the ai-agents repository these entries
+# merge into its existing pyproject.toml.
+
+[tool.ruff]
+# The original StoreLab, vendored byte-for-byte (SL-00): never lint or reformat it.
+extend-exclude = ["features/storelab/legacy_2026_08"]
+# Honour the exclusion for explicitly passed paths too (pre-commit, editors).
+force-exclude = true
+
+[tool.ruff.lint]
+# The ai-agents rule set (it also enables TID251 for its loguru ban).
+select = ["E4", "E7", "E9", "F"]
