@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Local Claude/Codex review gate. Python 3.9+, macOS/Linux, standard library only.
+"""Local Claude implementer / Claude reviewer gate. Python 3.9+, macOS/Linux, standard library only.
+
+The reviewer is a separate `claude -p` process signed into a second account through its own
+CLAUDE_CONFIG_DIR (default ~/.claude-reviewer, override with REVIEWER_CLAUDE_CONFIG_DIR).
 
 This is a workflow guard, not a security boundary against an agent with write access.
 The script never commits, pushes, installs dependencies, or changes CLI permissions.
@@ -19,6 +22,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 RUNS = HERE / "runs"
 STATE = RUNS / "state.json"
+REVIEWER_CONFIG = os.path.expanduser(os.environ.get("REVIEWER_CLAUDE_CONFIG_DIR", "~/.claude-reviewer"))
 
 
 def require(condition, message):
@@ -113,10 +117,92 @@ def begin(args):
     return 0
 
 
-def run_codex(command, prompt, directory, timeout):
+def adopt_workflow(args):
+    require(STATE.exists(), "No workflow state to update")
+    state = read_json(STATE)
+    require(state["decision"] != "IN_REVIEW", "A review is in progress")
+    clean()
+    head = git("rev-parse", "HEAD")
+    parent = git("rev-parse", "HEAD^")
+    changed = git("diff", "--name-only", parent, head).splitlines()
+    require(changed and all(path.startswith(HERE.name + "/") for path in changed),
+            "HEAD must be a commit that changes only " + HERE.name + "/ files")
+    if state["decision"] == "APPROVED":
+        require(state["approved_head"] == parent, "HEAD^ is not the approved candidate")
+        state["approved_head"] = head
+    else:
+        git("merge-base", "--is-ancestor", state["base_commit"], parent)
+    commits = state.setdefault("workflow_commits", [])
+    if head not in commits:
+        commits.append(head)
+    write_json(STATE, state)
+    write_json(RUNS / state["ticket_id"] / "ticket-state.json", state)
+    print(json.dumps(state, ensure_ascii=False, indent=2))
+    return 0
+
+
+def claude_env(config_dir):
+    # Drop the implementer session's variables (nested-session markers, session IDs, tokens) so the
+    # child authenticates only through the given config directory.
+    env = {key: value for key, value in os.environ.items() if not key.startswith(("CLAUDE", "ANTHROPIC"))}
+    if config_dir:
+        env["CLAUDE_CONFIG_DIR"] = config_dir
+    return env
+
+
+def auth_status(config_dir):
+    result = subprocess.run(["claude", "auth", "status", "--json"], cwd=ROOT, env=claude_env(config_dir),
+                            text=True, capture_output=True, timeout=60)
+    try:
+        status = json.loads(result.stdout)
+    except ValueError:
+        return {"loggedIn": False}
+    return status if isinstance(status, dict) else {"loggedIn": False}
+
+
+def check_reviewer():
+    require(shutil.which("claude"), "claude is missing from PATH; install it first")
+    reviewer = auth_status(REVIEWER_CONFIG)
+    require(reviewer.get("loggedIn") is True,
+            "Reviewer account is not signed in; run: CLAUDE_CONFIG_DIR=" + REVIEWER_CONFIG + " claude auth login")
+    implementer = auth_status(os.environ.get("CLAUDE_CONFIG_DIR"))
+    require(not reviewer.get("email") or reviewer.get("email") != implementer.get("email"),
+            "Reviewer and implementer are signed into the same account; sign " + REVIEWER_CONFIG + " into the second account")
+    return {"reviewer_config": REVIEWER_CONFIG, "reviewer_email": reviewer.get("email"),
+            "reviewer_subscription": reviewer.get("subscriptionType"), "implementer_email": implementer.get("email")}
+
+
+def reviewer_command(model):
+    # Mirrors the old read-only Codex sandbox: no edit tools, Bash confined by the OS sandbox with the
+    # repository write-denied and no network, no unsandboxed retry, no repo settings or MCP servers.
+    sandbox = {"sandbox": {"enabled": True, "failIfUnavailable": True, "allowUnsandboxedCommands": False,
+                           "filesystem": {"denyWrite": [str(ROOT)]}}}
+    command = ["claude", "-p", "--output-format", "stream-json", "--verbose",
+               "--json-schema", (HERE / "review.schema.json").read_text(encoding="utf-8"),
+               "--tools", "Read,Grep,Glob,Bash", "--permission-mode", "dontAsk",
+               "--setting-sources", "user", "--settings", json.dumps(sandbox),
+               "--strict-mcp-config", "--disable-slash-commands", "--no-session-persistence"]
+    if model:
+        command += ["--model", model]
+    return command
+
+
+def last_result(path):
+    result = None
+    for line in path.read_text(encoding="utf-8").splitlines():
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(event, dict) and event.get("type") == "result":
+            result = event
+    return result
+
+
+def run_reviewer(command, prompt, directory, timeout):
     with (directory / "stdout.log").open("w", encoding="utf-8") as out, (directory / "stderr.log").open("w", encoding="utf-8") as err:
-        process = subprocess.Popen(command, cwd=ROOT, stdin=subprocess.PIPE, stdout=out, stderr=err,
-                                   text=True, start_new_session=True)
+        process = subprocess.Popen(command, cwd=ROOT, env=claude_env(REVIEWER_CONFIG), stdin=subprocess.PIPE,
+                                   stdout=out, stderr=err, text=True, start_new_session=True)
         try:
             process.communicate(prompt, timeout=timeout)
         except BaseException:
@@ -129,7 +215,11 @@ def run_codex(command, prompt, directory, timeout):
             except ProcessLookupError:
                 pass
             raise
-    require(process.returncode == 0, "Codex failed; inspect stderr.log and stdout.log")
+    result = last_result(directory / "stdout.log")
+    detail = str((result or {}).get("result") or "inspect stderr.log and stdout.log")[:500]
+    require(process.returncode == 0 and result is not None and not result.get("is_error"), "Claude reviewer failed: " + detail)
+    require(isinstance(result.get("structured_output"), dict), "Claude reviewer returned no structured review; inspect stdout.log")
+    return result["structured_output"]
 
 
 def review(args):
@@ -141,7 +231,8 @@ def review(args):
     head = git("rev-parse", "HEAD")
     require(head != state["base_commit"], "No candidate commit exists after this ticket's baseline")
     git("merge-base", "--is-ancestor", state["base_commit"], head)
-    require(not git("diff", "--name-only", state["base_commit"], head, "--", HERE.name),
+    workflow_changes = git("rev-list", state["base_commit"] + ".." + head, "--", HERE.name).split()
+    require(set(workflow_changes) <= set(state.get("workflow_commits", [])),
             "Workflow files changed during implementation; ask the user to handle configuration separately")
     require(not git("diff", "--name-only", state["base_commit"], head, "--", state["tickets_path"]),
             "The ticket document changed during implementation; review against the original requirements")
@@ -155,7 +246,7 @@ def review(args):
                 and isinstance(item.get("requirement"), str) and item["requirement"].strip(), "Invalid criterion")
         ids.append(item["id"])
     require(len(ids) == len(set(ids)), "Duplicate acceptance criterion ID")
-    require(shutil.which("codex"), "codex is missing from PATH; install and sign in first")
+    check_reviewer()
     state["round"] += 1
     state["decision"] = "IN_REVIEW"
     state["approved_head"] = None
@@ -165,21 +256,18 @@ def review(args):
     write_json(STATE, state)
     write_json(directory.parent / "ticket-state.json", state)
     identity = {"ticket_id": state["ticket_id"], "base_commit": state["base_commit"], "head_commit": head}
+    previous = directory.parent / ("round-" + str(state["round"] - 1)) / "review.json"
     request = {**identity, "requirements_path": str(directory.parent / "requirements.md"),
                "handoff_path": str(directory / "handoff.json"),
-               "previous_review_path": str(directory.parent / ("round-" + str(state["round"] - 1)) / "review.json") if state["round"] > 1 else None}
-    prompt = (HERE / "codex-reviewer.md").read_text(encoding="utf-8") + "\n\nCurrent review request:\n" + json.dumps(request, ensure_ascii=False, indent=2)
+               "previous_review_path": str(previous) if previous.exists() else None}
+    prompt = (HERE / "claude-reviewer.md").read_text(encoding="utf-8") + "\n\nCurrent review request:\n" + json.dumps(request, ensure_ascii=False, indent=2)
     (directory / "request.txt").write_text(prompt, encoding="utf-8")
     write_json(directory / "request.json", request)
     output = directory / "review.json"
-    command = ["codex", "exec", "--sandbox", "read-only", "--output-schema", str(HERE / "review.schema.json"),
-               "--output-last-message", str(output), "-"]
-    if args.model:
-        command[2:2] = ["--model", args.model]
-    print("Running independent Codex review. Logs: " + str(directory), flush=True)
+    print("Running independent Claude review (" + REVIEWER_CONFIG + "). Logs: " + str(directory), flush=True)
     decision, error = "BLOCKED", None
     try:
-        run_codex(command, prompt, directory, args.timeout)
+        write_json(output, run_reviewer(reviewer_command(args.model), prompt, directory, args.timeout))
         clean()
         require(git("rev-parse", "HEAD") == head, "HEAD changed during review; approval is invalid")
         decision = gate_decision(read_json(output), handoff, identity)
@@ -208,10 +296,12 @@ def main():
     start.add_argument("--tickets", default="tickets.md")
     start.add_argument("--max-rounds", type=int, default=5)
     sub.add_parser("status")
+    sub.add_parser("check-reviewer", help="Verify the reviewer account sign-in without starting a round")
+    sub.add_parser("adopt-workflow", help="User only: accept HEAD as a commit that changes only workflow files")
     check = sub.add_parser("review")
     check.add_argument("--handoff", required=True)
     check.add_argument("--timeout", type=int, default=1800)
-    check.add_argument("--model", help="Optional model ID available to your Codex account")
+    check.add_argument("--model", help="Optional model alias or ID available to the reviewer account")
     args = parser.parse_args()
     try:
         require(Path(git("rev-parse", "--show-toplevel")).resolve() == ROOT, "Put agent-workflow directly inside the Git repository root")
@@ -227,6 +317,11 @@ def main():
             if args.action == "status":
                 print(json.dumps(read_json(STATE) if STATE.exists() else {"decision": "NOT_STARTED"}, ensure_ascii=False, indent=2))
                 return 0
+            if args.action == "check-reviewer":
+                print(json.dumps(check_reviewer(), ensure_ascii=False, indent=2))
+                return 0
+            if args.action == "adopt-workflow":
+                return adopt_workflow(args)
             return review(args)
     except Exception as exc:
         print(json.dumps({"decision": "BLOCKED", "error": str(exc)}, ensure_ascii=False), file=sys.stderr)
