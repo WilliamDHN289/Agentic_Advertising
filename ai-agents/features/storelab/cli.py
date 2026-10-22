@@ -1,9 +1,13 @@
-"""StoreLab command line. SL-02 provides ``validate`` and ``schemas``, SL-05
-``e1-stimuli``; SL-07 adds plan, run, status, resume, cancel and export.
+"""StoreLab command line: SL-02 ``validate`` and ``schemas``, SL-05 ``e1-stimuli``,
+SL-07 the runner commands (docs/cli.md; the Python API is ``api.py``).
 
     python -m features.storelab.cli validate CONFIG [--set KEY=VALUE ...] [--format yaml|json]
     python -m features.storelab.cli schemas [--check]
     python -m features.storelab.cli e1-stimuli CONFIG --snapshot DIR --out DIR [--set KEY=VALUE ...]
+    python -m features.storelab.cli plan|run CONFIG [--set KEY=VALUE ...] [--snapshot DIR] [--root DIR]
+    python -m features.storelab.cli status|cancel RUN [--root DIR]
+    python -m features.storelab.cli resume RUN [--max-usd USD] [--root DIR]
+    python -m features.storelab.cli export RUN [--format parquet|csv|jsonl] [--root DIR]
 
 ``validate`` prints the resolved config (every default written out) on stdout and
 its config_hash on stderr; it exits 2 on an invalid config. ``schemas`` regenerates
@@ -52,6 +56,55 @@ def schema_text(name: str) -> str:
     return json.dumps(SCHEMAS[name](), indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
 
+RUNNER_COMMANDS = ("plan", "run", "status", "resume", "cancel", "export")
+# Run status -> exit code of run and resume: 0 finished, 3 needs an operator, 4 stopped for good.
+RUN_EXIT = {"COMPLETED": 0, "COMPLETED_WITH_GAPS": 0, "PAUSED": 3, "LIMIT_REACHED": 3, "PENDING_APPROVAL": 3,
+            "QUEUED": 3, "FAILED": 4, "CANCELLED": 4}
+
+
+def _print(value) -> None:
+    print(json.dumps(value, indent=1, ensure_ascii=False, default=str))
+
+
+def _runner(args) -> int:
+    from . import api
+    from .core.runner import PlanError
+    from .core.store import RunLocked
+
+    try:
+        if args.command in ("plan", "run"):
+            config = load_config(args.config, parse_set(args.set))
+            if args.command == "plan":
+                run_dir, planned = api.plan_run(config, snapshot=args.snapshot, root=args.root)
+                last = planned.manifest.status_history[-1]
+                _print({"run_dir": str(run_dir), "run_id": planned.manifest.run_id,
+                        "mode": planned.manifest.mode.model_dump(), "trials": len(planned.trials),
+                        "estimate_usd": planned.estimate_usd, "status": last.status, "reason": last.reason})
+                return 0
+            run_dir, result = api.run(config, snapshot=args.snapshot, root=args.root)
+        else:
+            run_dir = api.resolve_run_dir(args.run, args.root)
+            if args.command == "status":
+                _print(api.status(run_dir))
+                return 0
+            if args.command == "cancel":
+                _print({"run_dir": str(run_dir), "cancel": api.cancel(run_dir)})
+                return 0
+            if args.command == "export":
+                _print({"run_dir": str(run_dir), "export": str(api.export(run_dir, args.format))})
+                return 0
+            result = api.resume(run_dir, max_usd=args.max_usd)
+    except ValidationError as error:
+        print("\n".join(format_errors(error)), file=sys.stderr)
+        return 2
+    except (PlanError, RunLocked, NotImplementedError, OSError, ValueError, KeyError, yaml.YAMLError) as error:
+        print("error: %s" % error, file=sys.stderr)
+        return 2
+    summary = api.status(run_dir)
+    _print({"run_dir": str(run_dir), **summary})
+    return RUN_EXIT.get(summary["status"], 3) if result is not None else 3
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m features.storelab.cli")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -67,7 +120,26 @@ def main(argv: list[str] | None = None) -> int:
     stimuli.add_argument("--snapshot", type=Path, required=True, help="dataset snapshot directory")
     stimuli.add_argument("--out", type=Path, required=True, help="output directory")
     stimuli.add_argument("--set", action="append", default=[], metavar="KEY=VALUE")
+    for name, text in (("plan", "plan a run and write its directory"), ("run", "plan a run and execute it")):
+        command = sub.add_parser(name, help=text)
+        command.add_argument("config", type=Path)
+        command.add_argument("--set", action="append", default=[], metavar="KEY=VALUE")
+        command.add_argument("--snapshot", type=Path, help="dataset snapshot (default: the configured one under "
+                                                           "artifacts/datasets)")
+        command.add_argument("--root", type=Path, help="runs directory (default: outputs.root)")
+    for name, text in (("status", "summarise a run"), ("resume", "continue a paused, limited or interrupted run"),
+                       ("cancel", "cancel a run"), ("export", "write the run's analysis table")):
+        command = sub.add_parser(name, help=text)
+        command.add_argument("run", help="run directory, or run id under --root")
+        command.add_argument("--root", type=Path, help="runs directory (default: runs)")
+        if name == "resume":
+            command.add_argument("--max-usd", type=float, help="raise the budget of a LIMIT_REACHED run")
+        if name == "export":
+            command.add_argument("--format", choices=("parquet", "csv", "jsonl"), default="parquet")
     args = parser.parse_args(argv)
+
+    if args.command in RUNNER_COMMANDS:
+        return _runner(args)
 
     if args.command == "e1-stimuli":
         from . import e1_stimuli

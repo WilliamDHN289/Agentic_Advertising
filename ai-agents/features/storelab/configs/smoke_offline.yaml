@@ -1,12 +1,13 @@
 # Smallest offline run: simulated agents, no credentials and no network. For CI and
-# dry runs; the dataset snapshot is pinned once SL-05 builds it.
+# dry runs: python -m features.storelab.cli run features/storelab/configs/smoke_offline.yaml
+# (needs the SL-05 snapshot under artifacts/datasets/amazon_reviews_2023/).
 schema_version: 1
 experiment: smoke_offline
 mode: offline
 seed: 1
 environment:
   catalog: amazon_reviews_2023
-  dataset: null
+  dataset: {name: amazon_reviews_2023, sha256: d7750e73c2e13f9706db2499fe0cff0267a31ced8d04727b96dd933359d9870b}
   categories: [Home_and_Kitchen]
   tasks_per_category: 1
 design:
