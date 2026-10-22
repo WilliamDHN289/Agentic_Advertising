@@ -422,6 +422,15 @@
           "title": "Products Per Category",
           "type": "integer"
         },
+        "rng_mode": {
+          "default": "keyed",
+          "enum": [
+            "legacy_shared",
+            "keyed"
+          ],
+          "title": "Rng Mode",
+          "type": "string"
+        },
         "store_seed": {
           "title": "Store Seed",
           "type": "integer"

@@ -483,6 +483,15 @@
           "title": "Products Per Category",
           "type": "integer"
         },
+        "rng_mode": {
+          "default": "keyed",
+          "enum": [
+            "legacy_shared",
+            "keyed"
+          ],
+          "title": "Rng Mode",
+          "type": "string"
+        },
         "store_seed": {
           "title": "Store Seed",
           "type": "integer"
@@ -1238,6 +1247,11 @@
       "pattern": "^[0-9a-f]{64}$",
       "title": "Config Hash",
       "type": "string"
+    },
+    "contains_substituted_outcomes": {
+      "default": false,
+      "title": "Contains Substituted Outcomes",
+      "type": "boolean"
     },
     "created_utc": {
       "format": "date-time",

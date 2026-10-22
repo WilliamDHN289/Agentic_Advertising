@@ -23,6 +23,7 @@ environment:
     episodes_secondary: 40        # run_experiment.py l.44
     ad_positions: [1, 2, 5, 9]    # storelab.py l.149
     bottom_positions: [9, 10, 11, 12]  # run_experiment.py l.49
+    rng_mode: legacy_shared       # reproduce the run's call-order RNG (SL-04)
 design:
   eligible_size: 334              # products per category
   set_sizes: [12]                 # results per page, storelab.py l.150

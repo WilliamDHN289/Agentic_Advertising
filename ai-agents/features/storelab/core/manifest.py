@@ -107,6 +107,9 @@ class Manifest(Section):
     models: list[ModelRecord]
     cache: CacheRecord
     governance: Literal["local", "platform"]
+    # True when the config allows legacy_parse_fallback, i.e. the run may hold
+    # first-item substitutions; each substituted record is flagged (SL-04).
+    contains_substituted_outcomes: bool = False
     status_history: list[StatusEvent] = Field(min_length=1)
 
     @model_validator(mode="after")
@@ -127,6 +130,9 @@ class Manifest(Section):
             problems.append("dataset_snapshot: does not match config.environment.dataset")
         if sorted(t.id for t in self.prompt_templates) != sorted(cfg.protocol.prompt_templates.values()):
             problems.append("prompt_templates: ids do not match config.protocol.prompt_templates")
+        if self.contains_substituted_outcomes != (cfg.protocol.legacy_parse_fallback != "none"):
+            problems.append("contains_substituted_outcomes: must be true exactly when "
+                            "config.protocol.legacy_parse_fallback is not none")
         if self.status_history[0].status != "PLANNED":
             problems.append("status_history: must start with PLANNED")
         for m in self.models:
@@ -164,6 +170,7 @@ def new_manifest(config: RunConfig, *, resolved_mode: str, mode_reason: str, gov
         models=models,
         cache=CacheRecord(policy=config.cache.policy, namespace=config.cache.namespace),
         governance=governance,
+        contains_substituted_outcomes=config.protocol.legacy_parse_fallback != "none",
         status_history=[StatusEvent(status="PLANNED", at_utc=now, reason=mode_reason)],
     )
 
@@ -180,6 +187,16 @@ def record_model_access(manifest: Manifest, key: str, returned_id: str, at: date
         record.first_access_utc = at
     if record.last_access_utc is None or at > record.last_access_utc:
         record.last_access_utc = at
+
+
+def record_model_digest(manifest: Manifest, key: str, digest: str) -> None:
+    """Pin a local model's weights: the digest ollama reports for it (SL-04)."""
+    record = next((m for m in manifest.models if m.key == key), None)
+    if record is None:
+        raise KeyError("no model %r in the manifest" % key)
+    if record.digest not in (None, digest):
+        raise ValueError("model %s: digest changed from %s to %s" % (key, record.digest, digest))
+    record.digest = digest
 
 
 def append_status(manifest: Manifest, status: str, at: datetime, reason: str | None = None) -> None:

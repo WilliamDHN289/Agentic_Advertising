@@ -126,6 +126,7 @@ ROWS = [
     ("legacy", "environment.legacy.episodes_secondary", 41, True),
     ("legacy", "environment.legacy.ad_positions", [1, 2, 5, 10], True),
     ("legacy", "environment.legacy.bottom_positions", [8, 10, 11, 12], True),
+    ("legacy", "environment.legacy.rng_mode", "keyed", False),
     ("e1", "design.eligible_size", 12, True),
     ("e1", "design.set_sizes", [2, 4], True),
     ("e2", "design.sponsored_slots", [2], True),
@@ -337,6 +338,8 @@ class CrossFieldRuleTest(unittest.TestCase):
         ("e1", {"design.set_sizes": [2, 4, 12]}, "design.set_sizes: set size 12 exceeds design.eligible_size 10"),
         ("e1", {"protocol.legacy_parse_fallback": "first_item"},
          "protocol.legacy_parse_fallback: first_item is allowed only for experiment legacy_storelab_2026_08"),
+        ("legacy", {"environment.legacy.rng_mode": "keyed"},
+         "protocol.legacy_parse_fallback: first_item is allowed only with environment.legacy.rng_mode legacy_shared"),
         ("e1", {"mode": "replay", "cache.policy": None}, "source_run_id: required with mode replay"),
         ("replay", {"cache.policy": "read_write"}, "cache.policy: mode replay requires read_only"),
         ("e1", {"source_run_id": UUID_A}, "source_run_id: allowed only with mode replay"),
@@ -368,6 +371,13 @@ class CrossFieldRuleTest(unittest.TestCase):
 
     def test_legacy_parse_fallback_is_accepted_for_the_legacy_experiment(self):
         self.assertEqual(BASES["legacy"].protocol.legacy_parse_fallback, "first_item")
+        self.assertEqual(BASES["legacy"].environment.legacy.rng_mode, "legacy_shared")
+        keyed = resolve_config(apply_overrides(BASE_DATA["legacy"], {
+            "environment.legacy.rng_mode": "keyed", "protocol.legacy_parse_fallback": "none"}))
+        self.assertEqual(keyed.environment.legacy.rng_mode, "keyed")
+        default = apply_overrides(BASE_DATA["legacy"], {"protocol.legacy_parse_fallback": "none"})
+        del default["environment"]["legacy"]["rng_mode"]
+        self.assertEqual(resolve_config(default).environment.legacy.rng_mode, "keyed")  # keyed is the default
 
     def test_cache_policy_resolves_from_the_mode(self):
         unset = {"cache.policy": None}

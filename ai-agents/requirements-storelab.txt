@@ -1,8 +1,11 @@
 # Runtime dependencies of features/storelab beyond the standard library, at the
-# versions the tests ran with. pydantic, PyYAML and jsonschema match the ai-agents
-# pyproject pins; pyarrow (Parquet records, SL-03) is not yet an ai-agents
-# dependency and must be added there when StoreLab moves into that repository.
+# versions the tests ran with. pydantic, PyYAML, jsonschema and numpy match the
+# ai-agents pyproject pins. pyarrow (Parquet records, SL-03) is not yet an ai-agents
+# dependency; 21.0.0 is the newest release that still accepts numpy < 2.0 (22 and
+# later require numpy 2), so it must be added at this version, or numpy raised, when
+# StoreLab moves into that repository.
 pydantic==2.12.4
 PyYAML>=6.0.2
 jsonschema>=4.26.0,<5.0.0
-pyarrow==26.0.0
+numpy>=1.26.4,<2.0
+pyarrow==21.0.0

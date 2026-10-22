@@ -142,6 +142,23 @@ class TrialOutcome(Section):
         return self
 
 
+class Completion(Section):
+    """One text-generation call as a backend reports it: the reply text, or the error
+    code once retries are spent. A failed call is never an empty string (SL-00 D-02)."""
+
+    text: str | None = None
+    error_code: ErrorCode | None = None
+    attempts: NonNegativeInt = 0
+    latency_s: NonNegativeFloat | None = None
+    returned_model: str | None = None
+
+    @model_validator(mode="after")
+    def _text_or_error(self) -> Completion:
+        if (self.text is None) == (self.error_code is None):
+            raise ValueError("a completion has either text or an error_code")
+        return self
+
+
 # ----------------------------------------------------------------------- parser
 class ChoiceReply(Section):
     """The reply the text and structured interfaces ask for. ``reason`` is at most

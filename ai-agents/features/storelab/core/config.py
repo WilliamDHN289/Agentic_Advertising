@@ -70,6 +70,9 @@ class LegacyEnvironment(Section):
     episodes_secondary: PositiveInt  # run_experiment.py l.44
     ad_positions: list[PositiveInt] = Field(min_length=1)  # storelab.py l.149
     bottom_positions: list[PositiveInt] = Field(min_length=1)  # run_experiment.py l.49
+    # legacy_shared: the original call-order generators, only to reproduce the run;
+    # keyed: per-episode streams keyed by (task_id, arm) (SL-04, docs/legacy_modes.md).
+    rng_mode: Literal["legacy_shared", "keyed"] = "keyed"
 
 
 class EnvironmentConfig(Section):
@@ -267,6 +270,9 @@ def _problems(cfg: RunConfig) -> list[str]:
     if cfg.protocol.legacy_parse_fallback != "none" and not legacy:
         out.append("protocol.legacy_parse_fallback: %s is allowed only for experiment %s (got experiment %s)"
                    % (cfg.protocol.legacy_parse_fallback, LEGACY_EXPERIMENT, cfg.experiment))
+    if cfg.protocol.legacy_parse_fallback != "none" and env.legacy is not None and env.legacy.rng_mode != "legacy_shared":
+        out.append("protocol.legacy_parse_fallback: %s is allowed only with environment.legacy.rng_mode "
+                   "legacy_shared (got %s)" % (cfg.protocol.legacy_parse_fallback, env.legacy.rng_mode))
 
     # What each catalog needs.
     if env.catalog == "amazon_reviews_2023":
