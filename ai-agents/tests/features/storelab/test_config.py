@@ -178,6 +178,7 @@ ROWS = [
     ("e1", "budget.max_usd", 10.0, True),
     ("e1", "budget.approval_usd", 5.0, True),
     ("e1", "budget.max_concurrency", 2, True),
+    ("e1", "budget.expected_turns", {"gpt_4o_20240806": 3.0}, True),
     ("e1", "outputs.root", "elsewhere", True),
     ("e1", "outputs.formats", ["csv"], True),
 ]

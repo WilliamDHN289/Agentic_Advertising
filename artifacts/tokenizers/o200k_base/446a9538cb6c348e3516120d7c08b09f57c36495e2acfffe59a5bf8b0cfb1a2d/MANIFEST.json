@@ -1,0 +1,11 @@
+{
+  "name": "o200k_base",
+  "file": "o200k_base.tiktoken",
+  "sha256": "446a9538cb6c348e3516120d7c08b09f57c36495e2acfffe59a5bf8b0cfb1a2d",
+  "bytes": 3613922,
+  "source": "https://openaipublic.blob.core.windows.net/encodings/o200k_base.tiktoken",
+  "expected_hash_in": "tiktoken 0.14.0, tiktoken_ext/openai_public.py o200k_base()",
+  "license": "MIT (tiktoken)",
+  "accessed_utc": "2026-10-22",
+  "used_by": "ai-agents/features/storelab/tokens.py (SL-11 cost estimate, OpenAI models)"
+}

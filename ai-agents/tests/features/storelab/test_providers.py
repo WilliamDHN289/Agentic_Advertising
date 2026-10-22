@@ -629,7 +629,10 @@ class SandboxRunTest(unittest.TestCase):
         self.assertEqual(platform.counts["success"] + platform.counts["failure"], requests)
         self.assertEqual(platform.counts["failure"], sum(1 for n in range(1, requests + 1) if n % 5 == 0))
         self.assertGreater(platform.counts["kill_checks"], requests)  # every trial and every attempt
-        self.assertFalse(store.invocation_log.exists())
+        # SL-11: the local copy of each call, with its USD, that the budget meter reads back on resume.
+        local = [json.loads(line) for line in store.invocation_log.read_text(encoding="utf-8").splitlines()]
+        self.assertEqual(sorted(x["trial_key"] for x in local), sorted(x["task_ref"] for x in logs))
+        self.assertTrue(all(x["cost_usd"] > 0 for x in local))
 
     def test_platform_kill_switch_breaker_and_slots(self):
         platform = FakePlatform(killed=True)
@@ -778,7 +781,7 @@ class SettingsTest(unittest.TestCase):
         self.assertEqual(model_problems(unpriced, StorelabSettings()), [
             "gpt_4o_20241120: gpt-4o-2024-11-20 is not in StorelabSettings.allowed_models",
             "gpt_4o_20241120: gpt-4o-2024-11-20 has no price row (pricing.py)"])
-        with self.assertRaisesRegex(PlanError, "has no price row"):
+        with self.assertRaisesRegex(PlanError, "gpt-4o-2024-11-20.*no price"):  # the SL-11 estimate refuses it
             api.plan_run(unpriced, snapshot=env.snapshot, root=env.runs, environ=KEYS)
         with self.assertRaisesRegex(PlanError, "gemini-2.0-flash-001 is not in StorelabSettings.allowed_models"):
             api.plan_run(config, snapshot=env.snapshot, root=env.runs,

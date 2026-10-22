@@ -9,6 +9,7 @@ SL-07 the runner commands (docs/cli.md; the Python API is ``api.py``).
     python -m features.storelab.cli resume RUN [--max-usd USD] [--root DIR]
     python -m features.storelab.cli export RUN [--format parquet|csv|jsonl] [--root DIR]
     python -m features.storelab.cli replay RUN [--root DIR] [--cache-root DIR]
+    python -m features.storelab.cli cost RUN [--tolerance 0.25] [--root DIR]
     python -m features.storelab.cli cache list|inspect|verify|purge|export [KEY] [--namespace N] [--provider P]
         [--model M] [--before YYYY-MM-DD] [--reason TEXT] [--out TAR] [--cache-root DIR]
 
@@ -16,7 +17,9 @@ SL-07 the runner commands (docs/cli.md; the Python API is ``api.py``).
 its config_hash on stderr; it exits 2 on an invalid config. ``schemas`` regenerates
 the JSON Schemas in contracts/storelab/, or with ``--check`` fails if they are stale.
 ``e1-stimuli`` builds the E1 tasks, designs and design report (e1_stimuli.py); it
-exits 2 on bad input and 1 if the label rate is outside its 99% bound.
+exits 2 on bad input and 1 if the label rate is outside its 99% bound. ``cost``
+writes a run's estimate-vs-actual report (SL-11, docs/cost.md) and exits 1 if a
+model's estimate is off by more than the tolerance (the SL-18 gate).
 """
 from __future__ import annotations
 
@@ -59,7 +62,7 @@ def schema_text(name: str) -> str:
     return json.dumps(SCHEMAS[name](), indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
 
-RUNNER_COMMANDS = ("plan", "run", "status", "resume", "cancel", "export", "replay")
+RUNNER_COMMANDS = ("plan", "run", "status", "resume", "cancel", "export", "replay", "cost")
 # Run status -> exit code of run and resume: 0 finished, 3 needs an operator, 4 stopped for good.
 RUN_EXIT = {"COMPLETED": 0, "COMPLETED_WITH_GAPS": 0, "PAUSED": 3, "LIMIT_REACHED": 3, "PENDING_APPROVAL": 3,
             "QUEUED": 3, "FAILED": 4, "CANCELLED": 4}
@@ -80,9 +83,11 @@ def _runner(args) -> int:
             if args.command == "plan":
                 run_dir, planned = api.plan_run(config, snapshot=args.snapshot, root=args.root)
                 last = planned.manifest.status_history[-1]
+                estimate = run_dir / "reports" / "cost_estimate.json"
                 _print({"run_dir": str(run_dir), "run_id": planned.manifest.run_id,
                         "mode": planned.manifest.mode.model_dump(), "trials": len(planned.trials),
-                        "estimate_usd": planned.estimate_usd, "status": last.status, "reason": last.reason})
+                        "estimate_usd": planned.estimate_usd, "cost_estimate": str(estimate) if estimate.is_file()
+                        else None, "status": last.status, "reason": last.reason})
                 return 0
             run_dir, result = api.run(config, snapshot=args.snapshot, root=args.root, cache_root=args.cache_root)
         else:
@@ -95,6 +100,11 @@ def _runner(args) -> int:
             if args.command == "cancel":
                 _print({"run_dir": str(run_dir), "cancel": api.cancel(run_dir)})
                 return 0
+            if args.command == "cost":
+                report = api.cost_report(run_dir, args.tolerance)
+                _print({"run_dir": str(run_dir), "report": str(run_dir / "reports" / "cost.json"),
+                        "totals": report["totals"], "gate": report["gate"]})
+                return 0 if report["gate"]["passed"] else 1
             if args.command == "export":
                 _print({"run_dir": str(run_dir), "export": str(api.export(run_dir, args.format))})
                 return 0
@@ -179,7 +189,8 @@ def main(argv: list[str] | None = None) -> int:
             command.add_argument("--cache-root", **cache_root)
     for name, text in (("status", "summarise a run"), ("resume", "continue a paused, limited or interrupted run"),
                        ("cancel", "cancel a run"), ("export", "write the run's analysis table"),
-                       ("replay", "replay a finished run from the response cache (no provider calls)")):
+                       ("replay", "replay a finished run from the response cache (no provider calls)"),
+                       ("cost", "report a run's cost estimate against its actual cost")):
         command = sub.add_parser(name, help=text)
         command.add_argument("run", help="run directory, or run id under --root")
         command.add_argument("--root", type=Path, help="runs directory (default: runs)")
@@ -189,6 +200,9 @@ def main(argv: list[str] | None = None) -> int:
             command.add_argument("--cache-root", **cache_root)
         if name == "export":
             command.add_argument("--format", choices=("parquet", "csv", "jsonl"), default="parquet")
+        if name == "cost":
+            command.add_argument("--tolerance", type=float, default=0.25,
+                                 help="largest |estimate - actual| / actual per model (default 0.25, SL-18)")
     cache = sub.add_parser("cache", help="list, inspect, verify, purge or export response-cache entries")
     cache.add_argument("action", choices=("list", "inspect", "verify", "purge", "export"))
     cache.add_argument("key", nargs="?", help="call_key (inspect)")

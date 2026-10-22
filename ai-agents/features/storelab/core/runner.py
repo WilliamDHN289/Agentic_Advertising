@@ -15,7 +15,7 @@ at a time, each on its own thread with a per-trial timeout, records every outcom
 | error/rate_limited | rate-limited share of the trials finished in the last ``rate_limit_window_s`` above ``rate_limit_pause_share`` (once at least ``failure_threshold`` finished) → PAUSED, auto-resumed like the breaker |
 | a returned model id differing from the one seen before | outcome kept, both ids in the manifest; PAUSED (``model_drift``), resumed only by an operator |
 | refusal, invalid, error/cache_miss | recorded; count as missing in their cell |
-| budget would be exceeded | ``not_run``/budget; LIMIT_REACHED |
+| budget would be exceeded (spent + reserved + the trial's maximum cost > ``max_usd``, SL-11) | ``not_run``/budget; LIMIT_REACHED |
 | kill switch | ``not_run``/kill_switch; CANCELLED |
 
 A backend's outcome is recorded as it is: the runner never substitutes a choice,
@@ -43,6 +43,7 @@ from pydantic import Field, NonNegativeInt, PositiveInt
 
 from .catalog_amazon import Product
 from .config import Ident, Interface, NonEmptyStr, RunConfig, Section, Sha256, canonical_json
+from .cost import Meter, call_usd, logged_spend
 from .design import Design
 from .manifest import Manifest, append_status, new_manifest, record_model_access
 from .protocol import PROTOCOL_VERSION, Observation, TrialOutcome
@@ -211,6 +212,9 @@ class Governance(Protocol):
 
     def record(self, trial: Trial, outcome: TrialOutcome, cost_usd: float) -> None: ...
 
+    def hold(self, trial: Trial, until: cf.Future) -> None:
+        """Keep the trial's budget reservation until ``until`` is done (SL-11)."""
+
     def cancel_requested(self) -> bool: ...
 
 
@@ -221,40 +225,55 @@ def kill_switch_engaged(environ: Mapping[str, str]) -> bool:
 
 
 class LocalGovernance:
-    """Budget, kill switch, cancel flag, a JSONL call log of finished trials and a JSONL
-    invocation log of provider calls (one line per call, SL-09) in the run directory."""
+    """Budget, kill switch, cancel flag and logs in the run directory: a JSONL call log
+    of finished trials, a JSONL invocation log of provider calls (one fsynced line per
+    call with its USD, SL-09) and a JSONL log of calls served from the cache (SL-11).
+
+    The budget is a ``cost.Meter`` (SL-11): ``authorize`` reserves a trial's maximum
+    cost, ``log_call`` charges each provider call as it returns, ``record`` releases the
+    reservation and charges the trial's ``cost_usd`` (a charge outside the metered calls,
+    0 for provider trials). On resume the spend is read back from the invocation log
+    and the call log, so a trial whose record was lost to a kill is charged for the
+    calls it really made, once each."""
 
     kind = "local"
 
     def __init__(self, run_id: str, max_usd: float, *, call_log: Path | None = None, cancel_flag: Path | None = None,
-                 environ: Mapping[str, str] | None = None, invocation_log: Path | None = None):
+                 environ: Mapping[str, str] | None = None, invocation_log: Path | None = None,
+                 cache_log: Path | None = None):
         self.run_id, self.max_usd = run_id, max_usd
         self.call_log, self.cancel_flag, self.invocation_log = call_log, cancel_flag, invocation_log
+        self.cache_log = cache_log
         self.environ = os.environ if environ is None else environ
-        self.spent_usd = 0.0
+        self.meter = Meter(max_usd, logged_spend(invocation_log, call_log))
         self.lock = threading.Lock()
-        if call_log is not None and Path(call_log).is_file():
-            for line in Path(call_log).read_text(encoding="utf-8").splitlines():
-                try:
-                    self.spent_usd += float(json.loads(line).get("cost_usd", 0.0))
-                except ValueError:
-                    continue  # a line cut short by a kill
+
+    @property
+    def spent_usd(self) -> float:
+        return self.meter.spent_usd
+
+    @property
+    def reserved_usd(self) -> float:
+        return self.meter.reserved_usd
 
     def authorize(self, trial: Trial, estimated_usd: float) -> str | None:
         if kill_switch_engaged(self.environ):
             return "kill_switch"
-        if self.spent_usd + estimated_usd > self.max_usd + 1e-12:
+        if not self.meter.reserve(trial.trial_key, estimated_usd):
             return "budget"
         return None
 
     def record(self, trial: Trial, outcome: TrialOutcome, cost_usd: float) -> None:
-        self.spent_usd += cost_usd
+        metered = self.meter.settle(trial.trial_key, cost_usd)
         if self.call_log is not None:
             line = json.dumps({"run_id": self.run_id, "trial_key": trial.trial_key, "model_key": trial.model_key,
                                "status": outcome.status, "error_code": outcome.error_code, "cost_usd": cost_usd,
-                               "at_utc": _utc_text()}, separators=(",", ":"))
+                               "metered_usd": metered, "at_utc": _utc_text()}, separators=(",", ":"))
             with open(self.call_log, "a", encoding="utf-8") as out:
                 out.write(line + "\n")
+
+    def hold(self, trial: Trial, until: cf.Future) -> None:
+        hold_until(self.meter, trial.trial_key, until)
 
     def cancel_requested(self) -> bool:
         return self.cancel_flag is not None and Path(self.cancel_flag).exists()
@@ -267,13 +286,27 @@ class LocalGovernance:
         return None
 
     def log_call(self, call: Mapping) -> None:
-        if self.invocation_log is None:
-            return
-        line = json.dumps({**call, "at_utc": _utc_text()}, separators=(",", ":"), default=str)
-        with self.lock, open(self.invocation_log, "a", encoding="utf-8") as out:
-            out.write(line + "\n")
-            out.flush()
-            os.fsync(out.fileno())
+        self.meter.charge(call.get("trial_key"), call_usd(call))
+        append_jsonl(self.invocation_log, call, self.lock)
+
+    def log_cache_hit(self, call: Mapping) -> None:
+        append_jsonl(self.cache_log, call, self.lock)
+
+
+def hold_until(meter: Meter, key: str, until: cf.Future) -> None:
+    meter.hold(key)
+    until.add_done_callback(lambda _: meter.release(key))
+
+
+def append_jsonl(path: Path | None, data: Mapping, lock: threading.Lock) -> None:
+    """One fsynced JSON line with the time of writing."""
+    if path is None:
+        return
+    line = json.dumps({**data, "at_utc": _utc_text()}, separators=(",", ":"), default=str)
+    with lock, open(path, "a", encoding="utf-8") as out:
+        out.write(line + "\n")
+        out.flush()
+        os.fsync(out.fileno())
 
 
 # ------------------------------------------------------------------- execution
@@ -347,7 +380,11 @@ def execute(manifest: Manifest, trials: list[Trial], stimuli: Stimuli, store: Ar
             cost: Callable[[Trial, TrialOutcome | None], float] = lambda trial, outcome: 0.0,
             clock: Callable[[], float] = time.monotonic, sleep: Callable[[float], None] = time.sleep,
             flush_every: int = 50) -> Result:
-    """Run the trials without a final record; returns the run's new status."""
+    """Run the trials without a final record; returns the run's new status.
+
+    ``cost(trial, None)`` is a trial's maximum cost, reserved before it starts (SL-11);
+    ``cost(trial, outcome)`` is charged when it is recorded, for spend the governance
+    does not meter per provider call (``log_call``)."""
     config = manifest.config
     current = manifest.status_history[-1].status
     if current in TERMINAL:
@@ -468,13 +505,16 @@ def _drive(trials, records, backends, governance, observation, write, cost, moni
             if governance.cancel_requested():
                 merge(Stop("CANCELLED", "cancelled by user"))
                 break
-            verdict = governance.authorize(trial, cost(trial, None))
+            reserve = cost(trial, None)
+            verdict = governance.authorize(trial, reserve)
             if verdict is not None:
                 outcome = TrialOutcome(status="not_run", error_code=verdict, backend=backend.backend,
                                        requested_model=backend.model)
                 write(trial, outcome, _utcnow())
-                merge(Stop("CANCELLED", "kill_switch") if verdict == "kill_switch" else
-                      Stop("LIMIT_REACHED", "budget: spent $%.4f of max_usd" % getattr(governance, "spent_usd", 0.0)))
+                merge(Stop("CANCELLED", "kill_switch") if verdict == "kill_switch" else Stop(
+                    "LIMIT_REACHED", "budget: spent $%.4f + reserved $%.4f + next trial $%.4f above max_usd $%.4f" % (
+                        getattr(governance, "spent_usd", 0.0), getattr(governance, "reserved_usd", 0.0),
+                        reserve, getattr(governance, "max_usd", 0.0))))
                 break
             obs = observation(trial)
             inflight[_start(backend.decide, trial, obs)] = (trial, _utcnow(), clock() + timeout)
@@ -498,6 +538,7 @@ def _drive(trials, records, backends, governance, observation, write, cost, moni
         for future, (trial, started, deadline) in list(inflight.items()):
             if now >= deadline and not future.done():
                 del inflight[future]  # abandoned: its late result is ignored
+                governance.hold(trial, future)  # but its call may still bill
                 backend = backends[trial.model_key]
                 finish(trial, TrialOutcome(status="error", error_code="provider_unavailable", attempts=1,
                                            latency_s=timeout, backend=backend.backend,

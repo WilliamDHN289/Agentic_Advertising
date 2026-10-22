@@ -19,17 +19,18 @@ python -m features.storelab.cli cache   list|inspect|verify|purge|export ...   (
 `run` read the dataset snapshot named by `environment.dataset` from
 `artifacts/datasets/` unless `--snapshot` is given. The Python API mirrors the
 commands: `api.plan_run`, `api.run`, `api.resume`, `api.status`, `api.cancel`,
-`api.export`, `api.replay` (and `api.execute_run`).
+`api.export`, `api.replay`, `api.cost_report` (and `api.execute_run`).
 
 | Command | Does | Exit code |
 |---|---|---|
-| `plan` | resolve the mode, build the E1 stimuli, enumerate the trials, write `<root>/<run_id>/`; prints run id, mode, trial count, estimate, status | 0; 2 on a config or plan error |
+| `plan` | resolve the mode, build the E1 stimuli, enumerate the trials, write `<root>/<run_id>/` (a sandbox plan also writes `reports/cost_estimate.json` and `.md`); prints run id, mode, trial count, estimate, status | 0; 2 on a config or plan error |
 | `run` | `plan`, then execute if the plan is QUEUED | 0 COMPLETED or COMPLETED_WITH_GAPS; 3 PAUSED, LIMIT_REACHED or awaiting approval; 4 FAILED or CANCELLED; 2 error |
 | `resume` | continue a QUEUED, PAUSED, LIMIT_REACHED or interrupted run; `--max-usd` raises the budget | as `run` |
 | `status` | status, counts by outcome, pending trials, cells above the missingness threshold, refusal rate, record-set hash | 0 |
 | `cancel` | if a process is executing the run, ask it to stop (it finishes in-flight trials); otherwise mark the run CANCELLED | 0 |
 | `export` | `export/trials.<parquet\|csv\|jsonl.gz>`: one row per planned trial with a record, in plan order | 0 |
 | `replay` | a new run replaying RUN from the response cache, no provider calls (docs/cache.md) | as `run` |
+| `cost` | `reports/cost.json` and `.md`: estimate vs actual per model, cache savings, the SL-18 gate (`--tolerance`, default 0.25; docs/cost.md) | 0 gate passed; 1 failed; 2 error |
 
 ## Mode resolution (once, at plan time)
 
@@ -66,8 +67,9 @@ At most `budget.max_concurrency` trials are in flight, each on its own thread wi
 the timeout `failure_policy.trial_timeout_s`. Before each trial the governance
 checks the cancel flag, the kill switch (`LOADTEST_LLM_KILL_SWITCH_FORCE` set to
 anything but `0`, as in `llm_guard.py`; the adapters check it again before every
-attempt) and the budget; every finished trial is appended to `calls.jsonl` with `run_id` and
-`trial_key`. Run effects (tickets.md section 3.5):
+attempt) and the budget (SL-11, [cost.md](cost.md): the trial's maximum cost is
+reserved, each provider call is charged as it returns); every finished trial is appended
+to `calls.jsonl` with `run_id` and `trial_key`. Run effects (tickets.md section 3.5):
 
 | Trial outcome | Run |
 |---|---|
@@ -96,7 +98,9 @@ occurred.
                records/part-*.jsonl.gz  append-only TrialRecord shards, one per session
                export/                analysis tables
                calls.jsonl            call log, one line per finished trial
-               invocations.jsonl      one line per provider call (SL-09)
+               invocations.jsonl      one line per provider call, with its USD (SL-09, SL-11)
+               cache_hits.jsonl       one line per call served from the cache (SL-11)
+               reports/               cost_estimate.json|md (plan), cost.json|md (`cost RUN`)
 ```
 
 Records are appended in gzip members of up to 50 records, each fsynced; a process
@@ -113,6 +117,6 @@ killed process is taken over, and the run's last RUNNING status is followed by
 STALLED and QUEUED.
 
 Not yet: Celery workers, heartbeats and the stall reaper (SL-13), the approval flow
-for PENDING_APPROVAL (SL-12), cost estimation (SL-11; offline runs cost 0), event
+for PENDING_APPROVAL (SL-12), event
 exports and event telemetry (SL-14). `browser_tool` trials store their events with their
 records (SL-10; `LocalStore.events()`).

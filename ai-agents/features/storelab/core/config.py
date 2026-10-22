@@ -200,6 +200,9 @@ class BudgetConfig(Section):
     max_usd: NonNegativeFloat = 0.0
     approval_usd: NonNegativeFloat | None = None
     max_concurrency: PositiveInt = 4
+    # browser_tool turns per trial by model key, calibrated on the pilot (SL-11, SL-17);
+    # a model not listed is estimated at protocol.max_turns, the upper bound.
+    expected_turns: dict[Ident, Annotated[float, Field(ge=1.0)]] = {}
 
 
 class OutputsConfig(Section):
@@ -337,6 +340,14 @@ def _problems(cfg: RunConfig) -> list[str]:
                        % (where, m.provider))
     if agents.offline_backend == "simulated" and cfg.mode in ("offline", "auto") and simulated is None:
         out.append("agents.simulated: required when agents.offline_backend is simulated in mode %s" % cfg.mode)
+
+    # Cost estimate (SL-11).
+    for key, turns in cfg.budget.expected_turns.items():
+        if key not in {m.key for m in agents.models}:
+            out.append("budget.expected_turns: %s is not a key in agents.models" % key)
+        if turns > cfg.protocol.max_turns:
+            out.append("budget.expected_turns: %s expects %g turns, above protocol.max_turns %d"
+                       % (key, turns, cfg.protocol.max_turns))
 
     # Replay.
     if cfg.mode == "replay":

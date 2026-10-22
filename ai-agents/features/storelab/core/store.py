@@ -7,7 +7,10 @@ Layout of a run directory (tickets.md section 3.7)::
     plan/stimuli.json             the tasks, designs and products the trials show
     records/part-NNNNN-<id>.jsonl.gz   append-only TrialRecord and EventRecord shards, one per session
     export/trials.<format>        analysis tables (one row per trial_key)
-    calls.jsonl                   local governance call log
+    calls.jsonl                   local governance call log, one line per finished trial
+    invocations.jsonl             one line per provider call, with its USD (SL-09, SL-11)
+    cache_hits.jsonl              one line per call served from the response cache (SL-11)
+    reports/cost_estimate.json|md the plan's cost estimate; reports/cost.json|md estimate vs actual (SL-11)
     .lock                         pid of the process executing the run
 
 A shard is a sequence of gzip members, each a batch of complete JSON lines appended
@@ -115,6 +118,8 @@ class LocalStore:
         self.export_dir = self.run_dir / "export"
         self.call_log = self.run_dir / "calls.jsonl"
         self.invocation_log = self.run_dir / "invocations.jsonl"  # one line per provider call (SL-09)
+        self.cache_log = self.run_dir / "cache_hits.jsonl"  # one line per call served from the cache (SL-11)
+        self.reports_dir = self.run_dir / "reports"
         self.cancel_flag = self.run_dir / "CANCEL"
         self.lock_path = self.run_dir / ".lock"
 

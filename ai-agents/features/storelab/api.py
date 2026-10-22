@@ -8,6 +8,7 @@
     cancel(run_dir)       stop a running run (cancel flag) or cancel a stopped one
     export(run_dir, fmt)  write export/trials.<parquet|csv|jsonl.gz>, one row per planned trial
     replay(run_dir)       a new run with mode replay of a finished run, served from the cache (SL-08)
+    cost_report(run_dir)  estimate vs actual per model and cache savings (SL-11, ``costs.py``)
 
 Run directories live under ``outputs.root`` (default ``runs``) as ``<run_id>/``. The
 offline backends are the simulated agents (SL-06) and the local LLM (SL-04, text and
@@ -17,6 +18,11 @@ adapters (``backends/provider.py``; tests pass mocks as ``providers``) with the 
 ``StorelabSettings``, and only models that are pinned, allowed and priced. A replay plans the
 source run's stimuli again under its own config_hash and serves every call from the
 cache (``read_only``), so it makes no provider call.
+
+Cost (SL-11, ``costs.py``): a sandbox plan is estimated from its rendered prompts
+(``reports/cost_estimate.json`` and ``.md``) and refused if a model has no price;
+during execution each trial's maximum cost is reserved before it starts and each
+provider call is charged as it returns, against ``budget.max_usd``.
 """
 from __future__ import annotations
 
@@ -29,7 +35,7 @@ import time
 from pathlib import Path
 from typing import Any, Mapping
 
-from . import e1_stimuli
+from . import costs, e1_stimuli
 from .backends.browser_tool import simulated_decision
 from .backends.llm import LLMBackend, OllamaProvider, Provider
 from .backends.provider import CallGuard, adapters_for
@@ -108,8 +114,9 @@ def plan_run(config: RunConfig, *, snapshot: Path | None = None, root: Path | No
         _, stimuli = replay_source(config, root)
     else:
         stimuli = build_stimuli(config, snapshot)
+    estimator = costs.PlanEstimate(stimuli) if estimate_cost is None else None
     result = plan(config, stimuli, detect_credentials(environ), overrides=overrides, run_id=run_id,
-                  estimate_cost=estimate_cost)
+                  estimate_cost=estimate_cost or estimator)
     if result.manifest.mode.resolved == "sandbox":
         problems = model_problems(config, StorelabSettings.from_env(environ))
         if problems:
@@ -120,6 +127,9 @@ def plan_run(config: RunConfig, *, snapshot: Path | None = None, root: Path | No
     store = LocalStore(run_dir)
     store.write_plan([t.model_dump(mode="json") for t in result.trials], stimuli.model_dump(mode="json"))
     store.write_manifest(result.manifest)
+    if estimator is not None and estimator.rows is not None:
+        costs.write_estimate(store, config, estimator.rows, mode=result.manifest.mode.resolved,
+                             run_id=result.manifest.run_id)
     return run_dir, result
 
 
@@ -150,8 +160,8 @@ def backends_for(config: RunConfig, stimuli: Stimuli, resolved_mode: str, base: 
     policy = config.cache.policy
     providers = dict(providers or {})
     if resolved_mode == "replay":
-        return {m.key: LLMBackend(config, m.key, provider=None, cache=cache, policy="read_only", run_id=run_id)
-                for m in config.agents.models}
+        return {m.key: LLMBackend(config, m.key, provider=None, cache=cache, policy="read_only", run_id=run_id,
+                                  guard=guard) for m in config.agents.models}
     if resolved_mode == "sandbox":
         missing = sorted({m.provider for m in config.agents.models} - set(providers))
         if missing:
@@ -190,11 +200,13 @@ def execute_run(run_dir: Path, *, environ: Mapping[str, str] | None = None, base
         config = manifest.config
         if platform is not None:
             governance = PlatformGovernance(manifest.run_id, config.budget.max_usd, platform,
-                                            cancel_flag=store.cancel_flag)
+                                            cancel_flag=store.cancel_flag, invocation_log=store.invocation_log,
+                                            cache_log=store.cache_log)
         else:
             governance = LocalGovernance(manifest.run_id, config.budget.max_usd, call_log=store.call_log,
                                          cancel_flag=store.cancel_flag, environ=environ,
-                                         invocation_log=store.invocation_log)
+                                         invocation_log=store.invocation_log, cache_log=store.cache_log)
+        cost = costs.reservation(config, stimuli, manifest.mode.resolved)
         if backends is None:
             cache = open_cache(cache_root) if config.cache.policy != "off" else None
             if manifest.mode.resolved == "sandbox" and providers is None:
@@ -202,7 +214,8 @@ def execute_run(run_dir: Path, *, environ: Mapping[str, str] | None = None, base
             backends = backends_for(config, stimuli, manifest.mode.resolved, base, providers=providers,
                                     cache=cache, run_id=manifest.run_id, guard=governance)
         store.cancel_flag.unlink(missing_ok=True)
-        return execute(manifest, trials, stimuli, store, backends, governance, sleep=sleep, flush_every=flush_every)
+        return execute(manifest, trials, stimuli, store, backends, governance, cost=cost, sleep=sleep,
+                       flush_every=flush_every)
     finally:
         store.release()
 
@@ -273,6 +286,10 @@ def cancel(run_dir: Path) -> str:
     finally:
         store.release()
     return "cancelled"
+
+
+def cost_report(run_dir: Path, tolerance: float = costs.GATE_TOLERANCE) -> dict:
+    return costs.cost_report(run_dir, tolerance)
 
 
 def status(run_dir: Path) -> dict:

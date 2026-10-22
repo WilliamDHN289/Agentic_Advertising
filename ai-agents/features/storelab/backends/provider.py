@@ -23,7 +23,8 @@ it is engaged; ``KillSwitchEngaged`` if none was made; if it stops the retries o
 failing call, the call keeps its last attempt's error code and ``stopped_by`` is
 ``kill_switch``), and on the platform the
 circuit breaker, provider slots and rate limiter (``governance.PlatformGovernance``).
-``LLMBackend`` writes one ``log_call`` per call that reached the provider.
+``LLMBackend`` writes one ``log_call`` per call that reached the provider and one
+``log_cache_hit`` per call the response cache served (SL-11).
 
 Each response records the returned model id, the provider request id, the OpenAI
 ``system_fingerprint`` when present, the parameters actually sent (a null temperature
@@ -68,6 +69,9 @@ class CallGuard(Protocol):
     def log_call(self, call: Mapping[str, Any]) -> None:
         """One durable line per call that reached the provider (``LLMBackend``)."""
 
+    def log_cache_hit(self, call: Mapping[str, Any]) -> None:
+        """One line per call served from the cache, with what it would have cost (SL-11)."""
+
 
 class NoGuard:
     def before_attempt(self, provider: str, model: str) -> str | None:
@@ -77,6 +81,9 @@ class NoGuard:
         return None
 
     def log_call(self, call: Mapping[str, Any]) -> None:
+        return None
+
+    def log_cache_hit(self, call: Mapping[str, Any]) -> None:
         return None
 
 

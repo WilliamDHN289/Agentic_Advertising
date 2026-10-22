@@ -76,6 +76,20 @@
           "default": null,
           "title": "Approval Usd"
         },
+        "expected_turns": {
+          "default": {},
+          "patternProperties": {
+            "^[a-z0-9][a-z0-9_]*$": {
+              "minimum": 1.0,
+              "type": "number"
+            }
+          },
+          "propertyNames": {
+            "maxLength": 64
+          },
+          "title": "Expected Turns",
+          "type": "object"
+        },
         "max_concurrency": {
           "default": 4,
           "exclusiveMinimum": 0,

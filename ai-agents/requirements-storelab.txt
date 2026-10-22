@@ -16,3 +16,6 @@ pyarrow==21.0.0
 openai==2.8.0
 google-genai==1.56.0
 anthropic==1.17.0
+# Token counts of the cost estimate (SL-11): the ai-agents pin. Its o200k_base file is
+# read from artifacts/tokenizers/, never downloaded.
+tiktoken==0.14.0

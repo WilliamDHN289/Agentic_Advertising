@@ -15,8 +15,10 @@ a replay (whose config_hash differs) asks for the same call.
 
 Every call that reaches the provider (not a cache hit, not a call the kill switch
 stopped before its first attempt) is written once through the run's ``CallGuard``
-``log_call`` with ``run_id`` and ``trial_key`` (SL-09): an invocation-log write under
-``PlatformGovernance``, a line in ``invocations.jsonl`` under ``LocalGovernance``. A
+``log_call`` with ``run_id``, ``trial_key`` and its ``cost_usd`` (SL-09; the budget
+meter charges it, SL-11): an invocation-log write under ``PlatformGovernance``, a line
+in ``invocations.jsonl`` under both governances. Every call served from the cache
+goes to ``log_cache_hit`` with what it would have cost (the savings, SL-11). A
 kill switch engaged before the first attempt gives ``not_run``/``kill_switch``.
 
 A ``browser_tool`` trial is a tool loop of one call per turn (``browser_tool.py``,
@@ -121,6 +123,7 @@ class LLMBackend:
         key = call_key(request)
         entry = self.cache.get(request.provider, request.requested_model, key) if self.policy in READS else None
         if entry is not None:
+            self.log_cache_hit(trial, request, key, entry.response)
             return Call(entry.response, entry.parsed_action, "cache:" + key)
         if self.policy == "read_only":
             return Call(None, None, "cache:" + key, TrialOutcome(status="error", error_code="cache_miss", attempts=0,
@@ -145,17 +148,28 @@ class LLMBackend:
         return Call(response, action, raw_ref)
 
     def log_call(self, trial: Trial, request: LLMRequest, key: str, response: ProviderResponse) -> None:
-        try:
-            cost = 0.0 if request.provider == "ollama" else call_cost_usd(request.requested_model, response.usage)
-        except UnknownModelError:
-            cost = None
         self.guard.log_call({
             "run_id": self.run_id, "trial_key": trial.trial_key, "call_key": key, "provider": request.provider,
             "requested_model": request.requested_model, "returned_model": response.returned_model,
             "status": "failed" if response.error_code else "succeeded", "error_code": response.error_code,
             "refusal": response.refusal, "attempts": response.attempts, "latency_s": response.latency_s,
             "input_tokens": response.usage.input_tokens, "output_tokens": response.usage.output_tokens,
-            "request_id": response.request_id, "stopped_by": response.stopped_by, "cost_usd": cost})
+            "request_id": response.request_id, "stopped_by": response.stopped_by,
+            "cost_usd": self.cost_usd(request, response)})
+
+    def log_cache_hit(self, trial: Trial, request: LLMRequest, key: str, response: ProviderResponse) -> None:
+        self.guard.log_cache_hit({
+            "run_id": self.run_id, "trial_key": trial.trial_key, "call_key": key, "provider": request.provider,
+            "requested_model": request.requested_model, "input_tokens": response.usage.input_tokens,
+            "output_tokens": response.usage.output_tokens, "cost_usd": self.cost_usd(request, response)})
+
+    @staticmethod
+    def cost_usd(request: LLMRequest, response: ProviderResponse) -> float | None:
+        """The call's USD at its usage; None without a price (the meter refuses it)."""
+        try:
+            return 0.0 if request.provider == "ollama" else call_cost_usd(request.requested_model, response.usage)
+        except UnknownModelError:
+            return None
 
 
 def outcome_from(response: ProviderResponse, action, raw_ref: str | None, **common) -> TrialOutcome:
