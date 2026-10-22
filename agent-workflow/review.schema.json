@@ -38,7 +38,8 @@
               "PASS",
               "FAIL",
               "NOT_VERIFIED",
-              "NOT_APPLICABLE"
+              "NOT_APPLICABLE",
+              "WAIVED"
             ]
           },
           "evidence": {

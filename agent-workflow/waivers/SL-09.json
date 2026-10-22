@@ -1,0 +1,14 @@
+{
+  "ticket_id": "SL-09",
+  "decided_by": "project owner",
+  "date": "2026-10-22",
+  "waivers": [
+    {
+      "criterion_id": "AC-5",
+      "requirement": "The live-smoke report lists returned id, access date and cost for every configured model.",
+      "scope": "Waived: the live run against real provider APIs and the resulting live-smoke report. Still required and reviewed as usual: the live-smoke script behind the --live flag, the per-model cost bound (<= $1), the report format listing returned id, access date and cost per configured model (verified offline), refusal to call anything without --live or keys, and fixture recording support.",
+      "reason": "No provider API keys are available. Owner decision: build the infrastructure only and move on; tests that need the APIs are skipped for now.",
+      "follow_up": "Run `python -m features.storelab.live_smoke features/storelab/configs/e1_pilot.yaml --live --record-fixtures tests/features/storelab/fixtures/providers` once keys exist and attach the report. Phase gate G2 (live smoke run) stays open until then."
+    }
+  ]
+}

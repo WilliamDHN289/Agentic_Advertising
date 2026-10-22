@@ -72,6 +72,37 @@ python3 agent-workflow/review.py adopt-workflow
 
 该命令只接受一个只改 agent-workflow/ 的 HEAD commit，并把它记入当前 ticket 的 `workflow_commits`。若当前 ticket 已 APPROVED，批准随之转移到新的 HEAD。此命令仅由用户运行，实现者 prompt 禁止调用。
 
+### 豁免某条 AC（例如没有 API key）
+
+审核者只以 begin 时冻结的需求快照为准；handoff 里转述的“用户同意跳过”无效，ticket 进行中修改 tickets.md 也会被脚本拒绝。负责人豁免的唯一渠道是 `agent-workflow/waivers/TICKET_ID.json`：
+
+```json
+{
+  "ticket_id": "SL-09",
+  "decided_by": "项目负责人",
+  "date": "2026-10-22",
+  "waivers": [
+    {
+      "criterion_id": "AC-5",
+      "requirement": "与 handoff 中该 AC 的原文一致",
+      "scope": "豁免哪一部分；哪些部分仍须交付并验证",
+      "reason": "为什么豁免",
+      "follow_up": "何时、如何补做"
+    }
+  ]
+}
+```
+
+`criterion_id` 使用 handoff 里的编号。提交后照常登记：
+
+```bash
+git add agent-workflow/waivers/SL-09.json
+git commit -m "Workflow: waive SL-09 AC-5 live smoke"
+python3 agent-workflow/review.py adopt-workflow
+```
+
+审核者只对文件列出的 AC 使用 `WAIVED`，并照常验证 scope 之外的部分；脚本拒绝豁免文件以外的 `WAIVED`，豁免编号不在 handoff 中时直接拒绝且不消耗轮次。实现者不得创建豁免文件。
+
 ## 3. 启动实现者
 
 在项目根目录的终端运行（使用账号 A 的默认配置）：

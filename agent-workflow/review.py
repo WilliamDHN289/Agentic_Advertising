@@ -22,6 +22,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 RUNS = HERE / "runs"
 STATE = RUNS / "state.json"
+WAIVERS = HERE / "waivers"
 REVIEWER_CONFIG = os.path.expanduser(os.environ.get("REVIEWER_CLAUDE_CONFIG_DIR", "~/.claude-reviewer"))
 
 
@@ -73,7 +74,24 @@ def validate_schema(value, schema, location="review"):
             validate_schema(item, schema["items"], location + "[" + str(index) + "]")
 
 
-def gate_decision(review, handoff, expected):
+def load_waivers(ticket_id, criteria_ids):
+    # Owner waivers live under agent-workflow/, so they reach a ticket only through adopt-workflow.
+    path = WAIVERS / (ticket_id + ".json")
+    if not path.exists():
+        return None, set()
+    waiver = read_json(path)
+    require(isinstance(waiver, dict) and waiver.get("ticket_id") == ticket_id, "Waiver ticket ID mismatch: " + str(path))
+    entries = waiver.get("waivers")
+    require(isinstance(entries, list) and entries, "Waiver file lists no waivers: " + str(path))
+    for entry in entries:
+        require(isinstance(entry, dict) and all(isinstance(entry.get(key), str) and entry[key].strip()
+                for key in ("criterion_id", "requirement", "scope", "reason")), "Invalid waiver entry: " + str(path))
+    waived = {entry["criterion_id"] for entry in entries}
+    require(waived <= set(criteria_ids), "Waiver names criteria absent from the handoff: " + ", ".join(sorted(waived - set(criteria_ids))))
+    return path, waived
+
+
+def gate_decision(review, handoff, expected, waived):
     validate_schema(review, read_json(HERE / "review.schema.json"))
     for key, value in expected.items():
         require(review[key] == value, "Review identity mismatch: " + key)
@@ -83,8 +101,10 @@ def gate_decision(review, handoff, expected):
     require(set(criteria_ids) == set(checked_ids), "Review does not account for every submitted criterion")
     if review["decision"] == "APPROVED":
         require(review["criteria_complete"] is True, "Approval omitted original ticket requirements")
-        require(all(c["status"] in ("PASS", "NOT_APPLICABLE") and c["evidence"].strip()
+        require(all(c["status"] in ("PASS", "NOT_APPLICABLE", "WAIVED") and c["evidence"].strip()
                     for c in review["checks"]), "Approval has failed or unverified criteria, or missing evidence")
+        require(all(c["criterion_id"] in waived for c in review["checks"] if c["status"] == "WAIVED"),
+                "Approval waives a criterion that has no owner waiver")
         require(not any(f["blocking"] for f in review["findings"]), "Approval has unresolved blocking findings")
     return review["decision"]
 
@@ -246,6 +266,7 @@ def review(args):
                 and isinstance(item.get("requirement"), str) and item["requirement"].strip(), "Invalid criterion")
         ids.append(item["id"])
     require(len(ids) == len(set(ids)), "Duplicate acceptance criterion ID")
+    waiver_path, waived = load_waivers(state["ticket_id"], ids)
     check_reviewer()
     state["round"] += 1
     state["decision"] = "IN_REVIEW"
@@ -259,7 +280,8 @@ def review(args):
     previous = directory.parent / ("round-" + str(state["round"] - 1)) / "review.json"
     request = {**identity, "requirements_path": str(directory.parent / "requirements.md"),
                "handoff_path": str(directory / "handoff.json"),
-               "previous_review_path": str(previous) if previous.exists() else None}
+               "previous_review_path": str(previous) if previous.exists() else None,
+               "waiver_path": str(waiver_path) if waiver_path else None}
     prompt = (HERE / "claude-reviewer.md").read_text(encoding="utf-8") + "\n\nCurrent review request:\n" + json.dumps(request, ensure_ascii=False, indent=2)
     (directory / "request.txt").write_text(prompt, encoding="utf-8")
     write_json(directory / "request.json", request)
@@ -270,7 +292,7 @@ def review(args):
         write_json(output, run_reviewer(reviewer_command(args.model), prompt, directory, args.timeout))
         clean()
         require(git("rev-parse", "HEAD") == head, "HEAD changed during review; approval is invalid")
-        decision = gate_decision(read_json(output), handoff, identity)
+        decision = gate_decision(read_json(output), handoff, identity, waived)
     except KeyboardInterrupt:
         error = "Review interrupted; no approval recorded"
     except Exception as exc:
