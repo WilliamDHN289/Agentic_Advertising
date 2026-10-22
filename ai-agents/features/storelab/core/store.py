@@ -5,7 +5,7 @@ Layout of a run directory (tickets.md section 3.7)::
     manifest.json                 resolved config, hashes, versions, mode, status history
     plan/trials.jsonl.gz          planned trials (trial_key and design coordinates)
     plan/stimuli.json             the tasks, designs and products the trials show
-    records/part-NNNNN-<id>.jsonl.gz   append-only TrialRecord shards, one per session
+    records/part-NNNNN-<id>.jsonl.gz   append-only TrialRecord and EventRecord shards, one per session
     export/trials.<format>        analysis tables (one row per trial_key)
     calls.jsonl                   local governance call log
     .lock                         pid of the process executing the run
@@ -13,7 +13,8 @@ Layout of a run directory (tickets.md section 3.7)::
 A shard is a sequence of gzip members, each a batch of complete JSON lines appended
 and fsynced together, so a process killed at any instant leaves complete members
 plus at most one truncated member, which readers skip; its trials are executed again
-on resume. Records are deduplicated on ``trial_key``: a trial with a final record
+on resume. A trial's storefront events (``browser_tool``, SL-10) are written
+just before its record in the same member, so they are kept or lost with it. Records are deduplicated on ``trial_key``: a trial with a final record
 (any status but ``not_run``) is never recorded again, and a final record supersedes
 a ``not_run`` one (a trial blocked by the budget or the kill switch runs on resume).
 """
@@ -29,7 +30,7 @@ from pathlib import Path
 from typing import Iterable, Iterator, Protocol
 
 from .manifest import Manifest, read_manifest, write_manifest
-from .records import TrialRecord, _check_version
+from .records import EventRecord, TrialRecord, _check_version
 
 
 def effective(records: Iterable[TrialRecord]) -> dict[str, TrialRecord]:
@@ -75,14 +76,16 @@ class RecordWriter:
         self._pending: list[bytes] = []
         self.written = 0
 
-    def append(self, record: TrialRecord) -> bool:
-        """Queue ``record``; False (and nothing written) if its trial already has a final record."""
+    def append(self, record: TrialRecord, events: Iterable[EventRecord] = ()) -> bool:
+        """Queue ``record`` after its ``events``; False (and nothing written) if its trial
+        already has a final record."""
         held = self.known.get(record.trial_key)
         if held is not None and held.outcome.status != "not_run":
             return False
         self.known[record.trial_key] = record
-        line = json.dumps(record.model_dump(mode="json"), ensure_ascii=False, allow_nan=False, separators=(",", ":"))
-        self._pending.append((line + "\n").encode("utf-8"))
+        lines = [json.dumps(r.model_dump(mode="json"), ensure_ascii=False, allow_nan=False, separators=(",", ":"))
+                 for r in (*events, record)]
+        self._pending.append("".join(line + "\n" for line in lines).encode("utf-8"))
         self.written += 1
         if len(self._pending) >= self.flush_every:
             self.flush()
@@ -139,16 +142,38 @@ class LocalStore:
     def shards(self) -> list[Path]:
         return sorted(self.records_dir.glob("part-*.jsonl.gz")) if self.records_dir.is_dir() else []
 
-    def iter_records(self) -> Iterator[TrialRecord]:
+    def _lines(self) -> Iterator[dict]:
         for shard in self.shards():
             for member in gzip_members(shard.read_bytes()):
                 for line in member.decode("utf-8").splitlines():
                     data = json.loads(line)
                     _check_version(data.get("schema_version"), "%s" % shard.name)
-                    yield TrialRecord.model_validate(data)
+                    yield data
+
+    def iter_records(self) -> Iterator[TrialRecord]:
+        for data in self._lines():
+            if "kind" not in data:  # an EventRecord line has a kind, a TrialRecord none
+                yield TrialRecord.model_validate(data)
 
     def records(self) -> dict[str, TrialRecord]:
         return effective(self.iter_records())
+
+    def events(self) -> dict[str, list[EventRecord]]:
+        """trial_key -> the events written with its effective record (``effective``), in order."""
+        pending: dict[str, list[EventRecord]] = {}
+        held: dict[str, TrialRecord] = {}
+        out: dict[str, list[EventRecord]] = {}
+        for data in self._lines():
+            if "kind" in data:
+                event = EventRecord.model_validate(data)
+                pending.setdefault(event.trial_key, []).append(event)
+                continue
+            record = TrialRecord.model_validate(data)
+            events = pending.pop(record.trial_key, [])
+            prior = held.get(record.trial_key)
+            if prior is None or prior.outcome.status == "not_run":
+                held[record.trial_key], out[record.trial_key] = record, events
+        return {key: events for key, events in out.items() if events}
 
     def open_writer(self, flush_every: int = 50) -> RecordWriter:
         self.records_dir.mkdir(parents=True, exist_ok=True)

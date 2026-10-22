@@ -111,7 +111,7 @@ class FakeSDK:
 def openai_ok(model: str, text: str = '{"choice": null, "reason": "none fit"}'):
     completion = SimpleNamespace(
         model=model, system_fingerprint="fp_1", choices=[SimpleNamespace(
-            message=SimpleNamespace(content=text, refusal=None), finish_reason="stop")],
+            message=SimpleNamespace(content=text, refusal=None, tool_calls=None), finish_reason="stop")],
         usage=SimpleNamespace(prompt_tokens=100, completion_tokens=10),
         model_dump=lambda mode=None: {"model": model})
     return SimpleNamespace(parse=lambda: completion, headers={"x-request-id": "req_1"})
@@ -125,7 +125,7 @@ def sdk_ok(provider: str, model: str):
                                   stop_reason="end_turn", usage=SimpleNamespace(input_tokens=100, output_tokens=10),
                                   model_dump=lambda mode=None: {"model": model})
         return SimpleNamespace(parse=lambda: message, headers={"request-id": "req_1"})
-    part = SimpleNamespace(text='{"choice": null}', thought=None)
+    part = SimpleNamespace(text='{"choice": null}', thought=None, function_call=None)
     return SimpleNamespace(candidates=[SimpleNamespace(content=SimpleNamespace(parts=[part]), finish_reason="STOP")],
                            prompt_feedback=None, usage_metadata=SimpleNamespace(prompt_token_count=100,
                                                                                 candidates_token_count=10),

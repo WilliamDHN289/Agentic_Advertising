@@ -48,8 +48,9 @@ manifest (`mode`) and the first status event. Sandbox runs call the provider ada
 (SL-09, docs/providers.md); planning one fails unless every API model is pinned,
 allowed and priced (`StorelabSettings`, `pricing.py`). Replay runs read the response cache (SL-08, docs/cache.md). Offline
 backends: the simulated agents (SL-06) and the local LLM (SL-04, through the
-response cache; text and structured interfaces only, since `browser_tool` needs the
-SL-10 tool loop).
+response cache; text and structured interfaces only, since it has no tool calling for
+`browser_tool`). Under `browser_tool` the API models and the simulated agents act
+through the storefront's tools (SL-10, docs/browser_tool.md).
 
 ## Trials
 
@@ -113,4 +114,5 @@ STALLED and QUEUED.
 
 Not yet: Celery workers, heartbeats and the stall reaper (SL-13), the approval flow
 for PENDING_APPROVAL (SL-12), cost estimation (SL-11; offline runs cost 0), event
-records (SL-10, SL-14).
+exports and event telemetry (SL-14). `browser_tool` trials store their events with their
+records (SL-10; `LocalStore.events()`).

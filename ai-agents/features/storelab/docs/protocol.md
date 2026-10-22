@@ -16,7 +16,8 @@ between modes (S2).
 1-based `position`, `sponsored_label`), and `views`, the rendered text per interface.
 Ids are unique and positions run 1..K. `observation_hash()` is the sha256 of its
 canonical JSON, views included, so two modes can be checked to have shown the same
-thing.
+thing. Under `browser_tool` the observation also carries `pages`, each candidate's
+detail-page text, which the storefront serves (SL-10); it is in the hash too.
 
 **Actions**
 
@@ -95,8 +96,12 @@ ranked result), `sponsored`, `cpc`, `t_s`, `module`, `human_viewport` (ground tr
 `viewport_telemetry` (observable), `simulated`, `turn`. The kinds are `impression`,
 `examine`, `click`, `page_request`, `select`, `cart`, `purchase` and `leave`: a
 superset of the original five. `click` is a click on a rendered element, billable when
-sponsored; `select` is the effective choice. A purchase is always `simulated`, and
-only `leave` has no product.
+sponsored; `select` is the effective choice. A purchase is always `simulated`, and a
+`leave` has no product. SL-10 adds the `browser_tool` kinds `back` (the product
+whose page was left, if any) and `invalid` (a tool call that was not executed, with
+`invalid_reason`; its product id if it named a well-formed one), and the fields `tool`,
+`invalid_reason` and `detail` (docs/browser_tool.md). Schema version 1 is unchanged: the
+new fields are optional, so earlier files still read.
 
 | Format | Use | Writer / reader | Where `schema_version` is |
 |---|---|---|---|

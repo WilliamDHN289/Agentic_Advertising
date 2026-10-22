@@ -4,7 +4,8 @@
 an E1 design with their ``trial_key`` (section 3.6) and writes a PLANNED manifest,
 then QUEUED or PENDING_APPROVAL by the cost estimate (SL-11 hook). ``execute`` runs
 the pending trials through one ``Backend`` per model key, at most ``max_concurrency``
-at a time, each on its own thread with a per-trial timeout, records every outcome once, applies the error policy
+at a time, each on its own thread with a per-trial timeout, records every outcome once
+(with the trial's storefront events under ``browser_tool``, SL-10), applies the error policy
 (section 3.5) and moves the run through its states:
 
 | Trial outcome | Run effect |
@@ -34,9 +35,9 @@ import json
 import os
 import threading
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Mapping, Protocol
+from typing import Callable, Mapping, Protocol, Sequence
 
 from pydantic import Field, NonNegativeInt, PositiveInt
 
@@ -45,7 +46,7 @@ from .config import Ident, Interface, NonEmptyStr, RunConfig, Section, Sha256, c
 from .design import Design
 from .manifest import Manifest, append_status, new_manifest, record_model_access
 from .protocol import PROTOCOL_VERSION, Observation, TrialOutcome
-from .records import TrialRecord, trial_key
+from .records import EventRecord, TrialRecord, trial_key
 from .render import TEMPLATES, build_observation
 from .store import ArtifactStore
 from .tasks import TaskStimuli
@@ -187,11 +188,19 @@ def plan(config: RunConfig, stimuli: Stimuli, credentials: Mapping[str, bool], *
 
 
 # ------------------------------------------------------------------ interfaces
+@dataclass
+class Decision:
+    """A backend's outcome with the trial's storefront events (``browser_tool``, SL-10)."""
+
+    outcome: TrialOutcome
+    events: list[EventRecord] = field(default_factory=list)
+
+
 class Backend(Protocol):
     backend: str  # protocol Backend value, e.g. "simulated"
     model: str  # the model id outcomes name
 
-    def decide(self, trial: Trial, observation: Observation) -> TrialOutcome: ...
+    def decide(self, trial: Trial, observation: Observation) -> TrialOutcome | Decision: ...
 
 
 class Governance(Protocol):
@@ -362,14 +371,17 @@ def execute(manifest: Manifest, trials: list[Trial], stimuli: Stimuli, store: Ar
                                                                     stimuli.products)
         return observations[trial.presentation_id]
 
-    def write(trial: Trial, outcome: TrialOutcome, started: datetime.datetime) -> None:
+    def write(trial: Trial, outcome: TrialOutcome, started: datetime.datetime,
+              events: Sequence[EventRecord] = ()) -> None:
         obs = observation(trial)
+        if any(e.trial_key != trial.trial_key for e in events):
+            raise ValueError("events of another trial")
         record = TrialRecord(run_id=manifest.run_id, trial_key=trial.trial_key, config_hash=manifest.config_hash,
                              task_id=trial.task_id, set_id=trial.set_id, presentation_id=trial.presentation_id,
                              interface=trial.interface, model_key=trial.model_key, temperature=trial.temperature,
                              rep=trial.rep, candidate_ids=sorted(obs.candidate_ids), outcome=outcome,
                              started_utc=started, finished_utc=max(started, _utcnow()))
-        writer.append(record)
+        writer.append(record, events)
 
     auto_resumes = sum(e.status == "QUEUED" and (e.reason or "").startswith(AUTO_RESUME)
                        for e in manifest.status_history)
@@ -434,9 +446,10 @@ def _drive(trials, records, backends, governance, observation, write, cost, moni
         if new is not None and (stop is None or (new.status == "FAILED" and stop.status != "FAILED")):
             stop = new
 
-    def finish(trial: Trial, outcome: TrialOutcome, started: datetime.datetime) -> None:
+    def finish(trial: Trial, outcome: TrialOutcome, started: datetime.datetime,
+               events: Sequence[EventRecord] = ()) -> None:
         try:
-            write(trial, outcome, started)
+            write(trial, outcome, started, events)
         except ValueError as error:  # e.g. a chosen id outside the candidates: a backend defect
             merge(Stop("FAILED", "backend %s returned an invalid outcome for trial %s: %s"
                        % (backends[trial.model_key].backend, trial.trial_key[:12], error)))
@@ -472,12 +485,15 @@ def _drive(trials, records, backends, governance, observation, write, cost, moni
         for future in done:
             trial, started, _ = inflight.pop(future)
             try:
-                outcome = future.result()
+                result = future.result()
             except Exception as error:  # a defect, not a provider failure: stop, leave the trial pending
                 merge(Stop("FAILED", "backend %s raised %s on trial %s: %s" % (
                     backends[trial.model_key].backend, type(error).__name__, trial.trial_key[:12], error)))
                 continue
-            finish(trial, outcome, started)
+            if isinstance(result, Decision):
+                finish(trial, result.outcome, started, result.events)
+            else:
+                finish(trial, result, started)
         now = clock()
         for future, (trial, started, deadline) in list(inflight.items()):
             if now >= deadline and not future.done():

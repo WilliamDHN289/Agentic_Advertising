@@ -121,7 +121,7 @@ draw).
 |---|---|---|
 | `text` | `e1_text@1` | numbered listing: position, `[Sponsored]`, title, id, price, rating, description; reply format |
 | `structured` | `e1_structured@1` | JSON: task, products (position, id, sponsored, title, price, rating, count, description), reply format |
-| `browser_tool` | `e1_browser_tool@1` | page model: results page and one page per product, each as HTML and as a text projection; the view is the results-page text (navigation: SL-10) |
+| `browser_tool` | `e1_browser_tool@1` | page model: results page and one page per product, each as HTML and as a text projection; the view is the results-page text and `Observation.pages` the product pages' text, served by the SL-10 storefront (docs/browser_tool.md) |
 
 `build_observation` reads only `interfaces`, `protocol.prompt_templates` and
 `environment.description_chars` from the config, so mode and backend cannot change

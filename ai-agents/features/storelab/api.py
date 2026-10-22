@@ -11,7 +11,8 @@
 
 Run directories live under ``outputs.root`` (default ``runs``) as ``<run_id>/``. The
 offline backends are the simulated agents (SL-06) and the local LLM (SL-04, text and
-structured interfaces) behind the response cache; sandbox runs call the SL-09 provider
+structured interfaces; it has no tool calling for ``browser_tool``, SL-10) behind the
+response cache; sandbox runs call the SL-09 provider
 adapters (``backends/provider.py``; tests pass mocks as ``providers``) with the keys of
 ``StorelabSettings``, and only models that are pinned, allowed and priced. A replay plans the
 source run's stimuli again under its own config_hash and serves every call from the
@@ -29,6 +30,7 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from . import e1_stimuli
+from .backends.browser_tool import simulated_decision
 from .backends.llm import LLMBackend, OllamaProvider, Provider
 from .backends.provider import CallGuard, adapters_for
 from .backends.simulated import SimulatedAgent, params_from_config
@@ -37,8 +39,9 @@ from .core.config import RunConfig, resolve_config, trial_affecting
 from .core.protocol import Observation, TrialOutcome
 from .core.records import TrialRecord, write_jsonl_gz, write_parquet
 from .core.manifest import append_status
-from .core.runner import (TERMINAL, LocalGovernance, Plan, PlanError, Result, Stimuli, Trial, detect_credentials,
-                          execute, plan, summary)
+from .core.runner import (TERMINAL, Decision, LocalGovernance, Plan, PlanError, Result, Stimuli, Trial,
+                          detect_credentials, execute, plan, summary)
+from .core.storefront import PAGE_INTERFACE
 from .core.store import LocalStore, write_bytes
 from .governance import Platform, PlatformGovernance
 from .legacy_baseline import default_artifact_root
@@ -132,7 +135,9 @@ class SimulatedBackend:
     def __init__(self, agent: SimulatedAgent):
         self.agent, self.model = agent, agent.model
 
-    def decide(self, trial: Trial, observation: Observation) -> TrialOutcome:
+    def decide(self, trial: Trial, observation: Observation) -> TrialOutcome | Decision:
+        if trial.interface == PAGE_INTERFACE:  # through the storefront's tools, as a model would (SL-10)
+            return simulated_decision(self.agent, trial, observation, self.agent.max_turns)
         return self.agent.decide(observation, trial.interface, trial.trial_key)
 
 
@@ -158,8 +163,9 @@ def backends_for(config: RunConfig, stimuli: Stimuli, resolved_mode: str, base: 
         return {m.key: SimulatedBackend(SimulatedAgent(params.model(m.key), seed=config.seed,
                                                        max_turns=config.protocol.max_turns))
                 for m in config.agents.models}
-    if "browser_tool" in config.interfaces:
-        raise NotImplementedError("browser_tool with a language model needs the tool loop (SL-10)")
+    if PAGE_INTERFACE in config.interfaces and "ollama" in providers:
+        raise ValueError("browser_tool needs tool calling, which the local model backend lacks; use the simulated "
+                         "backend or an API provider")
     return {m.key: LLMBackend(config, m.key, provider=providers[m.provider], cache=cache if policy != "off" else None,
                               policy=policy, run_id=run_id, guard=guard) for m in config.agents.models}
 

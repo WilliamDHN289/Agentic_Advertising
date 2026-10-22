@@ -18,20 +18,26 @@ stopped before its first attempt) is written once through the run's ``CallGuard`
 ``log_call`` with ``run_id`` and ``trial_key`` (SL-09): an invocation-log write under
 ``PlatformGovernance``, a line in ``invocations.jsonl`` under ``LocalGovernance``. A
 kill switch engaged before the first attempt gives ``not_run``/``kill_switch``.
+
+A ``browser_tool`` trial is a tool loop of one call per turn (``browser_tool.py``,
+SL-10); each turn goes through ``call`` and so through the cache and the guard.
 """
 from __future__ import annotations
 
 import hashlib
-from typing import Callable, Protocol
+import time
+from typing import Callable, NamedTuple, Protocol
 
 from ..core.cache import (READS, WRITES, LLMRequest, Message, Policy, ProviderResponse, ResponseCache, call_key,
                           new_entry)
 from ..core.config import RunConfig, canonical_json
 from ..core.model_registry import rule_for
-from ..core.protocol import Invalid, Leave, Observation, Select, TrialOutcome, parse_reply
+from ..core.protocol import Action, Invalid, Leave, Observation, Select, TrialOutcome, parse_reply
 from ..core.render import template_sha256
-from ..core.runner import Trial
+from ..core.runner import Decision, Trial
+from ..core.storefront import PAGE_INTERFACE, TOOL_SCHEMA_VERSION
 from ..pricing import UnknownModelError, call_cost_usd
+from .browser_tool import run_tool_loop
 from .local_llm import DEFAULT_URL, LocalLLM
 from .provider import CallGuard, KillSwitchEngaged, NoGuard
 
@@ -52,58 +58,91 @@ def call_seed(config: RunConfig, trial: Trial) -> int:
     return int(hashlib.sha256(canonical_json(coordinates).encode("utf-8")).hexdigest()[:8], 16)
 
 
-def build_request(config: RunConfig, model_key: str, trial: Trial, observation: Observation) -> LLMRequest:
-    if trial.interface == "browser_tool":
-        raise NotImplementedError("browser_tool calls need the tool loop (SL-10)")
+def build_request(config: RunConfig, model_key: str, trial: Trial, observation: Observation,
+                  messages: list[Message] | None = None) -> LLMRequest:
+    """The trial's request: the rendered view as one user message, or for ``browser_tool``
+    the conversation so far (``messages``) with the tool schema version."""
+    tools = trial.interface == PAGE_INTERFACE
+    if tools and messages is None:
+        raise ValueError("a browser_tool request carries the conversation (backends/browser_tool.py)")
     spec = next(m for m in config.agents.models if m.key == model_key)
     params = {"temperature": trial.temperature, "top_p": spec.top_p, "max_output_tokens": spec.max_output_tokens}
     if rule_for(spec.provider, spec.model).seed_supported:
         params["seed"] = call_seed(config, trial)
     return LLMRequest(provider=spec.provider, requested_model=spec.model, params=params,
+                      tool_schema_version=TOOL_SCHEMA_VERSION if tools else None,
                       prompt_template_sha=template_sha256(config.protocol.prompt_templates[trial.interface]),
-                      messages=[Message(role="user", content=observation.views[trial.interface])], rep=trial.rep,
-                      sample_namespace=config.cache.namespace)
+                      messages=messages or [Message(role="user", content=observation.views[trial.interface])],
+                      rep=trial.rep, sample_namespace=config.cache.namespace)
+
+
+class Call(NamedTuple):
+    """One call through the cache: the response, or the outcome that ends the trial."""
+
+    response: ProviderResponse | None
+    action: Action | None
+    raw_ref: str | None
+    stop: TrialOutcome | None = None  # not_run, cache_miss or a provider error
 
 
 class LLMBackend:
     def __init__(self, config: RunConfig, model_key: str, *, provider: Provider | None, cache: ResponseCache | None,
-                 policy: Policy, run_id: str | None = None, guard: CallGuard | None = None):
+                 policy: Policy, run_id: str | None = None, guard: CallGuard | None = None,
+                 clock: Callable[[], float] = time.monotonic):
         if policy != "off" and cache is None:
             raise ValueError("cache policy %s needs a cache" % policy)
         if policy != "read_only" and provider is None:
             raise ValueError("cache policy %s needs a provider for model %s" % (policy, model_key))
         self.config, self.model_key, self.provider, self.cache, self.policy = config, model_key, provider, cache, policy
-        self.run_id, self.guard = run_id, guard or NoGuard()
+        self.run_id, self.guard, self.clock = run_id, guard or NoGuard(), clock
         spec = next(m for m in config.agents.models if m.key == model_key)
         self.backend, self.model = BACKEND_NAMES[spec.provider], spec.model
 
-    def decide(self, trial: Trial, observation: Observation) -> TrialOutcome:
-        request = build_request(self.config, self.model_key, trial, observation)
+    @property
+    def common(self) -> dict:
+        return {"backend": self.backend, "requested_model": self.model}
+
+    def decide(self, trial: Trial, observation: Observation) -> TrialOutcome | Decision:
+        if trial.interface == PAGE_INTERFACE:
+            return run_tool_loop(self, trial, observation)
+        request = self.request(trial, observation)
+        call = self.call(trial, request, lambda response: parse_reply(response.text, observation.candidate_ids))
+        if call.stop is not None:
+            return call.stop
+        return outcome_from(call.response, call.action, call.raw_ref, **self.common)
+
+    def request(self, trial: Trial, observation: Observation, messages: list[Message] | None = None) -> LLMRequest:
+        return build_request(self.config, self.model_key, trial, observation, messages)
+
+    def call(self, trial: Trial, request: LLMRequest,
+             parse: Callable[[ProviderResponse], Action] | None = None) -> Call:
+        """``request`` through the cache under the run's policy, else the provider; a new
+        response is parsed with ``parse`` (none for a browser_tool turn) and cached."""
         key = call_key(request)
-        common = {"backend": self.backend, "requested_model": self.model}
         entry = self.cache.get(request.provider, request.requested_model, key) if self.policy in READS else None
         if entry is not None:
-            response, action, raw_ref = entry.response, entry.parsed_action, "cache:" + key
-        elif self.policy == "read_only":
-            return TrialOutcome(status="error", error_code="cache_miss", attempts=0, raw_ref="cache:" + key, **common)
-        else:
-            try:
-                response = self.provider.complete(request)
-            except KillSwitchEngaged:
-                return TrialOutcome(status="not_run", error_code="kill_switch", **common)
-            if response.attempts:
-                self.log_call(trial, request, key, response)
-            if response.error_code is not None:  # failed after the adapter's retries: not cached
-                return TrialOutcome(status="error", error_code=response.error_code, attempts=response.attempts,
-                                    latency_s=response.latency_s, returned_model=response.returned_model,
-                                    usage=response.usage, **common)
-            action = parse_reply(response.text, observation.candidate_ids)
-            raw_ref = None
-            if self.policy in WRITES:
-                self.cache.put(new_entry(request, response, action, self.provider.adapter_version,
-                                         run_id=self.run_id, trial_key=trial.trial_key))
-                raw_ref = "cache:" + key
-        return outcome_from(response, action, raw_ref, **common)
+            return Call(entry.response, entry.parsed_action, "cache:" + key)
+        if self.policy == "read_only":
+            return Call(None, None, "cache:" + key, TrialOutcome(status="error", error_code="cache_miss", attempts=0,
+                                                                  raw_ref="cache:" + key, **self.common))
+        try:
+            response = self.provider.complete(request)
+        except KillSwitchEngaged:
+            return Call(None, None, None, TrialOutcome(status="not_run", error_code="kill_switch", **self.common))
+        if response.attempts:
+            self.log_call(trial, request, key, response)
+        if response.error_code is not None:  # failed after the adapter's retries: not cached
+            return Call(response, None, None, TrialOutcome(
+                status="error", error_code=response.error_code, attempts=response.attempts,
+                latency_s=response.latency_s, returned_model=response.returned_model, usage=response.usage,
+                **self.common))
+        action = parse(response) if parse is not None else None
+        raw_ref = None
+        if self.policy in WRITES:
+            self.cache.put(new_entry(request, response, action, self.provider.adapter_version,
+                                     run_id=self.run_id, trial_key=trial.trial_key))
+            raw_ref = "cache:" + key
+        return Call(response, action, raw_ref)
 
     def log_call(self, trial: Trial, request: LLMRequest, key: str, response: ProviderResponse) -> None:
         try:

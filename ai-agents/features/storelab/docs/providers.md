@@ -33,7 +33,9 @@ non-reasoning models and Gemini; not Anthropic). Each `ProviderResponse` records
 `sent_params`, `seed_supported`, `request_id`, `system_fingerprint`, `api_version`,
 the returned id, usage and latency; the trial record carries the requested and
 returned ids, usage and latency, and the manifest the returned ids and access times
-per model. Parsing stays with the SL-03 parser.
+per model. Parsing stays with the SL-03 parser. A request with a `tool_schema_version`
+(`browser_tool`) is sent with the storefront's tools and a forced tool call, and the
+response carries the tool calls (SL-10, docs/browser_tool.md).
 
 ## Retries and errors (tickets.md section 3.5)
 

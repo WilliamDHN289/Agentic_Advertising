@@ -7,18 +7,51 @@ Sent: ``model`` (the configured id), the prompt as the contents, ``max_output_to
 ``promptTokenCount`` / ``candidatesTokenCount``. A blocked prompt
 (``promptFeedback.blockReason``) or a candidate stopped for safety, prohibited content,
 a blocklist or personal data is a refusal.
+
+Tools (``browser_tool``, SL-10): system messages go in ``system_instruction``; the tools
+as ``function_declarations`` (no ``parameters`` for a tool without arguments) with
+``function_calling_config`` mode ``ANY`` and automatic function calling off; earlier
+turns go back as ``function_call`` parts and one user turn of ``function_response``
+parts. Gemini may return several calls in one response (it has no switch for parallel
+calls); calls without an id get ``call-<index>``.
 """
 from __future__ import annotations
 
-from ..core.cache import LLMRequest
+from ..core.cache import LLMRequest, Message
 from ..core.protocol import Usage
-from .provider import Classified, ProviderAdapter, Sent, classify_http
+from ..core.storefront import ToolCall
+from .provider import Classified, ProviderAdapter, Sent, classify_http, tools_of
 
 REFUSAL_FINISH = ("SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII", "IMAGE_SAFETY")
 
 
 def _name(value) -> str | None:
     return None if value is None else getattr(value, "name", str(value))
+
+
+def _contents(messages: list[Message]) -> list[dict]:
+    out: list[dict] = []
+    for m in messages:
+        if m.role == "tool":
+            part = {"function_response": {"name": m.name, "response": {"content": m.content}}}
+            if out and out[-1]["role"] == "user" and "function_response" in out[-1]["parts"][-1]:
+                out[-1]["parts"].append(part)  # the results of one turn form one user turn
+            else:
+                out.append({"role": "user", "parts": [part]})
+        elif m.role == "assistant":
+            out.append({"role": "model", "parts": ([{"text": m.content}] if m.content else []) + [
+                {"function_call": {"name": c.name, "args": c.arguments if isinstance(c.arguments, dict) else {}}}
+                for c in m.tool_calls or []]})
+        else:
+            out.append({"role": "user", "parts": [{"text": m.content}]})
+    return out
+
+
+def _declaration(tool: dict) -> dict:
+    declaration = {"name": tool["name"], "description": tool["description"]}
+    if tool["parameters"]["properties"]:
+        declaration["parameters"] = tool["parameters"]
+    return declaration
 
 
 class GoogleAdapter(ProviderAdapter):
@@ -44,17 +77,28 @@ class GoogleAdapter(ProviderAdapter):
         for name in ("temperature", "top_p", "seed"):
             if params.get(name) is not None:
                 config[name] = params[name]
+        system = "\n\n".join(m.content for m in request.messages if m.role == "system")
+        if system:
+            config["system_instruction"] = system
+        tools = tools_of(request)
+        if tools:
+            config.update(tools=[{"function_declarations": [_declaration(t) for t in tools]}],
+                          tool_config={"function_calling_config": {"mode": "ANY"}},
+                          automatic_function_calling={"disable": True})
         response = self.client.models.generate_content(
-            model=request.requested_model,
-            contents=[{"role": "user", "parts": [{"text": m.content}]} for m in request.messages], config=config)
+            model=request.requested_model, contents=_contents([m for m in request.messages if m.role != "system"]),
+            config=config)
         candidate = response.candidates[0] if response.candidates else None
         parts = candidate.content.parts if candidate is not None and candidate.content and candidate.content.parts \
             else []
         text = "".join(p.text for p in parts if p.text and not p.thought)
+        calls = [ToolCall(id=p.function_call.id or "call-%d" % i, name=p.function_call.name or "",
+                          arguments=dict(p.function_call.args or {}))
+                 for i, p in enumerate(p for p in parts if p.function_call is not None)]
         blocked = response.prompt_feedback is not None and response.prompt_feedback.block_reason is not None
         refusal = blocked or (candidate is not None and _name(candidate.finish_reason) in REFUSAL_FINISH)
         usage = response.usage_metadata
-        return Sent(text=text if candidate is not None else None, refusal=refusal,
+        return Sent(text=text if candidate is not None else None, refusal=refusal, tool_calls=calls or None,
                     returned_model=response.model_version,
                     usage=Usage(input_tokens=usage.prompt_token_count if usage else None,
                                 output_tokens=usage.candidates_token_count if usage else None),

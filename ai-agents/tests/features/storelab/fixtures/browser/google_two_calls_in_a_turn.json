@@ -1,0 +1,153 @@
+{
+ "source": "authored",
+ "note": "Authored from the provider's documented tool-calling response format, not recorded. Product ids are those of tests/features/storelab/test_render.py PRESENTATION.",
+ "provider": "google",
+ "model": "gemini-2.0-flash-001",
+ "turns": [
+  {
+   "status": 200,
+   "headers": {
+    "content-type": "application/json"
+   },
+   "json": {
+    "candidates": [
+     {
+      "content": {
+       "role": "model",
+       "parts": [
+        {
+         "functionCall": {
+          "name": "open_product",
+          "args": {
+           "product_id": "B0AAA00003"
+          }
+         }
+        },
+        {
+         "functionCall": {
+          "name": "open_product",
+          "args": {
+           "product_id": "B0AAA00002"
+          }
+         }
+        }
+       ]
+      },
+      "finishReason": "STOP",
+      "index": 0
+     }
+    ],
+    "usageMetadata": {
+     "promptTokenCount": 490,
+     "candidatesTokenCount": 12,
+     "totalTokenCount": 502
+    },
+    "modelVersion": "gemini-2.0-flash-001",
+    "responseId": "resp_google_1"
+   }
+  },
+  {
+   "status": 200,
+   "headers": {
+    "content-type": "application/json"
+   },
+   "json": {
+    "candidates": [
+     {
+      "content": {
+       "role": "model",
+       "parts": [
+        {
+         "functionCall": {
+          "name": "back",
+          "args": {}
+         }
+        }
+       ]
+      },
+      "finishReason": "STOP",
+      "index": 0
+     }
+    ],
+    "usageMetadata": {
+     "promptTokenCount": 600,
+     "candidatesTokenCount": 12,
+     "totalTokenCount": 612
+    },
+    "modelVersion": "gemini-2.0-flash-001",
+    "responseId": "resp_google_2"
+   }
+  },
+  {
+   "status": 200,
+   "headers": {
+    "content-type": "application/json"
+   },
+   "json": {
+    "candidates": [
+     {
+      "content": {
+       "role": "model",
+       "parts": [
+        {
+         "functionCall": {
+          "name": "select",
+          "args": {
+           "product_id": "B0AAA00002"
+          }
+         }
+        }
+       ]
+      },
+      "finishReason": "STOP",
+      "index": 0
+     }
+    ],
+    "usageMetadata": {
+     "promptTokenCount": 710,
+     "candidatesTokenCount": 12,
+     "totalTokenCount": 722
+    },
+    "modelVersion": "gemini-2.0-flash-001",
+    "responseId": "resp_google_3"
+   }
+  }
+ ],
+ "expect": {
+  "outcome": {
+   "status": "choice",
+   "chosen_id": "B0AAA00002",
+   "page_requests": [
+    "B0AAA00003",
+    "B0AAA00002"
+   ],
+   "turns": 3
+  },
+  "events": [
+   {
+    "turn": 1,
+    "tool": "open_product",
+    "kind": "page_request",
+    "product_id": "B0AAA00003"
+   },
+   {
+    "turn": 1,
+    "tool": "open_product",
+    "kind": "page_request",
+    "product_id": "B0AAA00002"
+   },
+   {
+    "turn": 2,
+    "tool": "back",
+    "kind": "back",
+    "product_id": "B0AAA00002"
+   },
+   {
+    "turn": 3,
+    "tool": "select",
+    "kind": "select",
+    "product_id": "B0AAA00002"
+   }
+  ]
+ }
+}

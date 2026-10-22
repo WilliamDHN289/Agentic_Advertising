@@ -1,0 +1,209 @@
+{
+ "source": "authored",
+ "note": "Authored from the provider's documented tool-calling response format, not recorded. Product ids are those of tests/features/storelab/test_render.py PRESENTATION.",
+ "provider": "openai",
+ "model": "gpt-4o-2024-08-06",
+ "turns": [
+  {
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "x-request-id": "req_openai_1"
+   },
+   "json": {
+    "id": "chatcmpl-fixture-1",
+    "object": "chat.completion",
+    "created": 1761100001,
+    "model": "gpt-4o-2024-08-06",
+    "system_fingerprint": "fp_fixture",
+    "choices": [
+     {
+      "index": 0,
+      "message": {
+       "role": "assistant",
+       "content": null,
+       "refusal": null,
+       "tool_calls": [
+        {
+         "id": "call_1_0",
+         "type": "function",
+         "function": {
+          "name": "open_product",
+          "arguments": "{\"product_id\": \"B0AAA00003\"}"
+         }
+        }
+       ]
+      },
+      "finish_reason": "tool_calls",
+      "logprobs": null
+     }
+    ],
+    "usage": {
+     "prompt_tokens": 520,
+     "completion_tokens": 18,
+     "total_tokens": 538
+    }
+   }
+  },
+  {
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "x-request-id": "req_openai_2"
+   },
+   "json": {
+    "id": "chatcmpl-fixture-2",
+    "object": "chat.completion",
+    "created": 1761100002,
+    "model": "gpt-4o-2024-08-06",
+    "system_fingerprint": "fp_fixture",
+    "choices": [
+     {
+      "index": 0,
+      "message": {
+       "role": "assistant",
+       "content": null,
+       "refusal": null,
+       "tool_calls": [
+        {
+         "id": "call_2_0",
+         "type": "function",
+         "function": {
+          "name": "back",
+          "arguments": "{}"
+         }
+        }
+       ]
+      },
+      "finish_reason": "tool_calls",
+      "logprobs": null
+     }
+    ],
+    "usage": {
+     "prompt_tokens": 640,
+     "completion_tokens": 18,
+     "total_tokens": 658
+    }
+   }
+  },
+  {
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "x-request-id": "req_openai_3"
+   },
+   "json": {
+    "id": "chatcmpl-fixture-3",
+    "object": "chat.completion",
+    "created": 1761100003,
+    "model": "gpt-4o-2024-08-06",
+    "system_fingerprint": "fp_fixture",
+    "choices": [
+     {
+      "index": 0,
+      "message": {
+       "role": "assistant",
+       "content": null,
+       "refusal": null,
+       "tool_calls": [
+        {
+         "id": "call_3_0",
+         "type": "function",
+         "function": {
+          "name": "open_product",
+          "arguments": "{\"product_id\": \"B0AAA00001\"}"
+         }
+        }
+       ]
+      },
+      "finish_reason": "tool_calls",
+      "logprobs": null
+     }
+    ],
+    "usage": {
+     "prompt_tokens": 760,
+     "completion_tokens": 18,
+     "total_tokens": 778
+    }
+   }
+  },
+  {
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "x-request-id": "req_openai_4"
+   },
+   "json": {
+    "id": "chatcmpl-fixture-4",
+    "object": "chat.completion",
+    "created": 1761100004,
+    "model": "gpt-4o-2024-08-06",
+    "system_fingerprint": "fp_fixture",
+    "choices": [
+     {
+      "index": 0,
+      "message": {
+       "role": "assistant",
+       "content": null,
+       "refusal": null,
+       "tool_calls": [
+        {
+         "id": "call_4_0",
+         "type": "function",
+         "function": {
+          "name": "select",
+          "arguments": "{\"product_id\": \"B0AAA00001\"}"
+         }
+        }
+       ]
+      },
+      "finish_reason": "tool_calls",
+      "logprobs": null
+     }
+    ],
+    "usage": {
+     "prompt_tokens": 880,
+     "completion_tokens": 18,
+     "total_tokens": 898
+    }
+   }
+  }
+ ],
+ "expect": {
+  "outcome": {
+   "status": "choice",
+   "chosen_id": "B0AAA00001",
+   "page_requests": [
+    "B0AAA00003",
+    "B0AAA00001"
+   ],
+   "turns": 4
+  },
+  "events": [
+   {
+    "turn": 1,
+    "tool": "open_product",
+    "kind": "page_request",
+    "product_id": "B0AAA00003"
+   },
+   {
+    "turn": 2,
+    "tool": "back",
+    "kind": "back",
+    "product_id": "B0AAA00003"
+   },
+   {
+    "turn": 3,
+    "tool": "open_product",
+    "kind": "page_request",
+    "product_id": "B0AAA00001"
+   },
+   {
+    "turn": 4,
+    "tool": "select",
+    "kind": "select",
+    "product_id": "B0AAA00001"
+   }
+  ]
+ }
+}

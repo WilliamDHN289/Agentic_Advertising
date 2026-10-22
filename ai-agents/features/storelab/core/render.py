@@ -2,7 +2,8 @@
 
 ``text`` is a numbered listing, ``structured`` a JSON document and ``browser_tool`` a
 page model (a search results page and one page per product, each as HTML and as a
-text projection; the tool loop that navigates them is SL-10). Rendering depends only
+text projection; the observation carries the results-page text as its view and the
+product pages' text as ``pages``, which the SL-10 storefront serves). Rendering depends only
 on the task, the presentation, the products and the template id, never on the mode
 or the backend, so every choice source sees the same bytes (S2). Each template is
 versioned by its id; ``template_sha256`` digests its fixed text so a change to it
@@ -178,6 +179,10 @@ def build_observation(config: RunConfig, task: TaskSpec, presentation: Presentat
     chars = config.environment.description_chars
     shown = {c.product_id: products[c.product_id].truncated(chars) for c in presentation.candidates}
     templates = {i: config.protocol.prompt_templates[i] for i in config.interfaces}
+    views = render_views(task, presentation, shown, templates)
+    pages = None
+    if "browser_tool" in templates:  # the detail pages the storefront serves (SL-10)
+        pages = {pid: page.text for pid, page in page_model(task, presentation, shown).pages.items()}
     return Observation(task=Task(task_id=task.task_id, instruction=task.instruction), set_id=presentation.set_id,
                        presentation_id=presentation.presentation_id, candidates=presentation.candidates,
-                       views=render_views(task, presentation, shown, templates))
+                       views=views, pages=pages)

@@ -19,7 +19,9 @@ passed to every trial of that period. `choice_probs` returns q(x, a | Λ) or, wi
 
 **Page requests** (A2): under `browser_tool`, each displayed product that is not
 chosen is requested with probability χ_m, in position order, at most `max_turns` − 1
-times. Other interfaces have no pages, so no requests.
+times. Other interfaces have no pages, so no requests. In a run, the agent performs these
+actions through the storefront's tools, one turn each (SL-10, docs/browser_tool.md), so
+its events have the same form as a model's.
 
 **Human model** (Ass. human, l.236): q_j^H = γ_{k_j} w_j(x, ℓ_j), q_0^H = 1 − Σ q_j^H,
 with nonincreasing γ (A11) and per-label product weights; parameters that make

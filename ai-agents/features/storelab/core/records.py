@@ -28,7 +28,7 @@ from pydantic import AwareDatetime, BaseModel, Field, NonNegativeFloat, NonNegat
 
 from .config import Ident, Interface, NonEmptyStr, Section, Sha256, Uuid4, canonical_json
 from .manifest import UtcDatetime
-from .protocol import ProductId, TrialOutcome
+from .protocol import InvalidReason, ProductId, TrialOutcome
 
 RECORD_SCHEMA_VERSION = 1
 
@@ -40,7 +40,9 @@ def trial_key(config_hash: str, task_id: str, set_id: str, presentation_id: str,
     coordinates = [config_hash, task_id, set_id, presentation_id, interface, model_key, temperature, rep]
     return hashlib.sha256(canonical_json(coordinates).encode("utf-8")).hexdigest()
 
-EventKind = Literal["impression", "examine", "click", "page_request", "select", "cart", "purchase", "leave"]
+EventKind = Literal["impression", "examine", "click", "page_request", "select", "cart", "purchase", "leave", "back",
+                    "invalid"]
+NO_PRODUCT_KINDS = ("leave", "back", "invalid")  # kinds whose product id may be absent
 Module = Literal["serp", "crosssell", "banner", "detail", "feed"]
 # The surface the actor saw; legacy_human_sim is the original simulated-human arm.
 EventInterface = Literal[Interface.__args__ + ("legacy_human_sim",)]
@@ -92,13 +94,20 @@ class EventRecord(Section):
     viewport_telemetry: bool  # observable: did the client emit viewport events?
     simulated: bool = False  # the event did not happen in a real store
     turn: NonNegativeInt | None = None  # browser_tool turn index
+    tool: str | None = None  # browser_tool: the tool called (SL-10)
+    invalid_reason: InvalidReason | None = None  # kind invalid: why the call was not executed
+    detail: str | None = None
 
     @model_validator(mode="after")
     def _kind_rules(self) -> EventRecord:
         if self.kind == "purchase" and not self.simulated:
             raise ValueError("simulated: a purchase is always simulated")
-        if (self.kind == "leave") != (self.product_id is None):
-            raise ValueError("product_id: required for every kind except leave")
+        if self.kind == "leave" and self.product_id is not None:
+            raise ValueError("product_id: a leave has no product")
+        if self.kind not in NO_PRODUCT_KINDS and self.product_id is None:
+            raise ValueError("product_id: required for every kind except %s" % ", ".join(NO_PRODUCT_KINDS))
+        if (self.kind == "invalid") != (self.invalid_reason is not None):
+            raise ValueError("invalid_reason: required for kind invalid and only for it")
         return self
 
 

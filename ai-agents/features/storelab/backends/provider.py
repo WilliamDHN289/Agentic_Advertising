@@ -28,10 +28,15 @@ circuit breaker, provider slots and rate limiter (``governance.PlatformGovernanc
 Each response records the returned model id, the provider request id, the OpenAI
 ``system_fingerprint`` when present, the parameters actually sent (a null temperature
 is omitted and recorded as ``provider_default``) and whether a seed was sent.
+
+A request with a ``tool_schema_version`` (``browser_tool``, SL-10) is sent with those
+tools (``core/storefront.py``) and a forced tool call, one call per response where the
+API allows it; the response carries the tool calls as ``ToolCall`` values.
 """
 from __future__ import annotations
 
 import email.utils
+import json
 import time
 from dataclasses import dataclass, field
 from typing import Any, Callable, Mapping, NamedTuple, Protocol
@@ -39,6 +44,7 @@ from typing import Any, Callable, Mapping, NamedTuple, Protocol
 from ..core.cache import LLMRequest, ProviderResponse
 from ..core.config import FailurePolicyConfig
 from ..core.protocol import ErrorCode, Usage
+from ..core.storefront import ToolCall, tool_definitions
 
 RETRYABLE = ("rate_limited", "provider_unavailable")
 # Exceptions the SDKs raise for a timeout or a dropped connection, by class name, so
@@ -90,7 +96,23 @@ class Sent:
     refusal: bool = False
     request_id: str | None = None
     system_fingerprint: str | None = None
+    tool_calls: list[ToolCall] | None = None
     extra: dict = field(default_factory=dict)
+
+
+def tools_of(request: LLMRequest) -> list[dict]:
+    """The tools a request is sent with: none, or those of its tool schema version."""
+    return tool_definitions(request.tool_schema_version) if request.tool_schema_version else []
+
+
+def json_arguments(text: str | None):
+    """Tool-call arguments sent as JSON text, parsed; the text itself if it is not JSON."""
+    if not text:
+        return {}
+    try:
+        return json.loads(text)
+    except ValueError:
+        return text
 
 
 def code_for_status(status: int) -> ErrorCode:
@@ -211,7 +233,7 @@ class ProviderAdapter:
                                 returned_model=sent.returned_model, usage=sent.usage, raw=sent.raw,
                                 request_id=sent.request_id, system_fingerprint=sent.system_fingerprint,
                                 sent_params=sent_params(request), seed_supported="seed" in request.params,
-                                api_version=self.api_version)
+                                api_version=self.api_version, tool_calls=sent.tool_calls)
 
 
 def adapters_for(config, settings, guard: CallGuard | None = None,

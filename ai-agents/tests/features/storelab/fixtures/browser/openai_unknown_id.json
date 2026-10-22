@@ -1,0 +1,114 @@
+{
+ "source": "authored",
+ "note": "Authored from the provider's documented tool-calling response format, not recorded. Product ids are those of tests/features/storelab/test_render.py PRESENTATION.",
+ "provider": "openai",
+ "model": "gpt-4.1-2025-04-14",
+ "turns": [
+  {
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "x-request-id": "req_openai_1"
+   },
+   "json": {
+    "id": "chatcmpl-fixture-1",
+    "object": "chat.completion",
+    "created": 1761100001,
+    "model": "gpt-4.1-2025-04-14",
+    "system_fingerprint": "fp_fixture",
+    "choices": [
+     {
+      "index": 0,
+      "message": {
+       "role": "assistant",
+       "content": null,
+       "refusal": null,
+       "tool_calls": [
+        {
+         "id": "call_1_0",
+         "type": "function",
+         "function": {
+          "name": "open_product",
+          "arguments": "{\"product_id\": \"B0AAA00002\"}"
+         }
+        }
+       ]
+      },
+      "finish_reason": "tool_calls",
+      "logprobs": null
+     }
+    ],
+    "usage": {
+     "prompt_tokens": 520,
+     "completion_tokens": 18,
+     "total_tokens": 538
+    }
+   }
+  },
+  {
+   "status": 200,
+   "headers": {
+    "content-type": "application/json",
+    "x-request-id": "req_openai_2"
+   },
+   "json": {
+    "id": "chatcmpl-fixture-2",
+    "object": "chat.completion",
+    "created": 1761100002,
+    "model": "gpt-4.1-2025-04-14",
+    "system_fingerprint": "fp_fixture",
+    "choices": [
+     {
+      "index": 0,
+      "message": {
+       "role": "assistant",
+       "content": null,
+       "refusal": null,
+       "tool_calls": [
+        {
+         "id": "call_2_0",
+         "type": "function",
+         "function": {
+          "name": "open_product",
+          "arguments": "{\"product_id\": \"B0ZZZ99999\"}"
+         }
+        }
+       ]
+      },
+      "finish_reason": "tool_calls",
+      "logprobs": null
+     }
+    ],
+    "usage": {
+     "prompt_tokens": 640,
+     "completion_tokens": 18,
+     "total_tokens": 658
+    }
+   }
+  }
+ ],
+ "expect": {
+  "outcome": {
+   "status": "invalid",
+   "invalid_reason": "unknown_id",
+   "page_requests": [
+    "B0AAA00002"
+   ],
+   "turns": 2
+  },
+  "events": [
+   {
+    "turn": 1,
+    "tool": "open_product",
+    "kind": "page_request",
+    "product_id": "B0AAA00002"
+   },
+   {
+    "turn": 2,
+    "tool": "open_product",
+    "kind": "invalid",
+    "product_id": "B0ZZZ99999"
+   }
+  ]
+ }
+}

@@ -52,6 +52,9 @@ class Observation(Section):
     presentation_id: NonEmptyStr
     candidates: list[Candidate] = Field(min_length=1)
     views: dict[Interface, str] = {}
+    # browser_tool: product id -> its detail page (text projection), served by the
+    # storefront (SL-10). Left out of the JSON form while unset.
+    pages: dict[ProductId, str] | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
     def _well_formed(self) -> Observation:
@@ -60,6 +63,8 @@ class Observation(Section):
             raise ValueError("candidates: duplicate product ids")
         if sorted(c.position for c in self.candidates) != list(range(1, len(ids) + 1)):
             raise ValueError("candidates: positions must be 1..K, each once")
+        if self.pages is not None and set(self.pages) != set(ids):
+            raise ValueError("pages: one page per candidate, and only those")
         return self
 
     @property

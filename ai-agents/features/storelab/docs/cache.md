@@ -13,9 +13,9 @@ runs re-analysable and resumable without paying again (S4).
 |---|---|
 | `provider`, `requested_model` | from the model config |
 | `params` | `temperature` (null: provider default), `top_p`, `max_output_tokens`, and `seed` where the model supports one |
-| `tool_schema_version` | null for `text` and `structured` (the `browser_tool` loop is SL-10) |
+| `tool_schema_version` | null for `text` and `structured`; `storelab-browser-tools@1` for `browser_tool` (SL-10) |
 | `prompt_template_sha` | `template_sha256` of the interface's template |
-| `messages` | the rendered view as one user message |
+| `messages` | the rendered view as one user message; for `browser_tool` the conversation so far (system prompt, results page, each turn's tool calls and the pages served; docs/browser_tool.md) |
 | `rep` | the repetition |
 | `sample_namespace` | `cache.namespace` |
 
@@ -32,8 +32,11 @@ older entries keep their digest),
 the parsed action, the adapter version, `created_utc`, the producing `run_id` and
 `trial_key`, and `content_sha256` over all of it. A trial's outcome is rebuilt from
 the entry's stored action, so a replay reproduces the original outcome even if the
-parser changes later; `raw_ref` is `cache:<call_key>`. Only successful responses are
-stored. Reading an entry that fails verification raises `TamperedEntry`, which fails
+parser changes later; `raw_ref` is `cache:<call_key>`. A `browser_tool` trial stores
+one entry per turn, with the turn's tool calls in the response (`tool_calls`) and no
+parsed action; the trial's `raw_ref` names the last turn's entry, whose request holds
+the whole transcript, and a replay re-runs the storefront on the cached turns. Only
+successful responses are stored. Reading an entry that fails verification raises `TamperedEntry`, which fails
 the run instead of serving the entry.
 
 ## Policies (`cache.policy`)

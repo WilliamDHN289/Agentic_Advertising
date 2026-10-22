@@ -8,6 +8,18 @@
       "title": "Cpc",
       "type": "number"
     },
+    "detail": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Detail"
+    },
     "human_viewport": {
       "title": "Human Viewport",
       "type": "boolean"
@@ -25,6 +37,26 @@
       "title": "Interface",
       "type": "string"
     },
+    "invalid_reason": {
+      "anyOf": [
+        {
+          "enum": [
+            "no_json",
+            "schema_violation",
+            "unknown_id",
+            "multiple_choices",
+            "empty",
+            "max_turns"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Invalid Reason"
+    },
     "kind": {
       "enum": [
         "impression",
@@ -34,7 +66,9 @@
         "select",
         "cart",
         "purchase",
-        "leave"
+        "leave",
+        "back",
+        "invalid"
       ],
       "title": "Kind",
       "type": "string"
@@ -96,6 +130,18 @@
       "minimum": 0,
       "title": "T S",
       "type": "number"
+    },
+    "tool": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Tool"
     },
     "trial_key": {
       "pattern": "^[0-9a-f]{64}$",

@@ -9,7 +9,9 @@ the raw response, the parsed action, usage, the returned model id, timestamps, t
 adapter version and the run and trial that produced it, plus ``content_sha256`` over
 everything else, so ``verify`` detects a changed request (key mismatch) or response
 (digest mismatch). Only successful responses are stored; a failed call is retried
-live by the next run.
+live by the next run. A ``browser_tool`` trial makes one call per turn (SL-10): each
+turn's request holds the conversation so far (tool calls and the pages served), its
+response the turn's tool calls, and it has no parsed action.
 
 Policies (``cache.policy``): ``off`` (no reads or writes), ``read_write`` (serve a
 hit, else call and store; the sandbox default), ``write_only`` (always call, store
@@ -40,6 +42,7 @@ from pydantic import Field, NonNegativeFloat, NonNegativeInt
 from .config import Ident, NonEmptyStr, Section, Sha256, Uuid4, canonical_json
 from .manifest import UtcDatetime
 from .protocol import Action, ErrorCode, Usage
+from .storefront import ToolCall
 
 CACHE_VERSION = 1
 Policy = Literal["off", "read_write", "write_only", "read_only"]
@@ -47,9 +50,19 @@ READS = ("read_write", "read_only")
 WRITES = ("read_write", "write_only")
 
 
+def _unset(value: Any) -> bool:
+    return value is None
+
+
 class Message(Section):
     role: Literal["system", "user", "assistant", "tool"]
     content: str
+    # browser_tool (SL-10): an assistant turn's tool calls; a tool message's call id and
+    # tool name. Left out of the JSON form while unset, so call keys of text and
+    # structured requests are unchanged.
+    tool_calls: list[ToolCall] | None = Field(default=None, exclude_if=_unset)
+    tool_call_id: str | None = Field(default=None, exclude_if=_unset)
+    name: str | None = Field(default=None, exclude_if=_unset)
 
 
 class LLMRequest(Section):
@@ -67,10 +80,6 @@ class LLMRequest(Section):
 
 def call_key(request: LLMRequest) -> str:
     return hashlib.sha256(canonical_json(request.model_dump(mode="json")).encode("utf-8")).hexdigest()
-
-
-def _unset(value: Any) -> bool:
-    return value is None
 
 
 class ProviderResponse(Section):
@@ -92,6 +101,7 @@ class ProviderResponse(Section):
     seed_supported: bool | None = Field(default=None, exclude_if=_unset)
     api_version: str | None = Field(default=None, exclude_if=_unset)
     stopped_by: Literal["kill_switch"] | None = Field(default=None, exclude_if=_unset)  # retries cut short
+    tool_calls: list[ToolCall] | None = Field(default=None, exclude_if=_unset)  # browser_tool (SL-10)
 
 
 class CacheEntry(Section):
@@ -99,7 +109,7 @@ class CacheEntry(Section):
     call_key: Sha256
     request: LLMRequest
     response: ProviderResponse
-    parsed_action: Action
+    parsed_action: Action | None = Field(default=None, exclude_if=_unset)  # none for a browser_tool turn
     adapter_version: NonEmptyStr
     created_utc: UtcDatetime
     run_id: Uuid4 | None = None
@@ -120,7 +130,7 @@ def content_digest(data: dict) -> str:
     return hashlib.sha256(canonical_json(body).encode("utf-8")).hexdigest()
 
 
-def new_entry(request: LLMRequest, response: ProviderResponse, action: Action, adapter_version: str, *,
+def new_entry(request: LLMRequest, response: ProviderResponse, action: Action | None, adapter_version: str, *,
               run_id: str | None = None, trial_key: str | None = None,
               now: datetime.datetime | None = None) -> CacheEntry:
     provisional = CacheEntry(call_key=call_key(request), request=request, response=response, parsed_action=action,
