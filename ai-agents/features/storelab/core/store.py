@@ -111,6 +111,7 @@ class LocalStore:
         self.records_dir = self.run_dir / "records"
         self.export_dir = self.run_dir / "export"
         self.call_log = self.run_dir / "calls.jsonl"
+        self.invocation_log = self.run_dir / "invocations.jsonl"  # one line per provider call (SL-09)
         self.cancel_flag = self.run_dir / "CANCEL"
         self.lock_path = self.run_dir / ".lock"
 

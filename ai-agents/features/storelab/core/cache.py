@@ -69,6 +69,10 @@ def call_key(request: LLMRequest) -> str:
     return hashlib.sha256(canonical_json(request.model_dump(mode="json")).encode("utf-8")).hexdigest()
 
 
+def _unset(value: Any) -> bool:
+    return value is None
+
+
 class ProviderResponse(Section):
     """One provider call after the adapter's retries: text, or an error code."""
 
@@ -80,6 +84,13 @@ class ProviderResponse(Section):
     returned_model: str | None = None
     usage: Usage = Field(default_factory=Usage)
     raw: Any = None  # the provider's response body as JSON, when available
+    # SL-09 call details. Left out of the JSON form while unset, so entries written
+    # before they existed keep their content_sha256.
+    request_id: str | None = Field(default=None, exclude_if=_unset)
+    system_fingerprint: str | None = Field(default=None, exclude_if=_unset)
+    sent_params: dict[str, Any] | None = Field(default=None, exclude_if=_unset)  # null temperature: "provider_default"
+    seed_supported: bool | None = Field(default=None, exclude_if=_unset)
+    api_version: str | None = Field(default=None, exclude_if=_unset)
 
 
 class CacheEntry(Section):

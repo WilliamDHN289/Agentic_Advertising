@@ -1,8 +1,9 @@
 """What each provider's models accept, for config validation (SL-02).
 
-The rules encode provider API behaviour as documented when this was written. They
-must be re-checked when A5 fixes the pinned model list and the adapters are built
-(SL-09); a model no rule matches is rejected rather than guessed.
+The rules encode provider API behaviour as documented when this was written; a model
+no rule matches is rejected rather than guessed. The Anthropic temperature range holds
+on API version 2023-06-01, which the SL-09 adapter pins; version 2026-10-21 rejects
+any explicit temperature. Re-check the rules whenever A5 changes the pinned models.
 """
 from __future__ import annotations
 

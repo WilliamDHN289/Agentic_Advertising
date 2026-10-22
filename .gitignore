@@ -6,3 +6,7 @@ __pycache__/
 artifacts/datasets/amazon_reviews_2023/*/items/
 artifacts/datasets/amazon_reviews_2023/.staging-*/
 artifacts/stimuli/
+# SL-09 live smoke: the reports are committed; the run directories hold catalog text (A7).
+artifacts/smoke/sl09/*/runs/
+# Local virtualenv with the pinned StoreLab dependencies (tests, review).
+.venv-storelab/

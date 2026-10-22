@@ -44,9 +44,9 @@ commands: `api.plan_run`, `api.run`, `api.resume`, `api.status`, `api.cancel`,
 
 Credentials are read from `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` and
 `GOOGLE_API_KEY` or `GEMINI_API_KEY`. The resolved mode and its reason are in the
-manifest (`mode`) and the first status event. Executing sandbox runs needs a provider
-adapter per configured provider (SL-09; the API accepts `providers=`); until then the
-CLI refuses them. Replay runs read the response cache (SL-08, docs/cache.md). Offline
+manifest (`mode`) and the first status event. Sandbox runs call the provider adapters
+(SL-09, docs/providers.md); planning one fails unless every API model is pinned,
+allowed and priced (`StorelabSettings`, `pricing.py`). Replay runs read the response cache (SL-08, docs/cache.md). Offline
 backends: the simulated agents (SL-06) and the local LLM (SL-04, through the
 response cache; text and structured interfaces only, since `browser_tool` needs the
 SL-10 tool loop).
@@ -63,8 +63,9 @@ model_key, temperature, rep)`.
 
 At most `budget.max_concurrency` trials are in flight, each on its own thread with
 the timeout `failure_policy.trial_timeout_s`. Before each trial the governance
-checks the cancel flag, the kill switch (`LOADTEST_LLM_KILL_SWITCH_FORCE=1`) and the
-budget; every finished trial is appended to `calls.jsonl` with `run_id` and
+checks the cancel flag, the kill switch (`LOADTEST_LLM_KILL_SWITCH_FORCE` set to
+anything but `0`, as in `llm_guard.py`; the adapters check it again before every
+attempt) and the budget; every finished trial is appended to `calls.jsonl` with `run_id` and
 `trial_key`. Run effects (tickets.md section 3.5):
 
 | Trial outcome | Run |
@@ -93,7 +94,8 @@ occurred.
                plan/stimuli.json      tasks, designs and products the trials show
                records/part-*.jsonl.gz  append-only TrialRecord shards, one per session
                export/                analysis tables
-               calls.jsonl            call log
+               calls.jsonl            call log, one line per finished trial
+               invocations.jsonl      one line per provider call (SL-09)
 ```
 
 Records are appended in gzip members of up to 50 records, each fsynced; a process

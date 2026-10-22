@@ -9,9 +9,15 @@ in the cache. A failed call is returned as its error and not cached; under
 ``read_only`` a miss is ``error/cache_miss`` and no provider is called.
 
 Providers implement ``complete(request) -> ProviderResponse``: ``OllamaProvider``
-here (the local model, SL-04 client), the API adapters in SL-09. The call seed is
-derived from the master seed and the trial's coordinates, not its key, so a replay
-(whose config_hash differs) asks for the same call.
+here (the local model, SL-04 client), the API adapters in SL-09 (``provider.py``). The
+call seed is derived from the master seed and the trial's coordinates, not its key, so
+a replay (whose config_hash differs) asks for the same call.
+
+Every call that reaches the provider (not a cache hit, not a call the kill switch
+stopped before its first attempt) is written once through the run's ``CallGuard``
+``log_call`` with ``run_id`` and ``trial_key`` (SL-09): an invocation-log write under
+``PlatformGovernance``, a line in ``invocations.jsonl`` under ``LocalGovernance``. A
+kill switch engaged before the first attempt gives ``not_run``/``kill_switch``.
 """
 from __future__ import annotations
 
@@ -25,7 +31,9 @@ from ..core.model_registry import rule_for
 from ..core.protocol import Invalid, Leave, Observation, Select, TrialOutcome, parse_reply
 from ..core.render import template_sha256
 from ..core.runner import Trial
+from ..pricing import UnknownModelError, call_cost_usd
 from .local_llm import DEFAULT_URL, LocalLLM
+from .provider import CallGuard, KillSwitchEngaged, NoGuard
 
 # provider -> TrialOutcome.backend
 BACKEND_NAMES = {"ollama": "local_llm", "openai": "openai", "anthropic": "anthropic", "google": "google"}
@@ -59,13 +67,13 @@ def build_request(config: RunConfig, model_key: str, trial: Trial, observation: 
 
 class LLMBackend:
     def __init__(self, config: RunConfig, model_key: str, *, provider: Provider | None, cache: ResponseCache | None,
-                 policy: Policy, run_id: str | None = None):
+                 policy: Policy, run_id: str | None = None, guard: CallGuard | None = None):
         if policy != "off" and cache is None:
             raise ValueError("cache policy %s needs a cache" % policy)
         if policy != "read_only" and provider is None:
             raise ValueError("cache policy %s needs a provider for model %s" % (policy, model_key))
         self.config, self.model_key, self.provider, self.cache, self.policy = config, model_key, provider, cache, policy
-        self.run_id = run_id
+        self.run_id, self.guard = run_id, guard or NoGuard()
         spec = next(m for m in config.agents.models if m.key == model_key)
         self.backend, self.model = BACKEND_NAMES[spec.provider], spec.model
 
@@ -79,7 +87,12 @@ class LLMBackend:
         elif self.policy == "read_only":
             return TrialOutcome(status="error", error_code="cache_miss", attempts=0, raw_ref="cache:" + key, **common)
         else:
-            response = self.provider.complete(request)
+            try:
+                response = self.provider.complete(request)
+            except KillSwitchEngaged:
+                return TrialOutcome(status="not_run", error_code="kill_switch", **common)
+            if response.attempts:
+                self.log_call(trial, request, key, response)
             if response.error_code is not None:  # failed after the adapter's retries: not cached
                 return TrialOutcome(status="error", error_code=response.error_code, attempts=response.attempts,
                                     latency_s=response.latency_s, returned_model=response.returned_model,
@@ -91,6 +104,19 @@ class LLMBackend:
                                          run_id=self.run_id, trial_key=trial.trial_key))
                 raw_ref = "cache:" + key
         return outcome_from(response, action, raw_ref, **common)
+
+    def log_call(self, trial: Trial, request: LLMRequest, key: str, response: ProviderResponse) -> None:
+        try:
+            cost = 0.0 if request.provider == "ollama" else call_cost_usd(request.requested_model, response.usage)
+        except UnknownModelError:
+            cost = None
+        self.guard.log_call({
+            "run_id": self.run_id, "trial_key": trial.trial_key, "call_key": key, "provider": request.provider,
+            "requested_model": request.requested_model, "returned_model": response.returned_model,
+            "status": "failed" if response.error_code else "succeeded", "error_code": response.error_code,
+            "refusal": response.refusal, "attempts": response.attempts, "latency_s": response.latency_s,
+            "input_tokens": response.usage.input_tokens, "output_tokens": response.usage.output_tokens,
+            "request_id": response.request_id, "cost_usd": cost})
 
 
 def outcome_from(response: ProviderResponse, action, raw_ref: str | None, **common) -> TrialOutcome:

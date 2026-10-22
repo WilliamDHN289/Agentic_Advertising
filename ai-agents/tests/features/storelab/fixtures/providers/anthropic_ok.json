@@ -1,0 +1,38 @@
+{
+ "source": "authored",
+ "note": "Authored from the provider's documented response format, not recorded; live_smoke.py --record-fixtures adds recorded_<provider>_NN.json files.",
+ "provider": "anthropic",
+ "model": "claude-sonnet-4-5-20250929",
+ "response": {
+  "status": 200,
+  "headers": {
+   "content-type": "application/json",
+   "request-id": "req_anthropic_fixture_1"
+  },
+  "json": {
+   "id": "msg_fixture1",
+   "type": "message",
+   "role": "assistant",
+   "model": "claude-sonnet-4-5-20250929",
+   "content": [
+    {
+     "type": "text",
+     "text": "{\"choice\": \"B0TEST0001\", \"reason\": \"best rated within budget\"}"
+    }
+   ],
+   "stop_reason": "end_turn",
+   "stop_sequence": null,
+   "usage": {
+    "input_tokens": 530,
+    "output_tokens": 23
+   }
+  }
+ },
+ "expect": {
+  "returned_model": "claude-sonnet-4-5-20250929",
+  "input_tokens": 530,
+  "output_tokens": 23,
+  "refusal": false,
+  "request_id": "req_anthropic_fixture_1"
+ }
+}

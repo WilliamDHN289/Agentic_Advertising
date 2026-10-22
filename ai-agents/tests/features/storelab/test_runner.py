@@ -379,7 +379,7 @@ class ModeTest(unittest.TestCase):
         self.assertEqual(manifest.status_history[-1].status, "QUEUED")
         with self.assertRaisesRegex(PlanError, "credentials for openai but none for anthropic"):
             api.plan_run(cfg, snapshot=SNAPSHOT, root=ROOT / "plans", environ={"OPENAI_API_KEY": "sk-test"})
-        with self.assertRaisesRegex(NotImplementedError, "SL-09"):
+        with self.assertRaisesRegex(ValueError, "no provider adapter for anthropic, openai"):
             api.backends_for(cfg, planned and stimuli_for(cfg), "sandbox")
 
     def test_unestimated_sandbox_runs_wait_for_approval(self):

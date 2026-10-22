@@ -25,7 +25,10 @@ seed and the trial's coordinates, not from its `trial_key`, so a replay (whose
 `config_hash`, and so trial keys, differ) builds the same requests.
 
 An entry, stored at `<provider>/<model>/<call_key>.json`, holds the request, the raw
-response (text, refusal flag, attempts, latency, returned model id, usage, raw body),
+response (text, refusal flag, attempts, latency, returned model id, usage, raw body;
+from SL-09 also the provider request id, `system_fingerprint`, the parameters sent,
+whether a seed was sent and the API version, each left out of the JSON while unset so
+older entries keep their digest),
 the parsed action, the adapter version, `created_utc`, the producing `run_id` and
 `trial_key`, and `content_sha256` over all of it. A trial's outcome is rebuilt from
 the entry's stored action, so a replay reproduces the original outcome even if the

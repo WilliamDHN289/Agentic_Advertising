@@ -1,0 +1,42 @@
+{
+ "source": "authored",
+ "note": "Authored from the provider's documented response format, not recorded; live_smoke.py --record-fixtures adds recorded_<provider>_NN.json files.",
+ "provider": "google",
+ "model": "gemini-2.0-flash-001",
+ "response": {
+  "status": 200,
+  "headers": {
+   "content-type": "application/json"
+  },
+  "json": {
+   "candidates": [
+    {
+     "content": {
+      "role": "model",
+      "parts": [
+       {
+        "text": "{\"choice\": \"B0TEST0001\", \"reason\": \"best rated within budget\"}"
+       }
+      ]
+     },
+     "finishReason": "STOP",
+     "index": 0
+    }
+   ],
+   "usageMetadata": {
+    "promptTokenCount": 520,
+    "candidatesTokenCount": 19,
+    "totalTokenCount": 539
+   },
+   "modelVersion": "gemini-2.0-flash-001",
+   "responseId": "resp_google_fixture_1"
+  }
+ },
+ "expect": {
+  "returned_model": "gemini-2.0-flash-001",
+  "input_tokens": 520,
+  "output_tokens": 19,
+  "refusal": false,
+  "request_id": "resp_google_fixture_1"
+ }
+}

@@ -205,17 +205,25 @@ class Governance(Protocol):
     def cancel_requested(self) -> bool: ...
 
 
+def kill_switch_engaged(environ: Mapping[str, str]) -> bool:
+    """``llm_guard.py`` semantics for the forced value: set to anything but "0" engages it."""
+    value = environ.get(KILL_SWITCH_ENV)
+    return value is not None and value.strip() != "0"
+
+
 class LocalGovernance:
-    """Budget, kill switch, cancel flag and a JSONL call log in the run directory."""
+    """Budget, kill switch, cancel flag, a JSONL call log of finished trials and a JSONL
+    invocation log of provider calls (one line per call, SL-09) in the run directory."""
 
     kind = "local"
 
     def __init__(self, run_id: str, max_usd: float, *, call_log: Path | None = None, cancel_flag: Path | None = None,
-                 environ: Mapping[str, str] | None = None):
+                 environ: Mapping[str, str] | None = None, invocation_log: Path | None = None):
         self.run_id, self.max_usd = run_id, max_usd
-        self.call_log, self.cancel_flag = call_log, cancel_flag
+        self.call_log, self.cancel_flag, self.invocation_log = call_log, cancel_flag, invocation_log
         self.environ = os.environ if environ is None else environ
         self.spent_usd = 0.0
+        self.lock = threading.Lock()
         if call_log is not None and Path(call_log).is_file():
             for line in Path(call_log).read_text(encoding="utf-8").splitlines():
                 try:
@@ -224,7 +232,7 @@ class LocalGovernance:
                     continue  # a line cut short by a kill
 
     def authorize(self, trial: Trial, estimated_usd: float) -> str | None:
-        if self.environ.get(KILL_SWITCH_ENV) == "1":
+        if kill_switch_engaged(self.environ):
             return "kill_switch"
         if self.spent_usd + estimated_usd > self.max_usd + 1e-12:
             return "budget"
@@ -235,17 +243,37 @@ class LocalGovernance:
         if self.call_log is not None:
             line = json.dumps({"run_id": self.run_id, "trial_key": trial.trial_key, "model_key": trial.model_key,
                                "status": outcome.status, "error_code": outcome.error_code, "cost_usd": cost_usd,
-                               "at_utc": _utcnow().strftime("%Y-%m-%dT%H:%M:%S.%fZ")}, separators=(",", ":"))
+                               "at_utc": _utc_text()}, separators=(",", ":"))
             with open(self.call_log, "a", encoding="utf-8") as out:
                 out.write(line + "\n")
 
     def cancel_requested(self) -> bool:
         return self.cancel_flag is not None and Path(self.cancel_flag).exists()
 
+    # CallGuard (backends/provider.py), called by the adapters on their threads.
+    def before_attempt(self, provider: str, model: str) -> str | None:
+        return "kill_switch" if kill_switch_engaged(self.environ) else None
+
+    def after_attempt(self, provider: str, model: str, error: BaseException | None) -> None:
+        return None
+
+    def log_call(self, call: Mapping) -> None:
+        if self.invocation_log is None:
+            return
+        line = json.dumps({**call, "at_utc": _utc_text()}, separators=(",", ":"), default=str)
+        with self.lock, open(self.invocation_log, "a", encoding="utf-8") as out:
+            out.write(line + "\n")
+            out.flush()
+            os.fsync(out.fileno())
+
 
 # ------------------------------------------------------------------- execution
 def _utcnow() -> datetime.datetime:
     return datetime.datetime.now(datetime.timezone.utc)
+
+
+def _utc_text() -> str:
+    return _utcnow().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 @dataclass
@@ -414,6 +442,8 @@ def _drive(trials, records, backends, governance, observation, write, cost, moni
                        % (backends[trial.model_key].backend, trial.trial_key[:12], error)))
             return
         governance.record(trial, outcome, cost(trial, outcome))
+        if outcome.status == "not_run" and outcome.error_code == "kill_switch":  # engaged while in flight
+            merge(Stop("CANCELLED", "kill_switch"))
         merge(monitor.observe(trial, outcome, _utcnow()))
 
     while True:

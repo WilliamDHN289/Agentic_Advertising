@@ -103,7 +103,8 @@ def _runner(args) -> int:
     except ValidationError as error:
         print("\n".join(format_errors(error)), file=sys.stderr)
         return 2
-    except (PlanError, RunLocked, NotImplementedError, OSError, ValueError, KeyError, yaml.YAMLError) as error:
+    except (PlanError, RunLocked, NotImplementedError, ImportError, OSError, ValueError, KeyError,
+            yaml.YAMLError) as error:
         print("error: %s" % error, file=sys.stderr)
         return 2
     summary = api.status(run_dir)

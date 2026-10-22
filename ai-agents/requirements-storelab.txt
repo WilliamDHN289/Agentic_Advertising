@@ -9,3 +9,10 @@ PyYAML>=6.0.2
 jsonschema>=4.26.0,<5.0.0
 numpy>=1.26.4,<2.0
 pyarrow==21.0.0
+# Provider SDKs (SL-09). openai and google-genai match the ai-agents pins; anthropic is
+# new there (pyproject.toml). It stays on 1.x: 1.17.0 sends API version 2023-06-01, on
+# which the pinned Claude snapshots accept temperature 0 (2.x sends 2026-10-21, which
+# rejects any temperature). anthropic 1.x brings httpx2.
+openai==2.8.0
+google-genai==1.56.0
+anthropic==1.17.0

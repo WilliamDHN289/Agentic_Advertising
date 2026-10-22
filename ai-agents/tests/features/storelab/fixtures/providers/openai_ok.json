@@ -1,0 +1,44 @@
+{
+ "source": "authored",
+ "note": "Authored from the provider's documented response format, not recorded; live_smoke.py --record-fixtures adds recorded_<provider>_NN.json files.",
+ "provider": "openai",
+ "model": "gpt-4o-2024-08-06",
+ "response": {
+  "status": 200,
+  "headers": {
+   "content-type": "application/json",
+   "x-request-id": "req_openai_fixture_1"
+  },
+  "json": {
+   "id": "chatcmpl-fixture1",
+   "object": "chat.completion",
+   "created": 1761100000,
+   "model": "gpt-4o-2024-08-06",
+   "system_fingerprint": "fp_fixture01",
+   "choices": [
+    {
+     "index": 0,
+     "message": {
+      "role": "assistant",
+      "content": "{\"choice\": \"B0TEST0001\", \"reason\": \"best rated within budget\"}",
+      "refusal": null
+     },
+     "finish_reason": "stop",
+     "logprobs": null
+    }
+   ],
+   "usage": {
+    "prompt_tokens": 512,
+    "completion_tokens": 21,
+    "total_tokens": 533
+   }
+  }
+ },
+ "expect": {
+  "returned_model": "gpt-4o-2024-08-06",
+  "input_tokens": 512,
+  "output_tokens": 21,
+  "refusal": false,
+  "request_id": "req_openai_fixture_1"
+ }
+}
