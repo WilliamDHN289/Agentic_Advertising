@@ -167,7 +167,9 @@ def plan(config: RunConfig, stimuli: Stimuli, credentials: Mapping[str, bool], *
         raise PlanError("protocol.prompt_templates: no renderer for %s" % unknown)
     resolved, reason = resolve_mode(config, credentials)
     trials = plan_trials(config, stimuli)
-    estimate = estimate_cost(config, trials, resolved) if estimate_cost else (0.0 if resolved == "offline" else None)
+    # Offline and replay runs call no paid provider.
+    estimate = estimate_cost(config, trials, resolved) if estimate_cost else (
+        0.0 if resolved in ("offline", "replay") else None)
     now = now or _utcnow()
     manifest = new_manifest(config, resolved_mode=resolved, mode_reason=reason, governance="local",
                             protocol_version=PROTOCOL_VERSION, overrides=overrides, run_id=run_id, now=now,
@@ -487,16 +489,32 @@ def completion(trials: list[Trial], records: Mapping[str, TrialRecord], threshol
     return "COMPLETED_WITH_GAPS", "; ".join(parts)
 
 
-def _comparable(record: TrialRecord) -> dict:
-    data = record.model_dump(mode="json", exclude={"run_id", "started_utc", "finished_utc"})
-    data["outcome"].pop("latency_s", None)
+# Fields left out of record_set_hash. Run identity: a replay or a rerun of the same
+# design is another run with its own run_id and, since the mode is part of the
+# config, its own config_hash and trial keys. Volatile: wall-clock values.
+RUN_IDENTITY_FIELDS = ("run_id", "config_hash", "trial_key")
+VOLATILE_FIELDS = ("started_utc", "finished_utc", "outcome.latency_s")
+
+
+def comparable(record: TrialRecord) -> dict:
+    """The record without RUN_IDENTITY_FIELDS and VOLATILE_FIELDS."""
+    data = record.model_dump(mode="json")
+    for path in RUN_IDENTITY_FIELDS + VOLATILE_FIELDS:
+        *parents, leaf = path.split(".")
+        node = data
+        for part in parents:
+            node = node[part]
+        del node[leaf]
     return data
 
 
 def record_set_hash(records: Mapping[str, TrialRecord]) -> str:
-    """sha256 over the records sorted by trial_key, without run id, timestamps and latency."""
-    rows = sorted([key, _comparable(record)] for key, record in records.items())
-    return hashlib.sha256(canonical_json(rows).encode("utf-8")).hexdigest()
+    """sha256 over the comparable records sorted by their trial coordinates (task, set,
+    presentation, interface, model, temperature, repetition), so a killed-and-resumed
+    run, a rerun and a replay of the same design give the same hash."""
+    rows = sorted((canonical_json([r.task_id, r.set_id, r.presentation_id, r.interface, r.model_key, r.temperature,
+                                   r.rep]), comparable(r)) for r in records.values())
+    return hashlib.sha256(canonical_json([row for _, row in rows]).encode("utf-8")).hexdigest()
 
 
 def summary(manifest: Manifest, trials: list[Trial], records: Mapping[str, TrialRecord]) -> dict:

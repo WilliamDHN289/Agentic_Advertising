@@ -7,35 +7,51 @@
     status(run_dir)       a summary: status, counts by outcome, missingness, record-set hash
     cancel(run_dir)       stop a running run (cancel flag) or cancel a stopped one
     export(run_dir, fmt)  write export/trials.<parquet|csv|jsonl.gz>, one row per planned trial
+    replay(run_dir)       a new run with mode replay of a finished run, served from the cache (SL-08)
 
 Run directories live under ``outputs.root`` (default ``runs``) as ``<run_id>/``. The
 offline backends are the simulated agents (SL-06) and the local LLM (SL-04, text and
-structured interfaces); provider adapters (SL-09) and replay (SL-08) are not built
-yet, so planning works in those modes but executing them is refused.
+structured interfaces) behind the response cache; sandbox runs need a provider per
+configured provider (the SL-09 adapters; tests pass a mock). A replay plans the
+source run's stimuli again under its own config_hash and serves every call from the
+cache (``read_only``), so it makes no provider call.
 """
 from __future__ import annotations
 
 import csv
 import datetime
 import io
+import json
 import os
 import time
 from pathlib import Path
 from typing import Any, Mapping
 
 from . import e1_stimuli
-from .backends.local_llm import LocalLLM
+from .backends.llm import LLMBackend, OllamaProvider, Provider
 from .backends.simulated import SimulatedAgent, params_from_config
-from .core.config import RunConfig
+from .core.cache import LocalAuditLog, LocalCacheStore, ResponseCache
+from .core.config import RunConfig, resolve_config, trial_affecting
 from .core.protocol import Observation, TrialOutcome
 from .core.records import TrialRecord, write_jsonl_gz, write_parquet
 from .core.manifest import append_status
-from .core.runner import (TERMINAL, LocalGovernance, Plan, Result, Stimuli, Trial, detect_credentials, execute, plan,
-                          summary)
+from .core.runner import (TERMINAL, LocalGovernance, Plan, PlanError, Result, Stimuli, Trial, detect_credentials,
+                          execute, plan, summary)
 from .core.store import LocalStore, write_bytes
 from .legacy_baseline import default_artifact_root
 
 EXPORT_FORMATS = ("parquet", "csv", "jsonl")
+# What a replay's config may change relative to its source run.
+REPLAY_FREE_FIELDS = ("mode", "source_run_id", "cache.policy")
+
+
+def default_cache_root() -> Path:
+    return default_artifact_root() / "cache"
+
+
+def open_cache(cache_root: Path | None = None) -> ResponseCache:
+    root = Path(cache_root or default_cache_root())
+    return ResponseCache(LocalCacheStore(root), LocalAuditLog(root / "audit.jsonl"))
 
 
 def default_snapshot(config: RunConfig) -> Path:
@@ -50,11 +66,43 @@ def build_stimuli(config: RunConfig, snapshot: Path | None = None) -> Stimuli:
     return Stimuli(tasks=built.tasks, designs=built.designs, products=built.products)
 
 
+def _without(data: dict, paths) -> dict:
+    data = json.loads(json.dumps(data))
+    for path in paths:
+        *parents, leaf = path.split(".")
+        node = data
+        for part in parents:
+            node = node.get(part, {})
+        node.pop(leaf, None)
+    return data
+
+
+def replay_source(config: RunConfig, root: Path | None = None) -> tuple[Path, Stimuli]:
+    """The source run of a replay config and its stimuli; PlanError if the configs
+    differ in anything but REPLAY_FREE_FIELDS."""
+    try:
+        source_dir = resolve_run_dir(config.source_run_id, root or config.outputs.root)
+    except FileNotFoundError as error:
+        raise PlanError("replay: source run %s not found (%s)" % (config.source_run_id, error))
+    store = LocalStore(source_dir)
+    source = store.read_manifest().config
+    mine, theirs = (_without(trial_affecting(c), REPLAY_FREE_FIELDS) for c in (config, source))
+    if mine != theirs:
+        differing = sorted(k for k in set(mine) | set(theirs) if mine.get(k) != theirs.get(k))
+        raise PlanError("replay: config differs from source run %s in %s (only %s may change)"
+                        % (config.source_run_id, differing, ", ".join(REPLAY_FREE_FIELDS)))
+    return source_dir, load_plan(store)[1]
+
+
 def plan_run(config: RunConfig, *, snapshot: Path | None = None, root: Path | None = None,
              environ: Mapping[str, str] | None = None, overrides: Mapping[str, Any] | None = None,
-             run_id: str | None = None) -> tuple[Path, Plan]:
-    stimuli = build_stimuli(config, snapshot)
-    result = plan(config, stimuli, detect_credentials(environ), overrides=overrides, run_id=run_id)
+             run_id: str | None = None, estimate_cost=None) -> tuple[Path, Plan]:
+    if config.mode == "replay":
+        _, stimuli = replay_source(config, root)
+    else:
+        stimuli = build_stimuli(config, snapshot)
+    result = plan(config, stimuli, detect_credentials(environ), overrides=overrides, run_id=run_id,
+                  estimate_cost=estimate_cost)
     run_dir = Path(root or config.outputs.root) / result.manifest.run_id
     if run_dir.exists():
         raise FileExistsError("run directory exists: %s" % run_dir)
@@ -80,43 +128,37 @@ class SimulatedBackend:
         return self.agent.decide(observation, trial.interface, trial.trial_key)
 
 
-class LocalLLMBackend:
-    """One ollama model on the text or structured view; the call seed comes from the trial key."""
-
-    backend = "local_llm"
-
-    def __init__(self, config: RunConfig, model_key: str):
-        self.config = config
-        self.spec = next(m for m in config.agents.models if m.key == model_key)
-        self.model = self.spec.model
-
-    def decide(self, trial: Trial, observation: Observation) -> TrialOutcome:
-        policy = self.config.failure_policy
-        client = LocalLLM(self.spec.model, temperature=trial.temperature, top_p=self.spec.top_p,
-                          num_predict=self.spec.max_output_tokens, timeout_s=policy.trial_timeout_s,
-                          max_attempts=policy.max_attempts, backoff_s=policy.backoff_initial_s)
-        return client.decide(observation.views[trial.interface], observation.candidate_ids,
-                             seed=int(trial.trial_key[:8], 16))
-
-
-def backends_for(config: RunConfig, stimuli: Stimuli, resolved_mode: str, base: Path | None = None) -> dict:
-    if resolved_mode == "sandbox":
-        raise NotImplementedError("mode sandbox needs the provider adapters (SL-09)")
+def backends_for(config: RunConfig, stimuli: Stimuli, resolved_mode: str, base: Path | None = None, *,
+                 providers: Mapping[str, Provider] | None = None, cache: ResponseCache | None = None,
+                 run_id: str | None = None) -> dict:
+    """One backend per model key. ``providers`` maps provider names to adapters
+    (SL-09; tests pass mocks); the local model defaults to OllamaProvider."""
+    policy = config.cache.policy
+    providers = dict(providers or {})
     if resolved_mode == "replay":
-        raise NotImplementedError("mode replay needs the response cache (SL-08)")
-    if config.agents.offline_backend == "local_llm":
-        if "browser_tool" in config.interfaces:
-            raise NotImplementedError("browser_tool with a local LLM needs the tool loop (SL-10)")
-        return {m.key: LocalLLMBackend(config, m.key) for m in config.agents.models}
-    params = params_from_config(config, stimuli.tasks, base=base)
-    return {m.key: SimulatedBackend(SimulatedAgent(params.model(m.key), seed=config.seed,
-                                                   max_turns=config.protocol.max_turns))
-            for m in config.agents.models}
+        return {m.key: LLMBackend(config, m.key, provider=None, cache=cache, policy="read_only", run_id=run_id)
+                for m in config.agents.models}
+    if resolved_mode == "sandbox":
+        missing = sorted({m.provider for m in config.agents.models} - set(providers))
+        if missing:
+            raise NotImplementedError("mode sandbox needs provider adapters for %s (SL-09)" % ", ".join(missing))
+    elif config.agents.offline_backend == "local_llm":
+        providers.setdefault("ollama", OllamaProvider(config))
+    else:
+        params = params_from_config(config, stimuli.tasks, base=base)
+        return {m.key: SimulatedBackend(SimulatedAgent(params.model(m.key), seed=config.seed,
+                                                       max_turns=config.protocol.max_turns))
+                for m in config.agents.models}
+    if "browser_tool" in config.interfaces:
+        raise NotImplementedError("browser_tool with a language model needs the tool loop (SL-10)")
+    return {m.key: LLMBackend(config, m.key, provider=providers[m.provider], cache=cache if policy != "off" else None,
+                              policy=policy, run_id=run_id) for m in config.agents.models}
 
 
 # ------------------------------------------------------------------- execution
 def execute_run(run_dir: Path, *, environ: Mapping[str, str] | None = None, base: Path | None = None,
-                flush_every: int = 50, backends: Mapping | None = None, sleep=time.sleep) -> Result:
+                flush_every: int = 50, backends: Mapping | None = None, sleep=time.sleep,
+                providers: Mapping[str, Provider] | None = None, cache_root: Path | None = None) -> Result:
     store = LocalStore(run_dir)
     store.acquire()
     try:
@@ -127,7 +169,9 @@ def execute_run(run_dir: Path, *, environ: Mapping[str, str] | None = None, base
             append_status(manifest, "QUEUED", _now(), "resumed")
             store.write_manifest(manifest)
         if backends is None:
-            backends = backends_for(manifest.config, stimuli, manifest.mode.resolved, base)
+            cache = open_cache(cache_root) if manifest.config.cache.policy != "off" else None
+            backends = backends_for(manifest.config, stimuli, manifest.mode.resolved, base, providers=providers,
+                                    cache=cache, run_id=manifest.run_id)
         governance = LocalGovernance(manifest.run_id, manifest.config.budget.max_usd, call_log=store.call_log,
                                      cancel_flag=store.cancel_flag, environ=environ)
         store.cancel_flag.unlink(missing_ok=True)
@@ -138,11 +182,28 @@ def execute_run(run_dir: Path, *, environ: Mapping[str, str] | None = None, base
 
 def run(config: RunConfig, **kwargs) -> tuple[Path, Result | None]:
     """Plan and execute; returns (run_dir, None) if the plan awaits approval."""
-    plan_kwargs = {k: kwargs.pop(k) for k in ("snapshot", "root", "overrides", "run_id") if k in kwargs}
+    plan_kwargs = {k: kwargs.pop(k) for k in ("snapshot", "root", "overrides", "run_id", "estimate_cost")
+                   if k in kwargs}
     run_dir, planned = plan_run(config, environ=kwargs.get("environ"), **plan_kwargs)
     if planned.manifest.status_history[-1].status != "QUEUED":
         return run_dir, None
     return run_dir, execute_run(run_dir, **kwargs)
+
+
+def replay_config(source_run_dir: Path) -> RunConfig:
+    """The source run's config with mode replay, its run id and cache policy read_only."""
+    source = LocalStore(source_run_dir).read_manifest()
+    data = source.config.model_dump(mode="json")
+    data.update(mode="replay", source_run_id=source.run_id)
+    data["cache"]["policy"] = "read_only"
+    return resolve_config(data)
+
+
+def replay(source_run_dir: Path, *, root: Path | None = None, cache_root: Path | None = None,
+           **kwargs) -> tuple[Path, Result | None]:
+    """Plan and execute a replay of ``source_run_dir`` next to it (or under ``root``)."""
+    source_run_dir = Path(source_run_dir)
+    return run(replay_config(source_run_dir), root=root or source_run_dir.parent, cache_root=cache_root, **kwargs)
 
 
 def resume(run_dir: Path, *, max_usd: float | None = None, **kwargs) -> Result:

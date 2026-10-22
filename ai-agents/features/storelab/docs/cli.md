@@ -11,13 +11,15 @@ python -m features.storelab.cli resume  RUN [--max-usd USD]
 python -m features.storelab.cli status  RUN
 python -m features.storelab.cli cancel  RUN
 python -m features.storelab.cli export  RUN [--format parquet|csv|jsonl]
+python -m features.storelab.cli replay  RUN [--cache-root DIR]
+python -m features.storelab.cli cache   list|inspect|verify|purge|export ...   (docs/cache.md)
 ```
 
 `RUN` is a run directory, or a run id under `--root` (default `runs`). `plan` and
 `run` read the dataset snapshot named by `environment.dataset` from
 `artifacts/datasets/` unless `--snapshot` is given. The Python API mirrors the
 commands: `api.plan_run`, `api.run`, `api.resume`, `api.status`, `api.cancel`,
-`api.export` (and `api.execute_run`).
+`api.export`, `api.replay` (and `api.execute_run`).
 
 | Command | Does | Exit code |
 |---|---|---|
@@ -27,6 +29,7 @@ commands: `api.plan_run`, `api.run`, `api.resume`, `api.status`, `api.cancel`,
 | `status` | status, counts by outcome, pending trials, cells above the missingness threshold, refusal rate, record-set hash | 0 |
 | `cancel` | if a process is executing the run, ask it to stop (it finishes in-flight trials); otherwise mark the run CANCELLED | 0 |
 | `export` | `export/trials.<parquet\|csv\|jsonl.gz>`: one row per planned trial with a record, in plan order | 0 |
+| `replay` | a new run replaying RUN from the response cache, no provider calls (docs/cache.md) | as `run` |
 
 ## Mode resolution (once, at plan time)
 
@@ -41,11 +44,12 @@ commands: `api.plan_run`, `api.run`, `api.resume`, `api.status`, `api.cancel`,
 
 Credentials are read from `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` and
 `GOOGLE_API_KEY` or `GEMINI_API_KEY`. The resolved mode and its reason are in the
-manifest (`mode`) and the first status event. Executing sandbox runs needs the
-provider adapters (SL-09) and replay runs the cache (SL-08); until then they are
-planned but `run`/`resume` refuse them. Offline backends: the simulated agents
-(SL-06) and the local LLM (SL-04; text and structured interfaces only, since
-`browser_tool` needs the SL-10 tool loop).
+manifest (`mode`) and the first status event. Executing sandbox runs needs a provider
+adapter per configured provider (SL-09; the API accepts `providers=`); until then the
+CLI refuses them. Replay runs read the response cache (SL-08, docs/cache.md). Offline
+backends: the simulated agents (SL-06) and the local LLM (SL-04, through the
+response cache; text and structured interfaces only, since `browser_tool` needs the
+SL-10 tool loop).
 
 ## Trials
 
@@ -98,7 +102,9 @@ is ignored when reading. Records are deduplicated on `trial_key`: a trial with a
 final record is never recorded or executed again; a `not_run` record is superseded
 when the trial later runs. Because every random draw is keyed by the trial, a run
 killed and resumed any number of times produces the same record set (compare
-`status` → `record_set_hash`, which excludes run id, timestamps and latency). A lock
+`status` → `record_set_hash`, which leaves out the run identity `run_id`,
+`config_hash` and `trial_key`, and the volatile `started_utc`, `finished_utc` and
+`outcome.latency_s`). A lock
 file keeps a second process from executing the same run; a stale lock left by a
 killed process is taken over, and the run's last RUNNING status is followed by
 STALLED and QUEUED.

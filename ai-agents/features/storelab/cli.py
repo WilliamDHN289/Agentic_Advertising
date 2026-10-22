@@ -8,6 +8,9 @@ SL-07 the runner commands (docs/cli.md; the Python API is ``api.py``).
     python -m features.storelab.cli status|cancel RUN [--root DIR]
     python -m features.storelab.cli resume RUN [--max-usd USD] [--root DIR]
     python -m features.storelab.cli export RUN [--format parquet|csv|jsonl] [--root DIR]
+    python -m features.storelab.cli replay RUN [--root DIR] [--cache-root DIR]
+    python -m features.storelab.cli cache list|inspect|verify|purge|export [KEY] [--namespace N] [--provider P]
+        [--model M] [--before YYYY-MM-DD] [--reason TEXT] [--out TAR] [--cache-root DIR]
 
 ``validate`` prints the resolved config (every default written out) on stdout and
 its config_hash on stderr; it exits 2 on an invalid config. ``schemas`` regenerates
@@ -56,7 +59,7 @@ def schema_text(name: str) -> str:
     return json.dumps(SCHEMAS[name](), indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
 
-RUNNER_COMMANDS = ("plan", "run", "status", "resume", "cancel", "export")
+RUNNER_COMMANDS = ("plan", "run", "status", "resume", "cancel", "export", "replay")
 # Run status -> exit code of run and resume: 0 finished, 3 needs an operator, 4 stopped for good.
 RUN_EXIT = {"COMPLETED": 0, "COMPLETED_WITH_GAPS": 0, "PAUSED": 3, "LIMIT_REACHED": 3, "PENDING_APPROVAL": 3,
             "QUEUED": 3, "FAILED": 4, "CANCELLED": 4}
@@ -81,9 +84,11 @@ def _runner(args) -> int:
                         "mode": planned.manifest.mode.model_dump(), "trials": len(planned.trials),
                         "estimate_usd": planned.estimate_usd, "status": last.status, "reason": last.reason})
                 return 0
-            run_dir, result = api.run(config, snapshot=args.snapshot, root=args.root)
+            run_dir, result = api.run(config, snapshot=args.snapshot, root=args.root, cache_root=args.cache_root)
         else:
             run_dir = api.resolve_run_dir(args.run, args.root)
+            if args.command == "replay":
+                run_dir, result = api.replay(run_dir, root=args.root, cache_root=args.cache_root)
             if args.command == "status":
                 _print(api.status(run_dir))
                 return 0
@@ -93,7 +98,8 @@ def _runner(args) -> int:
             if args.command == "export":
                 _print({"run_dir": str(run_dir), "export": str(api.export(run_dir, args.format))})
                 return 0
-            result = api.resume(run_dir, max_usd=args.max_usd)
+            if args.command == "resume":
+                result = api.resume(run_dir, max_usd=args.max_usd, cache_root=args.cache_root)
     except ValidationError as error:
         print("\n".join(format_errors(error)), file=sys.stderr)
         return 2
@@ -103,6 +109,46 @@ def _runner(args) -> int:
     summary = api.status(run_dir)
     _print({"run_dir": str(run_dir), **summary})
     return RUN_EXIT.get(summary["status"], 3) if result is not None else 3
+
+
+def _cache(args) -> int:
+    import datetime
+
+    from . import api
+    from .core.cache import Filters
+
+    cache = api.open_cache(args.cache_root)
+    try:
+        filters = Filters(namespace=args.namespace, provider=args.provider, model=args.model,
+                          before=datetime.date.fromisoformat(args.before) if args.before else None)
+        if args.action == "list":
+            _print([{"call_key": e.call_key, "provider": e.request.provider, "model": e.request.requested_model,
+                     "namespace": e.request.sample_namespace, "rep": e.request.rep,
+                     "created_utc": e.created_utc.isoformat(), "run_id": e.run_id}
+                    for e in cache.entries(filters)])
+            return 0
+        if args.action == "inspect":
+            if not args.key:
+                raise ValueError("inspect needs a call_key")
+            entry = next((e for e in cache.entries() if e.call_key == args.key), None)
+            if entry is None:
+                raise KeyError("no cache entry %s" % args.key)
+            _print(entry.model_dump(mode="json"))
+            return 0
+        if args.action == "verify":
+            bad = cache.verify()
+            _print({"entries": sum(1 for _ in cache.store.paths()), "tampered": bad})
+            return 1 if bad else 0
+        if args.action == "purge":
+            _print(cache.purge(filters, args.reason or ""))
+            return 0
+        if args.out is None:
+            raise ValueError("export needs --out")
+        _print(cache.export(filters, args.reason or "", args.out))
+        return 0
+    except (OSError, ValueError, KeyError) as error:
+        print("error: %s" % error, file=sys.stderr)
+        return 2
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -120,6 +166,7 @@ def main(argv: list[str] | None = None) -> int:
     stimuli.add_argument("--snapshot", type=Path, required=True, help="dataset snapshot directory")
     stimuli.add_argument("--out", type=Path, required=True, help="output directory")
     stimuli.add_argument("--set", action="append", default=[], metavar="KEY=VALUE")
+    cache_root = {"type": Path, "help": "response cache directory (default: artifacts/cache)"}
     for name, text in (("plan", "plan a run and write its directory"), ("run", "plan a run and execute it")):
         command = sub.add_parser(name, help=text)
         command.add_argument("config", type=Path)
@@ -127,19 +174,35 @@ def main(argv: list[str] | None = None) -> int:
         command.add_argument("--snapshot", type=Path, help="dataset snapshot (default: the configured one under "
                                                            "artifacts/datasets)")
         command.add_argument("--root", type=Path, help="runs directory (default: outputs.root)")
+        if name == "run":
+            command.add_argument("--cache-root", **cache_root)
     for name, text in (("status", "summarise a run"), ("resume", "continue a paused, limited or interrupted run"),
-                       ("cancel", "cancel a run"), ("export", "write the run's analysis table")):
+                       ("cancel", "cancel a run"), ("export", "write the run's analysis table"),
+                       ("replay", "replay a finished run from the response cache (no provider calls)")):
         command = sub.add_parser(name, help=text)
         command.add_argument("run", help="run directory, or run id under --root")
         command.add_argument("--root", type=Path, help="runs directory (default: runs)")
         if name == "resume":
             command.add_argument("--max-usd", type=float, help="raise the budget of a LIMIT_REACHED run")
+        if name in ("resume", "replay"):
+            command.add_argument("--cache-root", **cache_root)
         if name == "export":
             command.add_argument("--format", choices=("parquet", "csv", "jsonl"), default="parquet")
+    cache = sub.add_parser("cache", help="list, inspect, verify, purge or export response-cache entries")
+    cache.add_argument("action", choices=("list", "inspect", "verify", "purge", "export"))
+    cache.add_argument("key", nargs="?", help="call_key (inspect)")
+    cache.add_argument("--cache-root", **cache_root)
+    for option in ("namespace", "provider", "model"):
+        cache.add_argument("--" + option)
+    cache.add_argument("--before", help="entries created before this UTC date, YYYY-MM-DD")
+    cache.add_argument("--reason", help="why (required by purge and export; written to the audit log)")
+    cache.add_argument("--out", type=Path, help="tarball path (export)")
     args = parser.parse_args(argv)
 
     if args.command in RUNNER_COMMANDS:
         return _runner(args)
+    if args.command == "cache":
+        return _cache(args)
 
     if args.command == "e1-stimuli":
         from . import e1_stimuli
