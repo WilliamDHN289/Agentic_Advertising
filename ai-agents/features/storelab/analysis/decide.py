@@ -22,6 +22,11 @@ Nothing is decided by hand: ``decide`` applies the registered rules
    sensitivity analysis gives the same one;
 5. cells are aggregated (two_thirds, all, single) and primary groups combined.
 
+The H1d alignment test (``first_credible_change``) takes the credible changes
+themselves and derives its counts: each (provider version pair, task) counts once,
+through the first interface in text → structured → browser_tool order that shows a
+credible change, ties in u excluded, pooled across providers.
+
 Inconsistent input (a missing claim, group, cell field or test; both directions at
 once) raises ``ValueError``: a label is never produced from incomplete results.
 """
@@ -46,6 +51,16 @@ Probability = Annotated[float, Field(ge=0.0, le=1.0)]
 
 
 # ------------------------------------------------------------------ results
+class CredibleChange(Strict):
+    """One credible favourite change (H1d alignment): its unit, the interface that
+    showed it and whether the new favourite has the higher u (null: a tie in u)."""
+
+    pair: Annotated[str, Field(min_length=1)]  # provider version pair
+    task: Annotated[str, Field(min_length=1)]
+    interface: Literal["text", "structured", "browser_tool"]
+    higher_u: bool | None
+
+
 class StatResult(Strict):
     p_support: Probability | None = None
     p_against: Probability | None = None
@@ -54,6 +69,7 @@ class StatResult(Strict):
     counts: dict[Name, NonNegativeInt] = {}
     metrics: dict[Name, float] = {}
     share: Probability | None = None
+    changes: list[CredibleChange] = []  # a first_credible_change rule's input
     threshold: float | None = None  # the value of a registered threshold_rule
     estimate: float | None = None  # reported only
     ci: tuple[float, float] | None = None  # reported only
@@ -149,6 +165,30 @@ def count_p_values(test: BoundTest, result: StatResult, where: str) -> tuple[flo
     if above:
         return norm_sf(z(k_s, t_s)), norm_sf(-z(k_a, t_a))
     return norm_sf(-z(k_s, t_s)), norm_sf(z(k_a, t_a))
+
+
+def first_credible_changes(test: BoundTest, result: StatResult, where: str) -> tuple[StatResult, dict]:
+    """``result`` with n and the aligned count derived per ``test.first_credible_change``,
+    and a summary of the units kept and dropped."""
+    order = test.first_credible_change.order
+    if result.n is not None or result.counts:
+        raise ValueError("%s: counts are derived from the changes; give changes only" % where)
+    seen: dict[tuple[str, str, str], CredibleChange] = {}
+    for change in result.changes:
+        key = (change.pair, change.task, change.interface)
+        if key in seen:
+            raise ValueError("%s: change of pair %s, task %s listed twice for %s" % (where, *key))
+        if change.interface not in order:
+            raise ValueError("%s: interface %s is not in the registered order" % (where, change.interface))
+        seen[key] = change
+    first: dict[tuple[str, str], CredibleChange] = {}
+    for change in sorted(result.changes, key=lambda c: order.index(c.interface)):
+        first.setdefault((change.pair, change.task), change)
+    kept = [c for c in first.values() if c.higher_u is not None]
+    derived = result.model_copy(update={"n": len(kept), "counts": {"aligned": sum(c.higher_u for c in kept)}})
+    return derived, {"changes": len(result.changes), "units": len(first), "ties_excluded": len(first) - len(kept),
+                     "n": derived.n, "aligned": derived.counts["aligned"],
+                     "by_interface": {i: sum(c.interface == i for c in kept) for i in order}}
 
 
 # ---------------------------------------------------------------- decisions
@@ -249,6 +289,7 @@ def _aggregate(aggregation: str, labels: list[str]) -> str:
 
 def decide_group(group: Group, cells: list[CellResult], claim_id: str) -> dict:
     where = "%s/%s" % (claim_id, group.name)
+    cells = list(cells)  # cells with derived counts replace their entries here, not in the caller's results
     if not cells:
         raise ValueError("%s: no cells" % where)
     if group.aggregation == "single" and len(cells) != 1:
@@ -259,9 +300,20 @@ def decide_group(group: Group, cells: list[CellResult], claim_id: str) -> dict:
     expected = {t.name for t in group.tests}
     report: dict[str, dict] = {}
     eligible = []
-    for c in cells:
+    units: dict[str, dict] = {}
+    for i, c in enumerate(cells):
         if set(c.tests) != expected:
             raise ValueError("%s/%s: tests %s, registered %s" % (where, c.cell, sorted(c.tests), sorted(expected)))
+        derived = {}
+        for t in group.tests:
+            if isinstance(t, BoundTest) and t.first_credible_change is not None:
+                derived[t.name], units[c.cell] = first_credible_changes(t, c.tests[t.name], "%s/%s/%s" % (
+                    where, c.cell, t.name))
+        if derived:
+            n = next(iter(derived.values())).n
+            if c.n is not None and c.n != n:
+                raise ValueError("%s/%s: n = %g, but the changes give %d units" % (where, c.cell, c.n, n))
+            c = cells[i] = c.model_copy(update={"n": n, "tests": {**c.tests, **derived}})
         if group.floor is not None:
             value = getattr(c, group.floor.field, None)
             if value is None:
@@ -294,6 +346,8 @@ def decide_group(group: Group, cells: list[CellResult], claim_id: str) -> dict:
                     entry["sensitivity_label"])
                 entry["label"] = "inconclusive"
         report[c.cell] = entry
+    for cell, summary in units.items():
+        report[cell]["units"] = summary
     labels = [report[name]["label"] for name in names]
     out = {"role": group.role, "aggregation": group.aggregation, "label": _aggregate(group.aggregation, labels),
            "implementation_error": any(r.get("implementation_error") for r in report.values()),

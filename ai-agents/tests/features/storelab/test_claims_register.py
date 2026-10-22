@@ -182,7 +182,12 @@ class DecideTest(unittest.TestCase):
         self.assertEqual({k: v["label"] for k, v in labels.items()}, EXPECTED)
         self.assertEqual({k for k, v in labels.items() if v["implementation_error"]}, {"H3b"})
         self.assertTrue(labels["H3b"]["blocks_reporting"])
-        self.assertEqual(labels["H1d"]["groups"]["alignment"]["display"], "aligned")  # 9 of 10: p = 11/1024
+        alignment = labels["H1d"]["groups"]["alignment"]
+        self.assertEqual(alignment["display"], "aligned")  # 10 of 11 units: p = P(X >= 10 | 11, 0.5) = 12/2048
+        units = alignment["cells"]["pooled"]["units"]
+        self.assertEqual((units["changes"], units["units"], units["ties_excluded"], units["n"], units["aligned"]),
+                         (15, 12, 1, 11, 10))
+        self.assertAlmostEqual(alignment["cells"]["pooled"]["tests"]["aligned_share"]["p_support_adjusted"], 12 / 2048)
         cells = labels["H1b"]["groups"]["near_determinism"]["cells"]
         self.assertIn("sensitivity analysis gives inconclusive", cells["gpt_4o_20240806|browser_tool"]["reason"])
         self.assertIn("excluded: missing rate 0.3", cells["gemini_20_flash_001|text"]["reason"])
@@ -258,6 +263,51 @@ class DecideTest(unittest.TestCase):
         data = dict(self.data, register_sha256="0" * 64)
         with self.assertRaisesRegex(ValueError, "produced for register"):
             decide(ResultsFile.model_validate(data), self.register, register_sha256())
+
+    def alignment(self, changes, **cell):
+        data = copy.deepcopy(self.data)
+        data["claims"]["H1d"]["alignment"] = [{"cell": "pooled", **cell,
+                                               "tests": {"aligned_share": {"changes": changes}}}]
+        return self.labels(data)["H1d"]["groups"]["alignment"]
+
+    def test_alignment_counts_each_pair_and_task_once_in_interface_order(self):
+        """A (provider version pair, task) counts once, through the first interface in
+        text -> structured -> browser_tool order with a credible change; a tie there
+        excludes the unit; units pool across providers."""
+        def change(pair, task, interface, higher):
+            return {"pair": pair, "task": task, "interface": interface, "higher_u": higher}
+
+        # The same task with a credible change in all three interfaces: one unit, through text.
+        tasks = [[change("p", "t%d" % i, interface, interface == "text")
+                  for interface in ("browser_tool", "structured", "text")] for i in range(12)]
+        group = self.alignment([c for task in tasks for c in task])
+        units = group["cells"]["pooled"]["units"]
+        self.assertEqual((units["changes"], units["n"], units["aligned"]), (36, 12, 12))
+        self.assertEqual(units["by_interface"], {"text": 12, "structured": 0, "browser_tool": 0})
+        self.assertEqual(group["display"], "aligned")
+        # Without text, structured comes first; the browser change is not counted.
+        group = self.alignment([change("p", "t%d" % i, interface, interface == "browser_tool")
+                                for i in range(12) for interface in ("browser_tool", "structured")])
+        self.assertEqual((group["cells"]["pooled"]["units"]["aligned"], group["display"]), (0, "not_aligned"))
+        # A tie at the first interface excludes the unit, even if a later interface has a change.
+        group = self.alignment([change("p", "t1", "text", None), change("p", "t1", "structured", True)])
+        self.assertEqual((group["cells"]["pooled"]["units"]["n"], group["cells"]["pooled"]["label"]),
+                         (0, "inconclusive"))
+        self.assertIn("below the floor", group["cells"]["pooled"]["reason"])
+        # Two providers with the same task id are two units.
+        group = self.alignment([change("a", "t1", "text", True), change("b", "t1", "text", True)])
+        self.assertEqual(group["cells"]["pooled"]["units"]["n"], 2)
+
+    def test_alignment_input_is_checked(self):
+        one = {"pair": "p", "task": "t", "interface": "text", "higher_u": True}
+        with self.assertRaisesRegex(ValueError, "listed twice"):
+            self.alignment([one, dict(one)])
+        with self.assertRaisesRegex(ValueError, "but the changes give 1 units"):
+            self.alignment([one], n=5)
+        data = copy.deepcopy(self.data)
+        data["claims"]["H1d"]["alignment"][0]["tests"]["aligned_share"].update(n=10, counts={"aligned": 9})
+        with self.assertRaisesRegex(ValueError, "give changes only"):
+            self.labels(data)
 
     def test_holm(self):
         self.assertEqual(holm([0.01, 0.04, 0.03, 0.005]), [0.03, 0.06, 0.06, 0.02])

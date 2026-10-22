@@ -19,7 +19,7 @@ this text and the register differ, the register governs. The register follows
 
 | File | sha256 |
 |---|---|
-| `features/storelab/docs/claims_register.yaml` | `7f8c315257d2adf2ebe91fff89360e930c4bcf5a0469950a5bd91992b23e0f7d` |
+| `features/storelab/docs/claims_register.yaml` | `83c41b23565aaf68a40b58a9a9b38a4f1fb0b91b2eb8615418e215a51da85592` |
 | `requirements/A1_formal_statements.md` | `be45dbfa81b0694693435f5cd2a32eedbf9370ccd24418c11250102b5dd278b5` |
 | `requirements/A12_thresholds.md` | `82217db6d087b78799db59aa680f0be70bfb26040d7acc06bbd533e9c3813f9d` |
 | `requirements/paper.tex` | `e4bcf05266b5c835d8dc827e829a86d1856f23bb3f295766aae899c154d63295` |
@@ -70,7 +70,7 @@ inconclusive by rule.
 | H1a | ≥ 20 informative triples per primary cell |
 | H1b | ≥ 30 eligible sets per primary cell (a set needs ≥ 8 valid repeats of 10) |
 | H1c | 80% power at δ/σ = −0.25 (SL-17 sizes for 80% power at max(0.25, \|pilot estimate\|)) |
-| H1d | ≥ 20 tasks per provider version pair; alignment needs ≥ 10 credible changes |
+| H1d | ≥ 20 tasks per provider version pair; alignment needs ≥ 10 credible changes, each (provider version pair, task) counted once |
 | H1e | ≥ 200 non-chosen displayed products per browser cell |
 | E2 | ≥ 200 valid markets per configuration |
 | E4 | R = 200 replications per cell; the H4b implementation check uses 10,000 |
@@ -100,6 +100,11 @@ descriptive evidence for E3.
 - **E1 primary cells:** (model version × interface) at default temperature. Temperature-0 cells
   are secondary. Claim-level labels need at least 2/3 of primary cells supported; more than 1/3
   not supported gives not supported.
+- **H1d alignment units:** each (provider version pair, task) is counted at most once, through
+  the first interface in the fixed order text → structured → browser_tool that shows a credible
+  change. A tie in u at that interface excludes the unit. The units are then pooled across
+  providers. Counting a task once per interface would break the independence of the binomial
+  test.
 - **Symbols:** as defined in A1 §E7 (N_x = \|E(x)\|; n₀ per cell per period; χ_m per displayed
   product).
 - **Profit-rule regularity (A16):** ironing of non-monotone virtual values; the value grid is not
@@ -228,15 +233,15 @@ Version changes within a provider reorder favourites for a non-negligible share 
 | Kind | P |
 | Sources | `premise` |
 | Experiment and mode | E1, sandbox |
-| Unit of analysis | task x, for one provider's version pair (A, B), within one interface at default temperature |
+| Unit of analysis | task x, for one provider's version pair (A, B), within one interface at default temperature; alignment: (provider version pair, task), counted at most once across interfaces |
 | Metric | share of tasks whose favourite f_v(x) = argmax over E(x) u {0} of unlabeled v_j/sigma differs between versions: raw changes, and credible changes (different in >= 90% of bootstrap replicates resampling sets within the task) |
 | Estimator | per-version conditional-logit scores; task-level bootstrap for credible changes |
 | Test | exact Clopper-Pearson bounds, one-sided 95%, tasks as units; alignment: exact binomial test against 0.5 |
 | alpha / CI level | 0.05 / 0.95 |
 | Multiplicity family | H1d: all (provider version pair x interface) cells (Holm) |
 | Tolerance or margin | threshold 0.10 (share of tasks); alignment thresholds 0.5 (aligned) and 0.65 (not aligned) |
-| Minimum N | 20 tasks per provider version pair; alignment needs 10 credible changes |
-| Decision rule | Cell: supported if the Clopper-Pearson one-sided 95% lower bound of the credible-change share is > 0.10; not supported if the upper bound of the raw-change share is < 0.10; inconclusive otherwise; two-thirds aggregation. Alignment (secondary, pooled over the credible changes of all H1d cells, ties in u excluded): aligned if the lower bound of the share whose new favourite has higher u is > 0.5; not aligned if the upper bound is < 0.65; inconclusive otherwise or with fewer than 10 credible changes. |
+| Minimum N | 20 tasks per provider version pair; alignment needs 10 credible changes, each (provider version pair, task) counted once |
+| Decision rule | Cell: supported if the Clopper-Pearson one-sided 95% lower bound of the credible-change share is > 0.10; not supported if the upper bound of the raw-change share is < 0.10; inconclusive otherwise; two-thirds aggregation. Alignment (secondary): each (provider version pair, task) is counted at most once, through the first interface in the fixed order text, structured, browser_tool that shows a credible change (a tie in u at that interface excludes the unit); the units are then pooled across providers. Aligned if the Clopper-Pearson lower bound of the share whose new favourite has higher u is > 0.5; not aligned if the upper bound is < 0.65; inconclusive otherwise or with fewer than 10 such credible changes. Counting a task once per interface would break the independence of the binomial test. |
 | If supported | Version changes are a common shock across agents of one provider: states matter for set design (E3) at any realistic volume (A12 §3.2). If the changes are aligned with u, the state carries quality information and prop:threshold, not prop:separation, governs set design. |
 | If not supported | Version changes rarely move favourites; common-state exposure from versions is small and E3 Part B is reported as a sensitivity analysis. |
 | If inconclusive | The set-level change share becomes the main descriptive evidence for E3 (A12 §5 note: with fewer than 20 tasks H1d is inconclusive by rule). |

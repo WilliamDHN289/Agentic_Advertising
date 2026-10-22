@@ -38,6 +38,24 @@ class Strict(BaseModel):
 
 
 # --------------------------------------------------------------------- tests
+class FirstCredibleChange(Strict):
+    """Counts of the H1d alignment test derived from the credible changes themselves:
+    each (provider version pair, task) counts at most once, through the first interface
+    in ``order`` that shows a credible change; a change whose new and old favourites tie
+    in u is excluded (the unit is not counted). The units are then pooled across
+    providers: ``n`` is the number of units, ``aligned`` those whose new favourite has
+    the higher u. Counting a task once per interface would break the independence of
+    the binomial test."""
+
+    order: list[Literal["text", "structured", "browser_tool"]] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def _distinct(self) -> FirstCredibleChange:
+        if len(set(self.order)) != len(self.order):
+            raise ValueError("first_credible_change: duplicate interfaces in order")
+        return self
+
+
 class BoundTest(Strict):
     """A bound of the cell's interval against a threshold (three-way rule).
 
@@ -58,11 +76,15 @@ class BoundTest(Strict):
     method: Literal["p_values", "clopper_pearson", "wilson"] = "p_values"
     support_count: Name | None = None
     against_count: Name | None = None
+    first_credible_change: FirstCredibleChange | None = None
     alpha_support: Alpha
     alpha_against: Alpha
 
     @model_validator(mode="after")
     def _consistent(self) -> BoundTest:
+        if self.first_credible_change is not None and (
+                self.method == "p_values" or {self.support_count, self.against_count} != {"aligned"}):
+            raise ValueError("%s: first_credible_change derives the counts n and aligned of a count rule" % self.name)
         if (self.threshold is None) == (self.threshold_rule is None):
             raise ValueError("%s: give exactly one of threshold and threshold_rule" % self.name)
         counts = self.method != "p_values"

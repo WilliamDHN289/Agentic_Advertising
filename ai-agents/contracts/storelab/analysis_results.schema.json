@@ -87,9 +87,61 @@
       "title": "CellResult",
       "type": "object"
     },
+    "CredibleChange": {
+      "additionalProperties": false,
+      "description": "One credible favourite change (H1d alignment): its unit, the interface that\nshowed it and whether the new favourite has the higher u (null: a tie in u).",
+      "properties": {
+        "higher_u": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Higher U"
+        },
+        "interface": {
+          "enum": [
+            "text",
+            "structured",
+            "browser_tool"
+          ],
+          "title": "Interface",
+          "type": "string"
+        },
+        "pair": {
+          "minLength": 1,
+          "title": "Pair",
+          "type": "string"
+        },
+        "task": {
+          "minLength": 1,
+          "title": "Task",
+          "type": "string"
+        }
+      },
+      "required": [
+        "pair",
+        "task",
+        "interface",
+        "higher_u"
+      ],
+      "title": "CredibleChange",
+      "type": "object"
+    },
     "StatResult": {
       "additionalProperties": false,
       "properties": {
+        "changes": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/CredibleChange"
+          },
+          "title": "Changes",
+          "type": "array"
+        },
         "ci": {
           "anyOf": [
             {

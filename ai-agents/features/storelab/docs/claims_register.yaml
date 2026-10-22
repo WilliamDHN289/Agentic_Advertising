@@ -186,7 +186,7 @@ claims:
     amendments: []
     experiment: E1
     run_mode: sandbox
-    unit_of_analysis: "task x, for one provider's version pair (A, B), within one interface at default temperature"
+    unit_of_analysis: "task x, for one provider's version pair (A, B), within one interface at default temperature; alignment: (provider version pair, task), counted at most once across interfaces"
     metric: "share of tasks whose favourite f_v(x) = argmax over E(x) u {0} of unlabeled v_j/sigma differs between versions: raw changes, and credible changes (different in >= 90% of bootstrap replicates resampling sets within the task)"
     estimator: "per-version conditional-logit scores; task-level bootstrap for credible changes"
     test: "exact Clopper-Pearson bounds, one-sided 95%, tasks as units; alignment: exact binomial test against 0.5"
@@ -194,8 +194,8 @@ claims:
     ci_level: 0.95
     multiplicity_family: "H1d: all (provider version pair x interface) cells (Holm)"
     tolerance_or_margin: "threshold 0.10 (share of tasks); alignment thresholds 0.5 (aligned) and 0.65 (not aligned)"
-    min_n: "20 tasks per provider version pair; alignment needs 10 credible changes"
-    decision_rule: "Cell: supported if the Clopper-Pearson one-sided 95% lower bound of the credible-change share is > 0.10; not supported if the upper bound of the raw-change share is < 0.10; inconclusive otherwise; two-thirds aggregation. Alignment (secondary, pooled over the credible changes of all H1d cells, ties in u excluded): aligned if the lower bound of the share whose new favourite has higher u is > 0.5; not aligned if the upper bound is < 0.65; inconclusive otherwise or with fewer than 10 credible changes."
+    min_n: "20 tasks per provider version pair; alignment needs 10 credible changes, each (provider version pair, task) counted once"
+    decision_rule: "Cell: supported if the Clopper-Pearson one-sided 95% lower bound of the credible-change share is > 0.10; not supported if the upper bound of the raw-change share is < 0.10; inconclusive otherwise; two-thirds aggregation. Alignment (secondary): each (provider version pair, task) is counted at most once, through the first interface in the fixed order text, structured, browser_tool that shows a credible change (a tie in u at that interface excludes the unit); the units are then pooled across providers. Aligned if the Clopper-Pearson lower bound of the share whose new favourite has higher u is > 0.5; not aligned if the upper bound is < 0.65; inconclusive otherwise or with fewer than 10 such credible changes. Counting a task once per interface would break the independence of the binomial test."
     decision:
       groups:
         - name: favourite_change
@@ -209,7 +209,7 @@ claims:
           floor: {field: n, min: 10}
           labels: {supported: aligned, not_supported: not_aligned, inconclusive: inconclusive}
           tests:
-            - {name: aligned_share, kind: bound, side: above, threshold: 0.5, strict: true, against_threshold: 0.65, method: clopper_pearson, support_count: aligned, against_count: aligned, alpha_support: 0.05, alpha_against: 0.05}
+            - {name: aligned_share, kind: bound, side: above, threshold: 0.5, strict: true, against_threshold: 0.65, method: clopper_pearson, support_count: aligned, against_count: aligned, first_credible_change: {order: [text, structured, browser_tool]}, alpha_support: 0.05, alpha_against: 0.05}
     interpretation:
       supported: "Version changes are a common shock across agents of one provider: states matter for set design (E3) at any realistic volume (A12 §3.2). If the changes are aligned with u, the state carries quality information and prop:threshold, not prop:separation, governs set design."
       not_supported: "Version changes rarely move favourites; common-state exposure from versions is small and E3 Part B is reported as a sensitivity analysis."

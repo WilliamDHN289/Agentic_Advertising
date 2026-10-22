@@ -231,13 +231,100 @@
    "alignment": [
     {
      "cell": "pooled",
-     "n": 10,
      "tests": {
       "aligned_share": {
-       "n": 10,
-       "counts": {
-        "aligned": 9
-       }
+       "changes": [
+        {
+         "pair": "openai_4o_vs_41",
+         "task": "t1",
+         "interface": "text",
+         "higher_u": true
+        },
+        {
+         "pair": "openai_4o_vs_41",
+         "task": "t1",
+         "interface": "browser_tool",
+         "higher_u": false
+        },
+        {
+         "pair": "openai_4o_vs_41",
+         "task": "t2",
+         "interface": "structured",
+         "higher_u": true
+        },
+        {
+         "pair": "openai_4o_vs_41",
+         "task": "t3",
+         "interface": "browser_tool",
+         "higher_u": true
+        },
+        {
+         "pair": "openai_4o_vs_41",
+         "task": "t4",
+         "interface": "text",
+         "higher_u": true
+        },
+        {
+         "pair": "openai_4o_vs_41",
+         "task": "t5",
+         "interface": "structured",
+         "higher_u": true
+        },
+        {
+         "pair": "openai_4o_vs_41",
+         "task": "t5",
+         "interface": "text",
+         "higher_u": true
+        },
+        {
+         "pair": "openai_4o_vs_41",
+         "task": "t6",
+         "interface": "text",
+         "higher_u": null
+        },
+        {
+         "pair": "openai_4o_vs_41",
+         "task": "t6",
+         "interface": "structured",
+         "higher_u": true
+        },
+        {
+         "pair": "anthropic_4_vs_45",
+         "task": "t1",
+         "interface": "text",
+         "higher_u": true
+        },
+        {
+         "pair": "anthropic_4_vs_45",
+         "task": "t2",
+         "interface": "browser_tool",
+         "higher_u": false
+        },
+        {
+         "pair": "anthropic_4_vs_45",
+         "task": "t3",
+         "interface": "structured",
+         "higher_u": true
+        },
+        {
+         "pair": "anthropic_4_vs_45",
+         "task": "t4",
+         "interface": "text",
+         "higher_u": true
+        },
+        {
+         "pair": "anthropic_4_vs_45",
+         "task": "t5",
+         "interface": "text",
+         "higher_u": true
+        },
+        {
+         "pair": "anthropic_4_vs_45",
+         "task": "t6",
+         "interface": "text",
+         "higher_u": true
+        }
+       ]
       }
      }
     }

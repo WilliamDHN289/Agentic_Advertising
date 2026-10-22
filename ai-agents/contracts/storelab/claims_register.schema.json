@@ -41,6 +41,17 @@
           "title": "Alpha Support",
           "type": "number"
         },
+        "first_credible_change": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FirstCredibleChange"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "kind": {
           "const": "bound",
           "title": "Kind",
@@ -401,6 +412,30 @@
         "alpha_against"
       ],
       "title": "EquivalenceTest",
+      "type": "object"
+    },
+    "FirstCredibleChange": {
+      "additionalProperties": false,
+      "description": "Counts of the H1d alignment test derived from the credible changes themselves:\neach (provider version pair, task) counts at most once, through the first interface\nin ``order`` that shows a credible change; a change whose new and old favourites tie\nin u is excluded (the unit is not counted). The units are then pooled across\nproviders: ``n`` is the number of units, ``aligned`` those whose new favourite has\nthe higher u. Counting a task once per interface would break the independence of\nthe binomial test.",
+      "properties": {
+        "order": {
+          "items": {
+            "enum": [
+              "text",
+              "structured",
+              "browser_tool"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Order",
+          "type": "array"
+        }
+      },
+      "required": [
+        "order"
+      ],
+      "title": "FirstCredibleChange",
       "type": "object"
     },
     "Floor": {
