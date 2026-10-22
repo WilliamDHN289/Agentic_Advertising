@@ -22,6 +22,7 @@ import yaml
 from pydantic import ValidationError
 
 from .config_files import dump_config, load_config, parse_set
+from .core.agent_params import AgentParams
 from .core.config import format_errors, run_config_schema
 from .core.manifest import manifest_schema
 from .core.protocol import ACTION, ChoiceReply, Observation
@@ -43,6 +44,7 @@ SCHEMAS = {
     "choice_reply.schema.json": _model_schema(ChoiceReply),
     "trial_record.schema.json": _model_schema(TrialRecord),
     "event_record.schema.json": _model_schema(EventRecord),
+    "agent_params.schema.json": _model_schema(AgentParams),
 }
 
 

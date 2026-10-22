@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import datetime
 import gzip
+import hashlib
 import io
 import json
 import os
@@ -25,11 +26,19 @@ from typing import IO, Iterable, Literal, Union
 
 from pydantic import AwareDatetime, BaseModel, Field, NonNegativeFloat, NonNegativeInt, model_validator
 
-from .config import Ident, Interface, NonEmptyStr, Section, Sha256, Uuid4
+from .config import Ident, Interface, NonEmptyStr, Section, Sha256, Uuid4, canonical_json
 from .manifest import UtcDatetime
 from .protocol import ProductId, TrialOutcome
 
 RECORD_SCHEMA_VERSION = 1
+
+
+def trial_key(config_hash: str, task_id: str, set_id: str, presentation_id: str, interface: str, model_key: str,
+              temperature: float | None, rep: int) -> str:
+    """sha256 of the canonical JSON of the trial's coordinates (tickets.md section 3.6);
+    records are deduplicated on it and keyed random streams use it."""
+    coordinates = [config_hash, task_id, set_id, presentation_id, interface, model_key, temperature, rep]
+    return hashlib.sha256(canonical_json(coordinates).encode("utf-8")).hexdigest()
 
 EventKind = Literal["impression", "examine", "click", "page_request", "select", "cart", "purchase", "leave"]
 Module = Literal["serp", "crosssell", "banner", "detail", "feed"]

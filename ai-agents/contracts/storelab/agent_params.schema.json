@@ -1,0 +1,240 @@
+{
+  "$defs": {
+    "HumanParams": {
+      "additionalProperties": false,
+      "properties": {
+        "default_weight": {
+          "$ref": "#/$defs/LabelWeights"
+        },
+        "position_weights": {
+          "items": {
+            "exclusiveMinimum": 0,
+            "type": "number"
+          },
+          "minItems": 1,
+          "title": "Position Weights",
+          "type": "array"
+        },
+        "product_weights": {
+          "additionalProperties": {
+            "patternProperties": {
+              "^\\S+$": {
+                "$ref": "#/$defs/LabelWeights"
+              }
+            },
+            "propertyNames": {
+              "maxLength": 64,
+              "minLength": 1
+            },
+            "type": "object"
+          },
+          "default": {},
+          "propertyNames": {
+            "minLength": 1
+          },
+          "title": "Product Weights",
+          "type": "object"
+        }
+      },
+      "required": [
+        "position_weights"
+      ],
+      "title": "HumanParams",
+      "type": "object"
+    },
+    "LabelWeights": {
+      "additionalProperties": false,
+      "properties": {
+        "organic": {
+          "minimum": 0,
+          "title": "Organic",
+          "type": "number"
+        },
+        "sponsored": {
+          "minimum": 0,
+          "title": "Sponsored",
+          "type": "number"
+        }
+      },
+      "required": [
+        "organic",
+        "sponsored"
+      ],
+      "title": "LabelWeights",
+      "type": "object"
+    },
+    "ModelParams": {
+      "additionalProperties": false,
+      "properties": {
+        "label_effect": {
+          "title": "Label Effect",
+          "type": "number"
+        },
+        "model_key": {
+          "maxLength": 64,
+          "pattern": "^[a-z0-9][a-z0-9_]*$",
+          "title": "Model Key",
+          "type": "string"
+        },
+        "outside_value": {
+          "title": "Outside Value",
+          "type": "number"
+        },
+        "page_request_prob": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Page Request Prob",
+          "type": "number"
+        },
+        "position_effects": {
+          "default": [],
+          "items": {
+            "type": "number"
+          },
+          "title": "Position Effects",
+          "type": "array"
+        },
+        "scores": {
+          "additionalProperties": {
+            "patternProperties": {
+              "^\\S+$": {
+                "type": "number"
+              }
+            },
+            "propertyNames": {
+              "maxLength": 64,
+              "minLength": 1
+            },
+            "type": "object"
+          },
+          "minProperties": 1,
+          "propertyNames": {
+            "minLength": 1
+          },
+          "title": "Scores",
+          "type": "object"
+        },
+        "sigma": {
+          "exclusiveMinimum": 0,
+          "title": "Sigma",
+          "type": "number"
+        },
+        "states": {
+          "items": {
+            "$ref": "#/$defs/StateParams"
+          },
+          "minItems": 1,
+          "title": "States",
+          "type": "array"
+        }
+      },
+      "required": [
+        "model_key",
+        "sigma",
+        "label_effect",
+        "outside_value",
+        "page_request_prob",
+        "scores"
+      ],
+      "title": "ModelParams",
+      "type": "object"
+    },
+    "StateParams": {
+      "additionalProperties": false,
+      "properties": {
+        "probability": {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "title": "Probability",
+          "type": "number"
+        },
+        "shifts": {
+          "additionalProperties": {
+            "patternProperties": {
+              "^\\S+$": {
+                "type": "number"
+              }
+            },
+            "propertyNames": {
+              "maxLength": 64,
+              "minLength": 1
+            },
+            "type": "object"
+          },
+          "default": {},
+          "propertyNames": {
+            "minLength": 1
+          },
+          "title": "Shifts",
+          "type": "object"
+        },
+        "state_id": {
+          "maxLength": 64,
+          "pattern": "^[a-z0-9][a-z0-9_]*$",
+          "title": "State Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "state_id",
+        "probability"
+      ],
+      "title": "StateParams",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "humans": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/HumanParams"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "models": {
+      "items": {
+        "$ref": "#/$defs/ModelParams"
+      },
+      "minItems": 1,
+      "title": "Models",
+      "type": "array"
+    },
+    "provenance": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "default": {},
+      "propertyNames": {
+        "minLength": 1
+      },
+      "title": "Provenance",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source": {
+      "enum": [
+        "stipulated",
+        "estimated"
+      ],
+      "title": "Source",
+      "type": "string"
+    }
+  },
+  "required": [
+    "source",
+    "models"
+  ],
+  "title": "AgentParams",
+  "type": "object"
+}
