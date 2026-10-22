@@ -1,0 +1,130 @@
+{
+  "$defs": {
+    "Invalid": {
+      "additionalProperties": false,
+      "properties": {
+        "detail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
+        },
+        "reason": {
+          "enum": [
+            "no_json",
+            "schema_violation",
+            "unknown_id",
+            "multiple_choices",
+            "empty",
+            "max_turns"
+          ],
+          "title": "Reason",
+          "type": "string"
+        },
+        "type": {
+          "const": "invalid",
+          "default": "invalid",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reason"
+      ],
+      "title": "Invalid",
+      "type": "object"
+    },
+    "Leave": {
+      "additionalProperties": false,
+      "description": "The outside option.",
+      "properties": {
+        "type": {
+          "const": "leave",
+          "default": "leave",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "title": "Leave",
+      "type": "object"
+    },
+    "RequestPage": {
+      "additionalProperties": false,
+      "properties": {
+        "product_id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^\\S+$",
+          "title": "Product Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "request_page",
+          "default": "request_page",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "product_id"
+      ],
+      "title": "RequestPage",
+      "type": "object"
+    },
+    "Select": {
+      "additionalProperties": false,
+      "description": "The effective choice: a confirmed selection or add-to-cart (v1.tex l.316).",
+      "properties": {
+        "product_id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^\\S+$",
+          "title": "Product Id",
+          "type": "string"
+        },
+        "type": {
+          "const": "select",
+          "default": "select",
+          "title": "Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "product_id"
+      ],
+      "title": "Select",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "discriminator": {
+    "mapping": {
+      "invalid": "#/$defs/Invalid",
+      "leave": "#/$defs/Leave",
+      "request_page": "#/$defs/RequestPage",
+      "select": "#/$defs/Select"
+    },
+    "propertyName": "type"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/RequestPage"
+    },
+    {
+      "$ref": "#/$defs/Select"
+    },
+    {
+      "$ref": "#/$defs/Leave"
+    },
+    {
+      "$ref": "#/$defs/Invalid"
+    }
+  ],
+  "title": "Action"
+}

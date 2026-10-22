@@ -1,0 +1,147 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "cpc": {
+      "default": 0.0,
+      "minimum": 0,
+      "title": "Cpc",
+      "type": "number"
+    },
+    "human_viewport": {
+      "title": "Human Viewport",
+      "type": "boolean"
+    },
+    "interface": {
+      "enum": [
+        "text",
+        "structured",
+        "browser_tool",
+        "legacy_chatbot",
+        "legacy_gui_agent",
+        "legacy_api",
+        "legacy_human_sim"
+      ],
+      "title": "Interface",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "impression",
+        "examine",
+        "click",
+        "page_request",
+        "select",
+        "cart",
+        "purchase",
+        "leave"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "module": {
+      "enum": [
+        "serp",
+        "crosssell",
+        "banner",
+        "detail",
+        "feed"
+      ],
+      "title": "Module",
+      "type": "string"
+    },
+    "position": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Position",
+      "type": "integer"
+    },
+    "product_id": {
+      "anyOf": [
+        {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^\\S+$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Product Id"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "seq": {
+      "minimum": 0,
+      "title": "Seq",
+      "type": "integer"
+    },
+    "simulated": {
+      "default": false,
+      "title": "Simulated",
+      "type": "boolean"
+    },
+    "sponsored": {
+      "default": false,
+      "title": "Sponsored",
+      "type": "boolean"
+    },
+    "t_s": {
+      "minimum": 0,
+      "title": "T S",
+      "type": "number"
+    },
+    "trial_key": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Trial Key",
+      "type": "string"
+    },
+    "trial_label": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Trial Label"
+    },
+    "turn": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Turn"
+    },
+    "viewport_telemetry": {
+      "title": "Viewport Telemetry",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "trial_key",
+    "seq",
+    "interface",
+    "kind",
+    "t_s",
+    "module",
+    "human_viewport",
+    "viewport_telemetry"
+  ],
+  "title": "EventRecord",
+  "type": "object"
+}

@@ -1,0 +1,105 @@
+{
+  "$defs": {
+    "Candidate": {
+      "additionalProperties": false,
+      "properties": {
+        "position": {
+          "exclusiveMinimum": 0,
+          "title": "Position",
+          "type": "integer"
+        },
+        "product_id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "pattern": "^\\S+$",
+          "title": "Product Id",
+          "type": "string"
+        },
+        "sponsored_label": {
+          "title": "Sponsored Label",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "product_id",
+        "position",
+        "sponsored_label"
+      ],
+      "title": "Candidate",
+      "type": "object"
+    },
+    "Task": {
+      "additionalProperties": false,
+      "properties": {
+        "instruction": {
+          "minLength": 1,
+          "title": "Instruction",
+          "type": "string"
+        },
+        "task_id": {
+          "minLength": 1,
+          "title": "Task Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "task_id",
+        "instruction"
+      ],
+      "title": "Task",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "One presentation of a candidate set, rendered for each interface.",
+  "properties": {
+    "candidates": {
+      "items": {
+        "$ref": "#/$defs/Candidate"
+      },
+      "minItems": 1,
+      "title": "Candidates",
+      "type": "array"
+    },
+    "presentation_id": {
+      "minLength": 1,
+      "title": "Presentation Id",
+      "type": "string"
+    },
+    "set_id": {
+      "minLength": 1,
+      "title": "Set Id",
+      "type": "string"
+    },
+    "task": {
+      "$ref": "#/$defs/Task"
+    },
+    "views": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "default": {},
+      "propertyNames": {
+        "enum": [
+          "text",
+          "structured",
+          "browser_tool",
+          "legacy_chatbot",
+          "legacy_gui_agent",
+          "legacy_api"
+        ]
+      },
+      "title": "Views",
+      "type": "object"
+    }
+  },
+  "required": [
+    "task",
+    "set_id",
+    "presentation_id",
+    "candidates"
+  ],
+  "title": "Observation",
+  "type": "object"
+}

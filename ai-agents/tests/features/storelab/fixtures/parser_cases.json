@@ -1,0 +1,506 @@
+{
+ "description": "Golden fixtures for features.storelab.core.protocol.parse_reply (SL-03). The original StoreLab raw replies were not saved (SL-00 defect D-07), so every output is modelled on the shape named in 'shape'.",
+ "candidate_sets": {
+  "asin": [
+   "B07ZPKBL9V",
+   "B08N5WRWNW",
+   "B0C1H26C46",
+   "B09XS7JWHH"
+  ],
+  "legacy": [
+   "DES-0219",
+   "DES-0007",
+   "COF-0123",
+   "BAC-0042"
+  ]
+ },
+ "cases": [
+  {
+   "id": "json_mode_basic",
+   "shape": "OpenAI/Gemini JSON mode: one object, nothing else",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B07ZPKBL9V\", \"reason\": \"Cheapest option that meets every requirement\"}",
+   "expected": {
+    "action": "select",
+    "product_id": "B07ZPKBL9V"
+   }
+  },
+  {
+   "id": "compact",
+   "shape": "compact JSON without spaces",
+   "candidates": "asin",
+   "output": "{\"choice\":\"B08N5WRWNW\",\"reason\":\"best rated under budget\"}",
+   "expected": {
+    "action": "select",
+    "product_id": "B08N5WRWNW"
+   }
+  },
+  {
+   "id": "pretty_printed",
+   "shape": "pretty-printed JSON across lines",
+   "candidates": "asin",
+   "output": "{\n  \"choice\": \"B0C1H26C46\",\n  \"reason\": \"Highest rating with enough reviews\"\n}",
+   "expected": {
+    "action": "select",
+    "product_id": "B0C1H26C46"
+   }
+  },
+  {
+   "id": "fenced_json",
+   "shape": "Markdown fence with json tag (common Gemini and chat replies)",
+   "candidates": "asin",
+   "output": "```json\n{\"choice\": \"B07ZPKBL9V\", \"reason\": \"fits the price ceiling\"}\n```",
+   "expected": {
+    "action": "select",
+    "product_id": "B07ZPKBL9V"
+   }
+  },
+  {
+   "id": "fenced_bare",
+   "shape": "Markdown fence without a language tag",
+   "candidates": "asin",
+   "output": "```\n{\"choice\": \"B09XS7JWHH\", \"reason\": \"most reviews\"}\n```",
+   "expected": {
+    "action": "select",
+    "product_id": "B09XS7JWHH"
+   }
+  },
+  {
+   "id": "preamble",
+   "shape": "Anthropic-style preamble before the JSON",
+   "candidates": "asin",
+   "output": "Here is my choice:\n\n{\"choice\": \"B07ZPKBL9V\", \"reason\": \"Meets all stated requirements at the lowest price\"}",
+   "expected": {
+    "action": "select",
+    "product_id": "B07ZPKBL9V"
+   }
+  },
+  {
+   "id": "trailing_prose",
+   "shape": "JSON followed by an explanation",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B08N5WRWNW\", \"reason\": \"good value\"}\n\nI picked this one because it balances price and rating.",
+   "expected": {
+    "action": "select",
+    "product_id": "B08N5WRWNW"
+   }
+  },
+  {
+   "id": "reason_missing",
+   "shape": "choice only; reason is optional",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B0C1H26C46\"}",
+   "expected": {
+    "action": "select",
+    "product_id": "B0C1H26C46"
+   }
+  },
+  {
+   "id": "choice_padded",
+   "shape": "id with surrounding whitespace",
+   "candidates": "asin",
+   "output": "{\"choice\": \"  B07ZPKBL9V \", \"reason\": \"cheapest\"}",
+   "expected": {
+    "action": "select",
+    "product_id": "B07ZPKBL9V"
+   }
+  },
+  {
+   "id": "reason_20_words",
+   "shape": "reason at the 20-word limit",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B07ZPKBL9V\", \"reason\": \"word word word word word word word word word word word word word word word word word word word word\"}",
+   "expected": {
+    "action": "select",
+    "product_id": "B07ZPKBL9V"
+   }
+  },
+  {
+   "id": "unicode_reason",
+   "shape": "non-ASCII reason text",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B09XS7JWHH\", \"reason\": \"价格最低，评分最高\"}",
+   "expected": {
+    "action": "select",
+    "product_id": "B09XS7JWHH"
+   }
+  },
+  {
+   "id": "legacy_sku",
+   "shape": "StoreLab 2026-08 SKU ids",
+   "candidates": "legacy",
+   "output": "{\"choice\":\"DES-0219\",\"reason\":\"cheapest lamp with good reviews\"}",
+   "expected": {
+    "action": "select",
+    "product_id": "DES-0219"
+   }
+  },
+  {
+   "id": "repeated_identical",
+   "shape": "the same object restated twice",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B07ZPKBL9V\", \"reason\": \"cheapest\"}\nFinal answer: {\"choice\": \"B07ZPKBL9V\", \"reason\": \"cheapest\"}",
+   "expected": {
+    "action": "select",
+    "product_id": "B07ZPKBL9V"
+   }
+  },
+  {
+   "id": "braces_in_reason",
+   "shape": "braces inside a JSON string",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B08N5WRWNW\", \"reason\": \"fits {budget} and {size}\"}",
+   "expected": {
+    "action": "select",
+    "product_id": "B08N5WRWNW"
+   }
+  },
+  {
+   "id": "keys_reversed",
+   "shape": "reason before choice",
+   "candidates": "asin",
+   "output": "{\"reason\": \"best rating\", \"choice\": \"B0C1H26C46\"}",
+   "expected": {
+    "action": "select",
+    "product_id": "B0C1H26C46"
+   }
+  },
+  {
+   "id": "crlf",
+   "shape": "CRLF line endings",
+   "candidates": "asin",
+   "output": "{\r\n  \"choice\": \"B07ZPKBL9V\",\r\n  \"reason\": \"cheapest\"\r\n}\r\n",
+   "expected": {
+    "action": "select",
+    "product_id": "B07ZPKBL9V"
+   }
+  },
+  {
+   "id": "think_block",
+   "shape": "reasoning trace before the JSON (local reasoning models)",
+   "candidates": "asin",
+   "output": "<think>The user wants the cheapest. B07ZPKBL9V is $19.</think>\n{\"choice\": \"B07ZPKBL9V\", \"reason\": \"lowest price\"}",
+   "expected": {
+    "action": "select",
+    "product_id": "B07ZPKBL9V"
+   }
+  },
+  {
+   "id": "leave_null",
+   "shape": "outside option",
+   "candidates": "asin",
+   "output": "{\"choice\": null, \"reason\": \"None of the products meet the price ceiling\"}",
+   "expected": {
+    "action": "leave"
+   }
+  },
+  {
+   "id": "leave_fenced",
+   "shape": "outside option in a fence",
+   "candidates": "asin",
+   "output": "```json\n{\"choice\": null, \"reason\": \"nothing fits\"}\n```",
+   "expected": {
+    "action": "leave"
+   }
+  },
+  {
+   "id": "leave_no_reason",
+   "shape": "outside option without reason",
+   "candidates": "legacy",
+   "output": "{\"choice\": null}",
+   "expected": {
+    "action": "leave"
+   }
+  },
+  {
+   "id": "empty_string",
+   "shape": "empty completion (e.g. a failed legacy call returned '')",
+   "candidates": "asin",
+   "output": "",
+   "expected": {
+    "action": "invalid",
+    "reason": "empty"
+   }
+  },
+  {
+   "id": "whitespace_only",
+   "shape": "whitespace and newlines only",
+   "candidates": "asin",
+   "output": "  \n\t\n ",
+   "expected": {
+    "action": "invalid",
+    "reason": "empty"
+   }
+  },
+  {
+   "id": "choice_empty_string",
+   "shape": "choice is an empty string",
+   "candidates": "asin",
+   "output": "{\"choice\": \"\", \"reason\": \"unsure\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "empty"
+   }
+  },
+  {
+   "id": "choice_blank",
+   "shape": "choice is whitespace",
+   "candidates": "asin",
+   "output": "{\"choice\": \"   \"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "empty"
+   }
+  },
+  {
+   "id": "prose_only",
+   "shape": "plain prose naming an id",
+   "candidates": "asin",
+   "output": "I would choose B07ZPKBL9V because it is the cheapest.",
+   "expected": {
+    "action": "invalid",
+    "reason": "no_json"
+   }
+  },
+  {
+   "id": "bare_id",
+   "shape": "the id alone",
+   "candidates": "asin",
+   "output": "B07ZPKBL9V",
+   "expected": {
+    "action": "invalid",
+    "reason": "no_json"
+   }
+  },
+  {
+   "id": "truncated",
+   "shape": "reply cut off at the output-token cap",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B07ZPKBL9V\", \"reason\": \"It is the cheapest and",
+   "expected": {
+    "action": "invalid",
+    "reason": "no_json"
+   }
+  },
+  {
+   "id": "python_dict",
+   "shape": "Python dict syntax with single quotes",
+   "candidates": "asin",
+   "output": "{'choice': 'B07ZPKBL9V', 'reason': 'cheapest'}",
+   "expected": {
+    "action": "invalid",
+    "reason": "no_json"
+   }
+  },
+  {
+   "id": "json_array",
+   "shape": "a JSON array, not an object",
+   "candidates": "asin",
+   "output": "[\"B07ZPKBL9V\"]",
+   "expected": {
+    "action": "invalid",
+    "reason": "no_json"
+   }
+  },
+  {
+   "id": "refusal_text",
+   "shape": "refusal in prose; the adapter, not the parser, sets status refusal",
+   "candidates": "asin",
+   "output": "I'm sorry, but I can't help with making purchases.",
+   "expected": {
+    "action": "invalid",
+    "reason": "no_json"
+   }
+  },
+  {
+   "id": "nan_value",
+   "shape": "non-standard JSON constant",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B07ZPKBL9V\", \"score\": NaN}",
+   "expected": {
+    "action": "invalid",
+    "reason": "no_json"
+   }
+  },
+  {
+   "id": "legacy_extras",
+   "shape": "the 2026-08 prompt format with an extras list (agents.py l.150-152)",
+   "candidates": "legacy",
+   "output": "{\"choice\":\"DES-0219\",\"extras\":[\"COF-0123\"],\"reason\":\"lamp plus a grinder\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "schema_violation"
+   }
+  },
+  {
+   "id": "wrong_key",
+   "shape": "the right value under another key",
+   "candidates": "asin",
+   "output": "{\"selection\": \"B07ZPKBL9V\", \"reason\": \"cheapest\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "schema_violation"
+   }
+  },
+  {
+   "id": "choice_number",
+   "shape": "a position number instead of an id",
+   "candidates": "asin",
+   "output": "{\"choice\": 3, \"reason\": \"third item\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "schema_violation"
+   }
+  },
+  {
+   "id": "reason_too_long",
+   "shape": "reason over 20 words",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B07ZPKBL9V\", \"reason\": \"word word word word word word word word word word word word word word word word word word word word word\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "schema_violation"
+   }
+  },
+  {
+   "id": "reason_not_string",
+   "shape": "reason is a list",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B07ZPKBL9V\", \"reason\": [\"cheap\", \"rated\"]}",
+   "expected": {
+    "action": "invalid",
+    "reason": "schema_violation"
+   }
+  },
+  {
+   "id": "choice_one_item_list",
+   "shape": "choice wrapped in a one-item list",
+   "candidates": "asin",
+   "output": "{\"choice\": [\"B07ZPKBL9V\"], \"reason\": \"cheapest\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "schema_violation"
+   }
+  },
+  {
+   "id": "nested_choice",
+   "shape": "the reply nested under another key",
+   "candidates": "asin",
+   "output": "{\"answer\": {\"choice\": \"B07ZPKBL9V\", \"reason\": \"cheapest\"}}",
+   "expected": {
+    "action": "invalid",
+    "reason": "schema_violation"
+   }
+  },
+  {
+   "id": "id_not_offered",
+   "shape": "a well-formed id that is not a candidate",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B000000000\", \"reason\": \"my favourite\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "unknown_id"
+   }
+  },
+  {
+   "id": "id_lower_case",
+   "shape": "a candidate id in lower case; ids match exactly",
+   "candidates": "asin",
+   "output": "{\"choice\": \"b07zpkbl9v\", \"reason\": \"cheapest\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "unknown_id"
+   }
+  },
+  {
+   "id": "title_not_id",
+   "shape": "the product title instead of its id",
+   "candidates": "legacy",
+   "output": "{\"choice\": \"Aurelia Pro Desk Lamp\", \"reason\": \"best lamp\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "unknown_id"
+   }
+  },
+  {
+   "id": "position_as_string",
+   "shape": "the display position as a string",
+   "candidates": "asin",
+   "output": "{\"choice\": \"1\", \"reason\": \"first result\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "unknown_id"
+   }
+  },
+  {
+   "id": "annotated_id",
+   "shape": "an id with an annotation appended",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B07ZPKBL9V (sponsored)\", \"reason\": \"cheapest\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "unknown_id"
+   }
+  },
+  {
+   "id": "crosssell_id",
+   "shape": "a cross-sell id that the legacy resolver accepted (agents.py l.181-183)",
+   "candidates": "legacy",
+   "output": "{\"choice\": \"WAT-0311\", \"reason\": \"bottle on offer\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "unknown_id"
+   }
+  },
+  {
+   "id": "comma_separated",
+   "shape": "two ids in one string",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B07ZPKBL9V, B08N5WRWNW\", \"reason\": \"both good\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "unknown_id"
+   }
+  },
+  {
+   "id": "choice_list",
+   "shape": "two ids in a list",
+   "candidates": "asin",
+   "output": "{\"choice\": [\"B07ZPKBL9V\", \"B08N5WRWNW\"], \"reason\": \"both good\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "multiple_choices"
+   }
+  },
+  {
+   "id": "two_objects",
+   "shape": "two different replies in one output",
+   "candidates": "asin",
+   "output": "Option 1: {\"choice\": \"B07ZPKBL9V\"}\nOption 2: {\"choice\": \"B08N5WRWNW\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "multiple_choices"
+   }
+  },
+  {
+   "id": "duplicate_key",
+   "shape": "the choice key given twice with different values",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B07ZPKBL9V\", \"choice\": \"B08N5WRWNW\", \"reason\": \"either\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "multiple_choices"
+   }
+  },
+  {
+   "id": "leave_then_select",
+   "shape": "outside option and a choice",
+   "candidates": "asin",
+   "output": "{\"choice\": null}\nActually: {\"choice\": \"B07ZPKBL9V\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "multiple_choices"
+   }
+  }
+ ]
+}

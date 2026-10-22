@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "The reply the text and structured interfaces ask for. ``reason`` is at most\n20 words, which JSON Schema cannot express; ``parse_reply`` enforces it.",
+  "properties": {
+    "choice": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Choice"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason"
+    }
+  },
+  "required": [
+    "choice"
+  ],
+  "title": "ChoiceReply",
+  "type": "object"
+}

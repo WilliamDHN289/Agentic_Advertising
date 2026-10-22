@@ -21,9 +21,26 @@ from pydantic import ValidationError
 from .config_files import dump_config, load_config, parse_set
 from .core.config import format_errors, run_config_schema
 from .core.manifest import manifest_schema
+from .core.protocol import ACTION, ChoiceReply, Observation
+from .core.records import EventRecord, TrialRecord
 
 CONTRACTS = Path(__file__).resolve().parents[2] / "contracts" / "storelab"
-SCHEMAS = {"run_config.schema.json": run_config_schema, "manifest.schema.json": manifest_schema}
+DRAFT = "https://json-schema.org/draft/2020-12/schema"
+
+
+def _model_schema(model):
+    return lambda: {"$schema": DRAFT, **model.model_json_schema()}
+
+
+SCHEMAS = {
+    "run_config.schema.json": run_config_schema,
+    "manifest.schema.json": manifest_schema,
+    "observation.schema.json": _model_schema(Observation),
+    "action.schema.json": lambda: {"$schema": DRAFT, "title": "Action", **ACTION.json_schema()},
+    "choice_reply.schema.json": _model_schema(ChoiceReply),
+    "trial_record.schema.json": _model_schema(TrialRecord),
+    "event_record.schema.json": _model_schema(EventRecord),
+}
 
 
 def schema_text(name: str) -> str:

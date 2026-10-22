@@ -1,0 +1,340 @@
+{
+  "$defs": {
+    "TrialOutcome": {
+      "additionalProperties": false,
+      "properties": {
+        "attempts": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Attempts",
+          "type": "integer"
+        },
+        "backend": {
+          "enum": [
+            "simulated",
+            "human_model",
+            "local_llm",
+            "openai",
+            "anthropic",
+            "google",
+            "replay"
+          ],
+          "title": "Backend",
+          "type": "string"
+        },
+        "chosen_id": {
+          "anyOf": [
+            {
+              "maxLength": 64,
+              "minLength": 1,
+              "pattern": "^\\S+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Chosen Id"
+        },
+        "error_code": {
+          "anyOf": [
+            {
+              "enum": [
+                "rate_limited",
+                "provider_unavailable",
+                "bad_request",
+                "auth",
+                "model_unavailable",
+                "cache_miss"
+              ],
+              "type": "string"
+            },
+            {
+              "enum": [
+                "budget",
+                "kill_switch"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error Code"
+        },
+        "invalid_reason": {
+          "anyOf": [
+            {
+              "enum": [
+                "no_json",
+                "schema_violation",
+                "unknown_id",
+                "multiple_choices",
+                "empty",
+                "max_turns"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Invalid Reason"
+        },
+        "latency_s": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Latency S"
+        },
+        "page_requests": {
+          "default": [],
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "pattern": "^\\S+$",
+            "type": "string"
+          },
+          "title": "Page Requests",
+          "type": "array"
+        },
+        "raw_ref": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Raw Ref"
+        },
+        "requested_model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Requested Model"
+        },
+        "returned_model": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Returned Model"
+        },
+        "status": {
+          "enum": [
+            "choice",
+            "outside",
+            "invalid",
+            "refusal",
+            "error",
+            "not_run"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "turns": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Turns",
+          "type": "integer"
+        },
+        "usage": {
+          "$ref": "#/$defs/Usage"
+        }
+      },
+      "required": [
+        "status",
+        "backend"
+      ],
+      "title": "TrialOutcome",
+      "type": "object"
+    },
+    "Usage": {
+      "additionalProperties": false,
+      "properties": {
+        "input_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Tokens"
+        },
+        "output_tokens": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Tokens"
+        }
+      },
+      "title": "Usage",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "candidate_ids": {
+      "items": {
+        "maxLength": 64,
+        "minLength": 1,
+        "pattern": "^\\S+$",
+        "type": "string"
+      },
+      "minItems": 1,
+      "title": "Candidate Ids",
+      "type": "array"
+    },
+    "config_hash": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Config Hash",
+      "type": "string"
+    },
+    "finished_utc": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Finished Utc"
+    },
+    "interface": {
+      "enum": [
+        "text",
+        "structured",
+        "browser_tool",
+        "legacy_chatbot",
+        "legacy_gui_agent",
+        "legacy_api"
+      ],
+      "title": "Interface",
+      "type": "string"
+    },
+    "model_key": {
+      "maxLength": 64,
+      "pattern": "^[a-z0-9][a-z0-9_]*$",
+      "title": "Model Key",
+      "type": "string"
+    },
+    "outcome": {
+      "$ref": "#/$defs/TrialOutcome"
+    },
+    "presentation_id": {
+      "minLength": 1,
+      "title": "Presentation Id",
+      "type": "string"
+    },
+    "rep": {
+      "minimum": 0,
+      "title": "Rep",
+      "type": "integer"
+    },
+    "run_id": {
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "set_id": {
+      "minLength": 1,
+      "title": "Set Id",
+      "type": "string"
+    },
+    "started_utc": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Started Utc"
+    },
+    "task_id": {
+      "minLength": 1,
+      "title": "Task Id",
+      "type": "string"
+    },
+    "temperature": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Temperature"
+    },
+    "trial_key": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Trial Key",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_id",
+    "trial_key",
+    "config_hash",
+    "task_id",
+    "set_id",
+    "presentation_id",
+    "interface",
+    "model_key",
+    "temperature",
+    "rep",
+    "candidate_ids",
+    "outcome"
+  ],
+  "title": "TrialRecord",
+  "type": "object"
+}
