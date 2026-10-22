@@ -1,15 +1,16 @@
 # E1 pilot (SL-17): 2 categories x 2 tasks, v = 10, K in {2, 4, 8}, r = 10, three
-# interfaces, default and zero temperature. Placeholders until their tickets fix them:
-# the model ids (A5, two pinned snapshots per provider), the categories (SL-05
-# screening) and the dataset snapshot (SL-05). Simulated parameters are stipulated
-# for the offline parity run.
+# interfaces, default and zero temperature. The model ids are placeholders until A5
+# fixes them (two pinned snapshots per provider). The dataset is the SL-05 snapshot of
+# the Amazon Reviews 2023 metadata (artifacts/datasets/amazon_reviews_2023/<sha256>,
+# docs/e1_environment.md); both categories pass its screening. Simulated parameters
+# are stipulated for the offline parity run.
 schema_version: 1
 experiment: e1_pilot
 mode: auto
 seed: 2026102101
 environment:
   catalog: amazon_reviews_2023
-  dataset: null
+  dataset: {name: amazon_reviews_2023, sha256: d7750e73c2e13f9706db2499fe0cff0267a31ced8d04727b96dd933359d9870b}
   categories: [Home_and_Kitchen, Electronics]
   tasks_per_category: 2
   description_chars: 300

@@ -132,7 +132,8 @@ class ManifestContentTest(unittest.TestCase):
         legacy = build("legacy_2026_08")
         self.assertEqual(legacy.dataset_snapshot.sha256,
                          "9491773fa9aa2601d95f6396b39a08c6887f77a7bd053dff9e756b91872bbe07")
-        self.assertIsNone(build("e1_pilot").dataset_snapshot)
+        self.assertEqual(build("e1_pilot").dataset_snapshot.model_dump(), {  # the SL-05 snapshot
+            "name": "amazon_reviews_2023", "sha256": "d7750e73c2e13f9706db2499fe0cff0267a31ced8d04727b96dd933359d9870b"})
 
     def test_model_access_tracks_returned_ids_and_the_access_window(self):
         manifest = build("e1_pilot")

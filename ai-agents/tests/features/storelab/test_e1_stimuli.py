@@ -85,7 +85,8 @@ class E1StimuliTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "is not environment.dataset"):
             e1_stimuli.build(other, self.snapshot)
         with self.assertRaisesRegex(ValueError, "must name"):
-            e1_stimuli.build(resolve_config(read_config_data(CONFIG)), self.snapshot)
+            e1_stimuli.build(resolve_config(apply_overrides(read_config_data(CONFIG), {"environment.dataset": None})),
+                             self.snapshot)
 
     def test_cli(self):
         stdout, stderr = io.StringIO(), io.StringIO()

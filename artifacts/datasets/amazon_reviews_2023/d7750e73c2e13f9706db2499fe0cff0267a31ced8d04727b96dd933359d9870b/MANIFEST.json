@@ -1,0 +1,75 @@
+{
+ "dataset": "amazon_reviews_2023",
+ "snapshot_sha256": "d7750e73c2e13f9706db2499fe0cff0267a31ced8d04727b96dd933359d9870b",
+ "digest": "sha256 of compact JSON of sorted [path, sha256, size] rows; sha256 and size of the decompressed file",
+ "source_repo": "McAuley-Lab/Amazon-Reviews-2023",
+ "source_revision": "2b6d039ed471f2ba5fd2acb718bf33b0a7e5598e",
+ "source_files": [
+  {
+   "category": "Electronics",
+   "path": "raw/meta_categories/meta_Electronics.jsonl",
+   "sha256": "5eb4dabd539586c49654297319ef178b62a2fe8e43108376feda125f04455d93",
+   "size": 5246144134
+  },
+  {
+   "category": "Home_and_Kitchen",
+   "path": "raw/meta_categories/meta_Home_and_Kitchen.jsonl",
+   "sha256": "691353084748d985180deb13dc8de59afe4969933ad3692ea06b80460510aa56",
+   "size": 11788767944
+  }
+ ],
+ "access_date": "2026-10-21",
+ "normaliser": "amazon_meta@1",
+ "min_ratings": 50,
+ "description_chars": 1000,
+ "attribute_keys": [
+  "Brand",
+  "Material",
+  "Color",
+  "Style",
+  "Shape",
+  "Pattern",
+  "Finish Type",
+  "Connectivity Technology",
+  "Form Factor",
+  "Power Source"
+ ],
+ "counts": {
+  "Electronics": {
+   "rows": 1610012,
+   "stored": 400453,
+   "no_parent_asin": 0,
+   "duplicate_parent_asin": 0,
+   "missing_rating_number": 0,
+   "below_min_ratings": 1209559
+  },
+  "Home_and_Kitchen": {
+   "rows": 3735584,
+   "stored": 921931,
+   "no_parent_asin": 0,
+   "duplicate_parent_asin": 0,
+   "missing_rating_number": 0,
+   "below_min_ratings": 2813653
+  }
+ },
+ "files": [
+  {
+   "path": "items/Electronics.jsonl.gz",
+   "sha256": "bde63a87ffb8de02d4297eeb6e7c69b2ddcdd0282f87d2a5401d4a9f834d18e5",
+   "size": 302453793
+  },
+  {
+   "path": "items/Home_and_Kitchen.jsonl.gz",
+   "sha256": "bbf83a35438ba652d14e10f3f9eceab1eace9df177e64bc5d9698b8584840e1c",
+   "size": 684922251
+  }
+ ],
+ "tools": {
+  "python": "3.11.1",
+  "datasets": "5.1.0",
+  "huggingface_hub": "2.2.0",
+  "pyarrow": "26.0.0",
+  "pydantic": "2.12.4"
+ },
+ "terms": "A7: research use; redistribute ids and derived fields only until confirmed"
+}
