@@ -19,7 +19,9 @@ defect and propagates (the runner fails the run). A safety refusal is a response
 (``refusal``), not an error.
 
 Every attempt passes the ``CallGuard`` first: the kill switch (no attempt is made once
-it is engaged; ``KillSwitchEngaged`` if none was made), and on the platform the
+it is engaged; ``KillSwitchEngaged`` if none was made; if it stops the retries of a
+failing call, the call keeps its last attempt's error code and ``stopped_by`` is
+``kill_switch``), and on the platform the
 circuit breaker, provider slots and rate limiter (``governance.PlatformGovernance``).
 ``LLMBackend`` writes one ``log_call`` per call that reached the provider.
 
@@ -173,13 +175,14 @@ class ProviderAdapter:
         if request.provider != self.name:
             raise ValueError("adapter %s got a request for provider %s" % (self.name, request.provider))
         model, started = request.requested_model, self.clock()
-        attempts, last = 0, None
+        attempts, last, stopped_by = 0, None, None
         while attempts < self.policy.max_attempts:
             verdict = self.guard.before_attempt(self.name, model)
             if verdict == "kill_switch":
                 if attempts == 0:
                     raise KillSwitchEngaged("kill switch engaged before calling %s" % model)
-                break  # the call ends with the error of its last attempt
+                stopped_by = "kill_switch"  # the call ends with its last attempt's error, labelled as cut short
+                break
             if verdict is not None:
                 last = Classified(verdict)
                 break
@@ -200,7 +203,8 @@ class ProviderAdapter:
             return self.response(request, sent, attempts, self.clock() - started)
         return ProviderResponse(error_code=last.code if last else "provider_unavailable", attempts=attempts,
                                 latency_s=self.clock() - started, sent_params=sent_params(request),
-                                seed_supported="seed" in request.params, api_version=self.api_version)
+                                seed_supported="seed" in request.params, api_version=self.api_version,
+                                stopped_by=stopped_by)
 
     def response(self, request: LLMRequest, sent: Sent, attempts: int, latency_s: float) -> ProviderResponse:
         return ProviderResponse(text=sent.text, refusal=sent.refusal, attempts=attempts, latency_s=latency_s,

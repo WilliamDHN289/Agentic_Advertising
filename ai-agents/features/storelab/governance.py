@@ -105,6 +105,9 @@ class PlatformGovernance:
         except TimeoutError:
             p.release_provider_slot(provider)
             return "rate_limited"
+        except BaseException:  # never leak the slot, whatever the limiter raises
+            p.release_provider_slot(provider)
+            raise
         self.held.provider = provider
         return None
 

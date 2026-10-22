@@ -91,6 +91,7 @@ class ProviderResponse(Section):
     sent_params: dict[str, Any] | None = Field(default=None, exclude_if=_unset)  # null temperature: "provider_default"
     seed_supported: bool | None = Field(default=None, exclude_if=_unset)
     api_version: str | None = Field(default=None, exclude_if=_unset)
+    stopped_by: Literal["kill_switch"] | None = Field(default=None, exclude_if=_unset)  # retries cut short
 
 
 class CacheEntry(Section):

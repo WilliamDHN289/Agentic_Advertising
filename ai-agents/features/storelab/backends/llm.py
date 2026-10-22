@@ -116,7 +116,7 @@ class LLMBackend:
             "status": "failed" if response.error_code else "succeeded", "error_code": response.error_code,
             "refusal": response.refusal, "attempts": response.attempts, "latency_s": response.latency_s,
             "input_tokens": response.usage.input_tokens, "output_tokens": response.usage.output_tokens,
-            "request_id": response.request_id, "cost_usd": cost})
+            "request_id": response.request_id, "stopped_by": response.stopped_by, "cost_usd": cost})
 
 
 def outcome_from(response: ProviderResponse, action, raw_ref: str | None, **common) -> TrialOutcome:

@@ -68,8 +68,10 @@ logged once:
 A cache hit is not a call and is not logged. The kill switch is checked immediately
 before each attempt, so once it is engaged no new attempt starts; a call stopped before
 its first attempt is `not_run`/`kill_switch` and the run ends CANCELLED with reason
-`kill_switch`. With `max_concurrency` > 1, attempts that passed the check before the
-switch was engaged complete.
+`kill_switch`. A failing call whose retries the switch cuts short keeps the error code
+of its last attempt (that is what the provider returned) with `stopped_by:
+kill_switch` in its response and its invocation-log line. With `max_concurrency` > 1,
+attempts that passed the check before the switch was engaged complete.
 
 `PlatformGovernance` takes the platform functions as a `Platform`;
 `Platform.load(settings)` imports them inside ai-agents (this subtree does not contain

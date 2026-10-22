@@ -216,6 +216,22 @@ class FailureInjectionTest(unittest.TestCase):
         self.assertEqual([code_for_status(s) for s in (409, 418, 502)],
                          ["provider_unavailable", "bad_request", "provider_unavailable"])
 
+    def test_a_kill_switch_between_retries_labels_the_call(self):
+        environ = {}
+        guard = LocalGovernance("run", 0.0, environ=environ)
+
+        def script(n):
+            environ[KILL] = "1"
+            return StatusError(503)
+
+        sdk = FakeSDK("openai", script)
+        response = sdk.adapter(guard, sleep=lambda s: None).complete(request())
+        self.assertEqual((response.error_code, response.attempts, response.stopped_by, len(sdk.calls)),
+                         ("provider_unavailable", 1, "kill_switch", 1))
+        clean = FakeSDK("openai", lambda n: StatusError(503)).adapter(sleep=lambda s: None).complete(request())
+        self.assertIsNone(clean.stopped_by)
+        self.assertNotIn("stopped_by", clean.model_dump(mode="json"))
+
     def test_an_unclassified_exception_is_a_defect_and_propagates(self):
         sdk = FakeSDK("anthropic", lambda n: KeyError("bug"))
         with self.assertRaises(KeyError):
@@ -546,6 +562,7 @@ class SandboxRunTest(unittest.TestCase):
         server = Server("openai", script)
         response = server.adapter(guard, sleep=lambda s: None).complete(request())
         self.assertEqual((response.error_code, response.attempts, len(server.requests)), ("provider_unavailable", 1, 1))
+        self.assertEqual(response.stopped_by, "kill_switch")  # labelled as cut short by the switch
         with self.assertRaises(KillSwitchEngaged):
             server.adapter(guard).complete(request())
         self.assertEqual(len(server.requests), 1)
@@ -629,6 +646,10 @@ class SandboxRunTest(unittest.TestCase):
         response = server.adapter(PlatformGovernance("run", 1.0, busy.build())).complete(request())
         self.assertEqual((response.error_code, response.attempts, len(server.requests)), ("rate_limited", 0, 0))
         self.assertEqual(busy.counts["slot"], busy.counts["release"])
+        broken = FakePlatform(capacity_error=RuntimeError("limiter down"))
+        with self.assertRaisesRegex(RuntimeError, "limiter down"):
+            server.adapter(PlatformGovernance("run", 1.0, broken.build())).complete(request())
+        self.assertEqual((broken.counts["slot"], broken.counts["release"], len(server.requests)), (1, 1, 0))
 
     def test_breaker_open_writes_no_log_and_pauses_the_run(self):
         platform = FakePlatform(breaker_open=True)
@@ -659,8 +680,9 @@ class SandboxRunTest(unittest.TestCase):
 class FakePlatform:
     """The ai-agents guard functions, counted."""
 
-    def __init__(self, killed=False, breaker_open=False, capacity_timeout=False):
+    def __init__(self, killed=False, breaker_open=False, capacity_timeout=False, capacity_error=None):
         self.killed, self.breaker_open, self.capacity_timeout = killed, breaker_open, capacity_timeout
+        self.capacity_error = capacity_error
         self.counts = {k: 0 for k in ("kill_checks", "slot", "release", "capacity", "success", "failure")}
         self.logs, self.lock = [], threading.Lock()
 
@@ -689,6 +711,8 @@ class FakePlatform:
             fake.count("capacity")
             if fake.capacity_timeout:
                 raise TimeoutError
+            if fake.capacity_error is not None:
+                raise fake.capacity_error
 
         def allow(provider, model):
             if fake.breaker_open:
