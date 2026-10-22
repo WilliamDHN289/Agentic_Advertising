@@ -1,0 +1,14 @@
+{
+  "ticket_id": "SL-11",
+  "decided_by": "project owner",
+  "date": "2026-10-22",
+  "waivers": [
+    {
+      "criterion_id": "AC-4",
+      "requirement": "Engineering gate for SL-18: after the pilot, |estimate − actual| / actual ≤ 25% for every model.",
+      "scope": "Waived: evaluating the gate on the SL-17 pilot run, which needs live provider APIs. Still required and reviewed as usual: the per-model estimate-vs-actual report (billed USD, cache savings, relative error, mean browser_tool turns), the 25% gate, and the exit codes of `cli cost RUN`, all verified offline with mock providers.",
+      "reason": "No provider API keys are available, so the pilot (SL-17) cannot run. Owner decision: build the infrastructure only and move on.",
+      "follow_up": "After the SL-17 pilot, run `python -m features.storelab.cli cost <pilot run>` and register the reported mean turns as budget.expected_turns. SL-18 may start only if the gate passes for every model. Phase gate G3 (pilot estimator error <= 25%) stays open until then."
+    }
+  ]
+}
