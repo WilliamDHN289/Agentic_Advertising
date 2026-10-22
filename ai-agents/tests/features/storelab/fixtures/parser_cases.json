@@ -87,12 +87,12 @@
   },
   {
    "id": "reason_missing",
-   "shape": "choice only; reason is optional",
+   "shape": "choice without the required reason",
    "candidates": "asin",
    "output": "{\"choice\": \"B0C1H26C46\"}",
    "expected": {
-    "action": "select",
-    "product_id": "B0C1H26C46"
+    "action": "invalid",
+    "reason": "schema_violation"
    }
   },
   {
@@ -205,11 +205,12 @@
   },
   {
    "id": "leave_no_reason",
-   "shape": "outside option without reason",
+   "shape": "outside option without the required reason",
    "candidates": "legacy",
    "output": "{\"choice\": null}",
    "expected": {
-    "action": "leave"
+    "action": "invalid",
+    "reason": "schema_violation"
    }
   },
   {
@@ -246,7 +247,7 @@
    "id": "choice_blank",
    "shape": "choice is whitespace",
    "candidates": "asin",
-   "output": "{\"choice\": \"   \"}",
+   "output": "{\"choice\": \"   \", \"reason\": \"unsure\"}",
    "expected": {
     "action": "invalid",
     "reason": "empty"
@@ -294,12 +295,12 @@
   },
   {
    "id": "json_array",
-   "shape": "a JSON array, not an object",
+   "shape": "a JSON array, not an object: JSON present, wrong root",
    "candidates": "asin",
    "output": "[\"B07ZPKBL9V\"]",
    "expected": {
     "action": "invalid",
-    "reason": "no_json"
+    "reason": "schema_violation"
    }
   },
   {
@@ -500,6 +501,145 @@
    "expected": {
     "action": "invalid",
     "reason": "multiple_choices"
+   }
+  },
+  {
+   "id": "reason_null",
+   "shape": "reason null instead of a string",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B07ZPKBL9V\", \"reason\": null}",
+   "expected": {
+    "action": "invalid",
+    "reason": "schema_violation"
+   }
+  },
+  {
+   "id": "array_wrapped_reply",
+   "shape": "the reply wrapped in an array",
+   "candidates": "asin",
+   "output": "[{\"choice\": \"B07ZPKBL9V\", \"reason\": \"cheapest\"}]",
+   "expected": {
+    "action": "invalid",
+    "reason": "schema_violation"
+   }
+  },
+  {
+   "id": "array_wrapped_fenced",
+   "shape": "array-wrapped reply in a fence",
+   "candidates": "asin",
+   "output": "```json\n[\n  {\"choice\": \"B08N5WRWNW\", \"reason\": \"best rated\"}\n]\n```",
+   "expected": {
+    "action": "invalid",
+    "reason": "schema_violation"
+   }
+  },
+  {
+   "id": "truncated_outer_object",
+   "shape": "a nested reply inside an outer object cut off at the token cap",
+   "candidates": "asin",
+   "output": "{\"answer\": {\"choice\": \"B07ZPKBL9V\", \"reason\": \"cheapest\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "no_json"
+   }
+  },
+  {
+   "id": "malformed_outer_object",
+   "shape": "a nested reply inside an outer object that is not valid JSON",
+   "candidates": "asin",
+   "output": "{\"note\": oops, \"reply\": {\"choice\": \"B07ZPKBL9V\", \"reason\": \"cheapest\"}}",
+   "expected": {
+    "action": "invalid",
+    "reason": "no_json"
+   }
+  },
+  {
+   "id": "unclosed_array_wrapper",
+   "shape": "an array wrapper that is never closed",
+   "candidates": "asin",
+   "output": "[ {\"choice\": \"B07ZPKBL9V\", \"reason\": \"cheapest\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "no_json"
+   }
+  },
+  {
+   "id": "conflict_in_second_object",
+   "shape": "a restated reply whose second copy repeats choice with another value",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B07ZPKBL9V\", \"reason\": \"cheapest\"}\n{\"choice\": \"B08N5WRWNW\", \"choice\": \"B07ZPKBL9V\", \"reason\": \"cheapest\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "multiple_choices"
+   }
+  },
+  {
+   "id": "conflict_in_first_object",
+   "shape": "the same, with the conflicting copy first",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B08N5WRWNW\", \"choice\": \"B07ZPKBL9V\", \"reason\": \"cheapest\"}\n{\"choice\": \"B07ZPKBL9V\", \"reason\": \"cheapest\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "multiple_choices"
+   }
+  },
+  {
+   "id": "repeated_reason_key",
+   "shape": "reason key given twice",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B07ZPKBL9V\", \"reason\": \"cheapest\", \"reason\": \"best\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "schema_violation"
+   }
+  },
+  {
+   "id": "repeated_choice_same_value",
+   "shape": "choice key given twice with the same value",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B07ZPKBL9V\", \"choice\": \"B07ZPKBL9V\", \"reason\": \"cheapest\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "schema_violation"
+   }
+  },
+  {
+   "id": "overflow_choice",
+   "shape": "a number that overflows to infinity",
+   "candidates": "asin",
+   "output": "{\"choice\": 1e999, \"reason\": \"cheapest\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "no_json"
+   }
+  },
+  {
+   "id": "overflow_other_key",
+   "shape": "a reply with an extra overflowing number",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B07ZPKBL9V\", \"reason\": \"cheapest\", \"score\": -1e999}",
+   "expected": {
+    "action": "invalid",
+    "reason": "no_json"
+   }
+  },
+  {
+   "id": "prose_brackets_before_reply",
+   "shape": "bracketed prose and a small array before a valid reply",
+   "candidates": "asin",
+   "output": "Scores: [1, 2, 3]. [Sponsored] items considered.\n{\"choice\": \"B0C1H26C46\", \"reason\": \"best rated\"}",
+   "expected": {
+    "action": "select",
+    "product_id": "B0C1H26C46"
+   }
+  },
+  {
+   "id": "leave_empty_reason",
+   "shape": "outside option with an empty reason string",
+   "candidates": "legacy",
+   "output": "{\"choice\": null, \"reason\": \"\"}",
+   "expected": {
+    "action": "leave"
    }
   }
  ]

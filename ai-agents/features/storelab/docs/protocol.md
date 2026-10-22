@@ -52,17 +52,23 @@ The reply asked for is `{"choice": "<id>" | null, "reason": "<=20 words"}`
 order; the first that fires decides.
 
 1. Empty or whitespace-only output → `Invalid(empty)`.
-2. Every top-level JSON object in the text is extracted; prose, Markdown fences and
-   reasoning traces around them are ignored. None → `Invalid(no_json)`. Strict JSON:
-   single quotes, trailing text inside an object, `NaN` and `Infinity` do not parse.
-3. No object has a `choice` key → `Invalid(schema_violation)`. A reply nested under
-   another key counts as no `choice` key.
-4. More than one distinct object with a `choice` key, the `choice` key repeated with
-   different values, or `choice` a list of more than one distinct value →
-   `Invalid(multiple_choices)`. Restating the identical object is tolerated.
-5. `choice` a one-item list or not a string or null, a key other than `choice` and
-   `reason` (the 2026-08 `extras` list included), or `reason` not a string of at most
-   20 whitespace-separated words → `Invalid(schema_violation)`.
+2. The top-level JSON values are extracted; prose, Markdown fences and reasoning traces
+   between them are ignored. Decoding starts at each `{` or `[` that is not inside an
+   earlier value. The contents of a JSON array are never replies. When a bracketed span
+   fails to decode, all of it is skipped, to its matching close bracket or to the end
+   of the text if it never closes, so a truncated or malformed outer object cannot expose
+   a reply nested inside it. Strict JSON: single quotes, `NaN`, `Infinity` and numbers
+   that overflow to infinity (`1e999`) are not JSON. No top-level object: if a top-level
+   array was found → `Invalid(schema_violation)`, otherwise → `Invalid(no_json)`.
+3. No top-level object has a `choice` key → `Invalid(schema_violation)`. A reply nested
+   under another key counts as no `choice` key.
+4. Any of these → `Invalid(multiple_choices)`: an object repeats `choice` with
+   different values; more than one distinct object has a `choice` key; `choice` is a
+   list of more than one distinct value. Restating the identical object is tolerated.
+5. Any of these → `Invalid(schema_violation)`: `choice` is a one-item list, or neither
+   a string nor null; a key is repeated; a key other than `choice` and `reason` is
+   present (the 2026-08 `extras` list included); `reason` is missing, null, or not a
+   string of at most 20 whitespace-separated words.
 6. `choice` null → `Leave`.
 7. `choice` empty after stripping whitespace → `Invalid(empty)`.
 8. `choice` not exactly one of `allowed_ids` after stripping surrounding whitespace
@@ -70,9 +76,10 @@ order; the first that fires decides.
    cross-sell items all fail) → `Invalid(unknown_id)`.
 9. Otherwise → `Select(choice)`.
 
+The parser never raises: any unexpected decoding failure is `Invalid(schema_violation)`.
 There is no re-ask and no substitution. `max_turns` is the sixth invalid reason; the
-browser tool loop (SL-10) sets it. The 49 golden fixtures are in
-`tests/features/storelab/fixtures/parser_cases.json`; the original raw replies were not
+browser tool loop (SL-10) sets it. The 63 golden fixtures are in
+`tests/features/storelab/fixtures/parser_cases.json`. The original raw replies were not
 saved (SL-00 D-07), so each fixture names the reply shape it models.
 
 ## Records and files

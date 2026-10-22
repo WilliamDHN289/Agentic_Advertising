@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 from typing import Annotated, Any, Collection, Literal, Union
 
 from pydantic import Field, NonNegativeFloat, NonNegativeInt, PositiveInt, TypeAdapter, model_validator
@@ -147,7 +148,7 @@ class ChoiceReply(Section):
     20 words, which JSON Schema cannot express; ``parse_reply`` enforces it."""
 
     choice: str | None
-    reason: str | None = None
+    reason: str
 
 
 class _DuplicateKeys(dict):
@@ -169,18 +170,74 @@ def _reject_constant(name: str):
 _DECODER = json.JSONDecoder(object_pairs_hook=_DuplicateKeys, parse_constant=_reject_constant)
 
 
-def _objects(text: str) -> list[_DuplicateKeys]:
-    """Every top-level JSON object in ``text``, in order; prose and fences are ignored."""
-    found, i = [], text.find("{")
+def _finite(value: Any) -> bool:
+    """False if ``value`` holds a non-finite number, e.g. from an overflowing 1e999."""
+    if isinstance(value, float):
+        return math.isfinite(value)
+    if isinstance(value, dict):
+        return all(_finite(v) for v in value.values()) and all(
+            _finite(v) for values in getattr(value, "repeated", {}).values() for v in values)
+    if isinstance(value, list):
+        return all(_finite(v) for v in value)
+    return True
+
+
+def _top_level_json(text: str) -> tuple[list[_DuplicateKeys], bool]:
+    """The JSON objects in ``text`` that stand at the top level, in order, and whether a
+    top-level JSON array was seen. Prose and fences between them are ignored.
+
+    Decoding starts at every "{" or "[" outside an earlier value. An array's contents,
+    including objects in it, are never replies. When decoding fails, the whole bracketed
+    span is skipped (to its matching close, or to the end of the text if it never
+    closes), so a truncated or malformed outer object cannot expose an object nested
+    inside it.
+    """
+    objects, saw_array, i = [], False, _next_bracket(text, 0)
     while i != -1:
         try:
             value, end = _DECODER.raw_decode(text, i)
-        except (ValueError, RecursionError):  # JSONDecodeError is a ValueError
-            i = text.find("{", i + 1)
+        except json.JSONDecodeError:
+            i = _next_bracket(text, _span_end(text, i))
             continue
-        found.append(value)
-        i = text.find("{", end)
-    return found
+        except (ValueError, RecursionError):
+            break  # no position to resume from (e.g. nesting too deep): the rest is unreadable
+        if not _finite(value):
+            pass  # non-standard JSON, as NaN would be: neither a reply nor an array
+        elif isinstance(value, dict):
+            objects.append(value)
+        else:
+            saw_array = True
+        i = _next_bracket(text, end)
+    return objects, saw_array
+
+
+def _span_end(text: str, start: int) -> int:
+    """Index just past the bracket that closes the one at ``start``, counting brackets
+    outside double-quoted strings; the end of the text if it never closes."""
+    depth, in_string, escaped = 0, False, False
+    for j in range(start, len(text)):
+        c = text[j]
+        if in_string:
+            if escaped:
+                escaped = False
+            elif c == "\\":
+                escaped = True
+            elif c == '"':
+                in_string = False
+        elif c == '"':
+            in_string = True
+        elif c in "{[":
+            depth += 1
+        elif c in "}]":
+            depth -= 1
+            if depth == 0:
+                return j + 1
+    return len(text)
+
+
+def _next_bracket(text: str, start: int) -> int:
+    positions = [p for p in (text.find("{", start), text.find("[", start)) if p != -1]
+    return min(positions, default=-1)
 
 
 def _invalid(reason: str, detail: str) -> Invalid:
@@ -190,35 +247,47 @@ def _invalid(reason: str, detail: str) -> Invalid:
 def parse_reply(text: str | None, allowed_ids: Collection[str]) -> Select | Leave | Invalid:
     """Map a model reply to Select, Leave or Invalid (docs/protocol.md, "Parser").
 
-    The reply must contain exactly one JSON object with a ``choice`` key (repeating
-    an identical object is tolerated); ``choice`` is a candidate id or null and
-    ``reason`` an optional string of at most 20 words; no other key is allowed. A
+    The reply must contain exactly one top-level JSON object with a ``choice`` key
+    (repeating an identical object is tolerated); ``choice`` is a candidate id or null
+    and ``reason`` a string of at most 20 words; no other or repeated key is allowed. A
     ``Select`` is returned only for an id in ``allowed_ids``, compared exactly after
-    stripping surrounding whitespace.
+    stripping surrounding whitespace. Never raises.
     """
+    try:
+        return _parse(text, allowed_ids)
+    except (ValueError, TypeError, RecursionError) as error:  # defensive: the contract is "never raises"
+        return _invalid("schema_violation", "unreadable reply: %s" % type(error).__name__)
+
+
+def _parse(text: str | None, allowed_ids: Collection[str]) -> Select | Leave | Invalid:
     if text is None or not text.strip():
         return _invalid("empty", "no output")
-    objects = _objects(text)
+    objects, saw_array = _top_level_json(text)
     if not objects:
+        if saw_array:
+            return _invalid("schema_violation", "the reply is a JSON array, not an object")
         return _invalid("no_json", "no JSON object in the reply")
     replies = [o for o in objects if "choice" in o]
     if not replies:
-        return _invalid("schema_violation", "no JSON object has a 'choice' key")
+        return _invalid("schema_violation", "no top-level JSON object has a 'choice' key")
+    for reply in replies:
+        if "choice" in reply.repeated and len({canonical_json(v) for v in reply.repeated["choice"]}) > 1:
+            return _invalid("multiple_choices", "'choice' given more than once with different values")
     if len({canonical_json(r) for r in replies}) > 1:
         return _invalid("multiple_choices", "%d different JSON replies" % len(replies))
     reply = replies[0]
-    if "choice" in reply.repeated and len({canonical_json(v) for v in reply.repeated["choice"]}) > 1:
-        return _invalid("multiple_choices", "'choice' given more than once")
     choice = reply["choice"]
     if isinstance(choice, list):
         if len({canonical_json(c) for c in choice}) > 1:
             return _invalid("multiple_choices", "'choice' lists %d values" % len(choice))
         return _invalid("schema_violation", "'choice' must be a string or null, not a list")
+    if reply.repeated:
+        return _invalid("schema_violation", "repeated keys %s" % sorted(reply.repeated))
     extra = sorted(set(reply) - {"choice", "reason"})
     if extra:
         return _invalid("schema_violation", "unexpected keys %s" % extra)
     reason = reply.get("reason")
-    if reason is not None and (not isinstance(reason, str) or len(reason.split()) > REASON_MAX_WORDS):
+    if not isinstance(reason, str) or len(reason.split()) > REASON_MAX_WORDS:
         return _invalid("schema_violation", "'reason' must be a string of at most %d words" % REASON_MAX_WORDS)
     if choice is None:
         return Leave()

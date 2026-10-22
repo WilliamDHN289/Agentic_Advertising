@@ -15,20 +15,13 @@
       "title": "Choice"
     },
     "reason": {
-      "anyOf": [
-        {
-          "type": "string"
-        },
-        {
-          "type": "null"
-        }
-      ],
-      "default": null,
-      "title": "Reason"
+      "title": "Reason",
+      "type": "string"
     }
   },
   "required": [
-    "choice"
+    "choice",
+    "reason"
   ],
   "title": "ChoiceReply",
   "type": "object"

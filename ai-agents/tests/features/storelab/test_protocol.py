@@ -57,8 +57,8 @@ class ParserFixtureTest(unittest.TestCase):
 
     def test_parse_for_uses_the_observation_candidates(self):
         obs = observation(["DES-0219", "DES-0007"])
-        self.assertEqual(parse_for(obs, '{"choice": "DES-0007"}'), Select(product_id="DES-0007"))
-        self.assertEqual(parse_for(obs, '{"choice": "COF-0123"}').reason, "unknown_id")
+        self.assertEqual(parse_for(obs, '{"choice": "DES-0007", "reason": "x"}'), Select(product_id="DES-0007"))
+        self.assertEqual(parse_for(obs, '{"choice": "COF-0123", "reason": "x"}').reason, "unknown_id")
 
 
 class NoForeignSelectPropertyTest(unittest.TestCase):
@@ -101,6 +101,9 @@ class NoForeignSelectPropertyTest(unittest.TestCase):
                     parts.append("".join(rng.choice(alphabet) for _ in range(rng.randint(0, 30))))
                 elif kind < 0.75:
                     parts.append(rng.choice(['{"choice": "', '"}', '{"choice":', "null", '"reason": "x"', "```json"]))
+                elif kind < 0.85:  # occasionally a whole reply, for an inside or a foreign id
+                    parts.append(json.dumps({"choice": rng.choice(inside + self.outside_ids(rng, inside)),
+                                             "reason": "x"}))
                 else:
                     parts.append(rng.choice(inside + self.outside_ids(rng, inside)))
             return "".join(parts), 0
@@ -123,8 +126,8 @@ class NoForeignSelectPropertyTest(unittest.TestCase):
                 choice, is_foreign = value(rng, inside)
                 foreign |= is_foreign
                 obj = {"choice": choice}
-                if rng.random() < 0.6:
-                    obj["reason"] = rng.choice(["cheapest", "x " * rng.randint(0, 30), 7])
+                if rng.random() < 0.85:
+                    obj["reason"] = rng.choice(["cheapest", "best value", "fits", "x " * rng.randint(0, 30), 7, None])
                 if rng.random() < 0.15:
                     obj[rng.choice(["extras", "selection", "Choice"])] = rng.choice(inside)
                 text = json.dumps(obj, ensure_ascii=rng.random() < 0.5, indent=rng.choice([None, 2]))
@@ -138,6 +141,31 @@ class NoForeignSelectPropertyTest(unittest.TestCase):
         counts = self.check(generate, seed=5)
         self.assertGreater(counts["select"], 1000)
         self.assertGreater(counts["foreign_offered"], 5000)
+
+    def test_wrapped_truncated_conflicting_or_overflowing_replies_are_never_choices(self):
+        """Variants of a valid reply that the strict format rules out (SL-03 review round 1)."""
+        rng = random.Random(11)
+        variants = [
+            lambda r, a, b: "[%s]" % r,  # array root
+            lambda r, a, b: "[%s, %s]" % (r, r),
+            lambda r, a, b: '{"answer": %s' % r,  # truncated outer object
+            lambda r, a, b: '{"note": oops, "reply": %s}' % r,  # malformed outer object
+            lambda r, a, b: '[ %s' % r,  # unclosed array
+            lambda r, a, b: '%s\n{"choice": "%s", "choice": "%s", "reason": "x"}' % (r, b, a),  # conflicting copy
+            lambda r, a, b: '{"choice": "%s", "choice": "%s", "reason": "x"}\n%s' % (b, a, r),
+            lambda r, a, b: r[:-1] + ', "score": %se999}' % rng.choice(["", "-"]),  # overflow
+            lambda r, a, b: '{"choice": "%s"}' % a,  # no reason
+            lambda r, a, b: '{"choice": "%s", "reason": null}' % a,
+            lambda r, a, b: r[:rng.randrange(1, len(r))],  # truncated reply
+        ]
+        for _ in range(self.ITERATIONS):
+            inside = [self.asin(rng) for _ in range(rng.randint(2, 8))]
+            a, b = rng.sample(inside, 2)
+            reply = json.dumps({"choice": a, "reason": "cheapest"})
+            for index, variant in enumerate(variants):
+                text = rng.choice(["%s", "```json\n%s\n```", "Answer: %s"]) % variant(reply, a, b)
+                action = parse_reply(text, inside)
+                self.assertIsInstance(action, Invalid, (index, text))
 
     def test_random_edits_of_valid_replies(self):
         def generate(rng, inside):
