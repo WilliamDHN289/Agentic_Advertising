@@ -1,0 +1,132 @@
+{
+  "$defs": {
+    "Receipt": {
+      "additionalProperties": false,
+      "properties": {
+        "covers": {
+          "items": {
+            "enum": [
+              "H1a",
+              "H1b",
+              "H1c",
+              "H1d",
+              "H1e",
+              "H2a",
+              "H2b",
+              "H2c",
+              "H3a",
+              "H3b",
+              "H3c",
+              "H4a",
+              "H4b",
+              "H4c",
+              "H4d",
+              "H5a",
+              "H5b"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Covers",
+          "type": "array"
+        },
+        "embargo_until": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Embargo Until"
+        },
+        "id": {
+          "enum": [
+            "E1",
+            "E5"
+          ],
+          "title": "Id",
+          "type": "string"
+        },
+        "registered_utc": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Registered Utc"
+        },
+        "status": {
+          "enum": [
+            "not_filed",
+            "filed"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "template": {
+          "minLength": 1,
+          "title": "Template",
+          "type": "string"
+        },
+        "url": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Url"
+        },
+        "venue": {
+          "minLength": 1,
+          "title": "Venue",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "venue",
+        "template",
+        "covers",
+        "status"
+      ],
+      "title": "Receipt",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "receipts_version": {
+      "const": 1,
+      "title": "Receipts Version",
+      "type": "integer"
+    },
+    "registrations": {
+      "items": {
+        "$ref": "#/$defs/Receipt"
+      },
+      "title": "Registrations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "receipts_version",
+    "registrations"
+  ],
+  "title": "Receipts",
+  "type": "object"
+}

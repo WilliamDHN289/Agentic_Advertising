@@ -1,0 +1,298 @@
+{
+  "$defs": {
+    "CellResult": {
+      "additionalProperties": false,
+      "properties": {
+        "cell": {
+          "minLength": 1,
+          "title": "Cell",
+          "type": "string"
+        },
+        "differential_missingness": {
+          "default": false,
+          "title": "Differential Missingness",
+          "type": "boolean"
+        },
+        "missing_rate": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Missing Rate"
+        },
+        "n": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "N"
+        },
+        "power": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Power"
+        },
+        "sensitivity": {
+          "anyOf": [
+            {
+              "patternProperties": {
+                "^[a-z0-9][a-z0-9_]*$": {
+                  "$ref": "#/$defs/StatResult"
+                }
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sensitivity"
+        },
+        "tests": {
+          "patternProperties": {
+            "^[a-z0-9][a-z0-9_]*$": {
+              "$ref": "#/$defs/StatResult"
+            }
+          },
+          "title": "Tests",
+          "type": "object"
+        }
+      },
+      "required": [
+        "cell",
+        "tests"
+      ],
+      "title": "CellResult",
+      "type": "object"
+    },
+    "StatResult": {
+      "additionalProperties": false,
+      "properties": {
+        "ci": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ci"
+        },
+        "counts": {
+          "default": {},
+          "patternProperties": {
+            "^[a-z0-9][a-z0-9_]*$": {
+              "minimum": 0,
+              "type": "integer"
+            }
+          },
+          "title": "Counts",
+          "type": "object"
+        },
+        "estimate": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimate"
+        },
+        "metrics": {
+          "default": {},
+          "patternProperties": {
+            "^[a-z0-9][a-z0-9_]*$": {
+              "type": "number"
+            }
+          },
+          "title": "Metrics",
+          "type": "object"
+        },
+        "n": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "N"
+        },
+        "p_against": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P Against"
+        },
+        "p_support": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P Support"
+        },
+        "p_value": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P Value"
+        },
+        "share": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Share"
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Threshold"
+        }
+      },
+      "title": "StatResult",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "claims": {
+      "additionalProperties": {
+        "patternProperties": {
+          "^[a-z0-9][a-z0-9_]*$": {
+            "items": {
+              "$ref": "#/$defs/CellResult"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "propertyNames": {
+        "enum": [
+          "H1a",
+          "H1b",
+          "H1c",
+          "H1d",
+          "H1e",
+          "H2a",
+          "H2b",
+          "H2c",
+          "H3a",
+          "H3b",
+          "H3c",
+          "H4a",
+          "H4b",
+          "H4c",
+          "H4d",
+          "H5a",
+          "H5b"
+        ]
+      },
+      "title": "Claims",
+      "type": "object"
+    },
+    "register_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Register Sha256"
+    },
+    "results_version": {
+      "const": 1,
+      "title": "Results Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "results_version",
+    "claims"
+  ],
+  "title": "ResultsFile",
+  "type": "object"
+}

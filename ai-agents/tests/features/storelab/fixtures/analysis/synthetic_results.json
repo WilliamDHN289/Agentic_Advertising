@@ -1,0 +1,684 @@
+{
+ "results_version": 1,
+ "claims": {
+  "H1a": {
+   "iia": [
+    {
+     "cell": "gpt_4o_20240806|text",
+     "n": 34,
+     "missing_rate": 0.04,
+     "sensitivity": {
+      "triple_odds": {
+       "p_value": 0.002
+      }
+     },
+     "tests": {
+      "triple_odds": {
+       "p_value": 0.001
+      }
+     }
+    },
+    {
+     "cell": "gpt_4o_20240806|structured",
+     "n": 12,
+     "missing_rate": 0.02,
+     "sensitivity": {
+      "triple_odds": {
+       "p_value": 0.0001
+      }
+     },
+     "tests": {
+      "triple_odds": {
+       "p_value": 0.0001
+      }
+     }
+    },
+    {
+     "cell": "claude_sonnet_45_20250929|text",
+     "n": 40,
+     "missing_rate": 0.05,
+     "sensitivity": {
+      "triple_odds": {
+       "p_value": 0.01
+      }
+     },
+     "tests": {
+      "triple_odds": {
+       "p_value": 0.004
+      }
+     }
+    }
+   ]
+  },
+  "H1b": {
+   "near_determinism": [
+    {
+     "cell": "gpt_4o_20240806|text",
+     "n": 45,
+     "missing_rate": 0.02,
+     "sensitivity": {
+      "modal_share": {
+       "p_support": 0.003,
+       "p_against": 0.9
+      },
+      "score_gap": {
+       "p_support": 0.004,
+       "p_against": 0.8
+      }
+     },
+     "tests": {
+      "modal_share": {
+       "p_support": 0.001,
+       "p_against": 0.9,
+       "estimate": 0.91
+      },
+      "score_gap": {
+       "p_support": 0.002,
+       "p_against": 0.8,
+       "estimate": 2.4
+      }
+     }
+    },
+    {
+     "cell": "gpt_4o_20240806|browser_tool",
+     "n": 50,
+     "missing_rate": 0.15,
+     "sensitivity": {
+      "modal_share": {
+       "p_support": 0.4,
+       "p_against": 0.5
+      },
+      "score_gap": {
+       "p_support": 0.5,
+       "p_against": 0.4
+      }
+     },
+     "tests": {
+      "modal_share": {
+       "p_support": 0.0001,
+       "p_against": 0.99
+      },
+      "score_gap": {
+       "p_support": 0.001,
+       "p_against": 0.9
+      }
+     }
+    },
+    {
+     "cell": "gemini_20_flash_001|text",
+     "n": 60,
+     "missing_rate": 0.3,
+     "sensitivity": {
+      "modal_share": {
+       "p_support": 0.0001,
+       "p_against": 0.99
+      },
+      "score_gap": {
+       "p_support": 0.0001,
+       "p_against": 0.99
+      }
+     },
+     "tests": {
+      "modal_share": {
+       "p_support": 0.0001,
+       "p_against": 0.99
+      },
+      "score_gap": {
+       "p_support": 0.0001,
+       "p_against": 0.99
+      }
+     }
+    }
+   ]
+  },
+  "H1c": {
+   "sign": [
+    {
+     "cell": "gpt_4o_20240806|text",
+     "power": 0.9,
+     "missing_rate": 0.03,
+     "sensitivity": {
+      "label_effect": {
+       "p_support": 0.002,
+       "p_against": 0.99
+      }
+     },
+     "tests": {
+      "label_effect": {
+       "p_support": 0.001,
+       "p_against": 0.99,
+       "estimate": -0.41
+      }
+     }
+    },
+    {
+     "cell": "claude_sonnet_45_20250929|text",
+     "power": 0.85,
+     "missing_rate": 0.04,
+     "sensitivity": {
+      "label_effect": {
+       "p_support": 0.9,
+       "p_against": 0.003
+      }
+     },
+     "tests": {
+      "label_effect": {
+       "p_support": 0.9,
+       "p_against": 0.002,
+       "estimate": 0.3
+      }
+     }
+    },
+    {
+     "cell": "gemini_20_flash_001|text",
+     "power": 0.95,
+     "missing_rate": 0.02,
+     "differential_missingness": true,
+     "sensitivity": {
+      "label_effect": {
+       "p_support": 0.004,
+       "p_against": 0.99
+      }
+     },
+     "tests": {
+      "label_effect": {
+       "p_support": 0.003,
+       "p_against": 0.99
+      }
+     }
+    }
+   ],
+   "heterogeneity": [
+    {
+     "cell": "all_models",
+     "tests": {
+      "equal_across_models": {
+       "p_value": 0.01
+      }
+     }
+    }
+   ]
+  },
+  "H1d": {
+   "favourite_change": [
+    {
+     "cell": "openai_4o_vs_41|text",
+     "n": 25,
+     "tests": {
+      "change_share": {
+       "n": 25,
+       "counts": {
+        "credible_changes": 10,
+        "raw_changes": 12
+       }
+      }
+     }
+    },
+    {
+     "cell": "anthropic_4_vs_45|text",
+     "n": 40,
+     "tests": {
+      "change_share": {
+       "n": 40,
+       "counts": {
+        "credible_changes": 0,
+        "raw_changes": 0
+       }
+      }
+     }
+    }
+   ],
+   "alignment": [
+    {
+     "cell": "pooled",
+     "n": 10,
+     "tests": {
+      "aligned_share": {
+       "n": 10,
+       "counts": {
+        "aligned": 9
+       }
+      }
+     }
+    }
+   ]
+  },
+  "H1e": {
+   "page_requests": [
+    {
+     "cell": "gpt_4o_20240806|browser_tool",
+     "n": 250,
+     "missing_rate": 0.03,
+     "sensitivity": {
+      "request_rate": {
+       "n": 250,
+       "counts": {
+        "requested": 60
+       }
+      }
+     },
+     "tests": {
+      "request_rate": {
+       "n": 250,
+       "counts": {
+        "requested": 60
+       }
+      }
+     }
+    },
+    {
+     "cell": "claude_sonnet_45_20250929|browser_tool",
+     "n": 220,
+     "missing_rate": 0.05,
+     "sensitivity": {
+      "request_rate": {
+       "n": 220,
+       "counts": {
+        "requested": 30
+       }
+      }
+     },
+     "tests": {
+      "request_rate": {
+       "n": 220,
+       "counts": {
+        "requested": 30
+       }
+      }
+     }
+    }
+   ]
+  },
+  "H2a": {
+   "zero_agent_payments": [
+    {
+     "cell": "alpha_0.25|variation_none",
+     "n": 250,
+     "tests": {
+      "psi_a": {
+       "p_support": 0.001,
+       "p_against": 0.9,
+       "estimate": 0.002
+      }
+     }
+    },
+    {
+     "cell": "alpha_1|variation_randomised",
+     "n": 230,
+     "tests": {
+      "psi_a": {
+       "p_support": 0.002,
+       "p_against": 0.95,
+       "estimate": -0.001
+      }
+     }
+    }
+   ],
+   "total_payments_fall": [
+    {
+     "cell": "agent_aware",
+     "tests": {
+      "slope_on_alpha": {
+       "p_support": 0.001,
+       "p_against": 0.99,
+       "estimate": -0.8
+      },
+      "psi_tot_at_alpha_1": {
+       "p_support": 0.01,
+       "p_against": 0.9
+      }
+     }
+    }
+   ],
+   "payments_rise_with_excess": [
+    {
+     "cell": "human_optimised",
+     "tests": {
+      "slope_on_excess": {
+       "p_support": 0.003,
+       "p_against": 0.99,
+       "estimate": 0.05
+      }
+     }
+    }
+   ]
+  },
+  "H2b": {
+   "gating_identity": [
+    {
+     "cell": "monoculture",
+     "tests": {
+      "closed_form": {
+       "metrics": {
+        "max_relative_error": 2e-07,
+        "mean_minus_formula_in_mc_se": 1.2
+       }
+      }
+     }
+    }
+   ],
+   "monotone_in_alpha": [
+    {
+     "cell": "alpha_0_to_0.25",
+     "n": 250,
+     "tests": {
+      "increment": {
+       "p_support": 0.001,
+       "p_against": 0.99,
+       "threshold": -0.37
+      }
+     }
+    },
+    {
+     "cell": "alpha_0.25_to_0.5",
+     "n": 250,
+     "tests": {
+      "increment": {
+       "p_support": 0.002,
+       "p_against": 0.99,
+       "threshold": -0.37
+      }
+     }
+    },
+    {
+     "cell": "alpha_0.5_to_0.75",
+     "n": 250,
+     "tests": {
+      "increment": {
+       "p_support": 0.004,
+       "p_against": 0.99,
+       "threshold": -0.37
+      }
+     }
+    },
+    {
+     "cell": "alpha_0.75_to_1",
+     "n": 250,
+     "tests": {
+      "increment": {
+       "p_support": 0.003,
+       "p_against": 0.99,
+       "threshold": -0.37
+      }
+     }
+    }
+   ]
+  },
+  "H2c": {
+   "m2_proportional": [
+    {
+     "cell": "m2",
+     "tests": {
+      "slope": {
+       "p_support": 0.001,
+       "p_against": 0.99
+      },
+      "intercept": {
+       "p_support": 0.2,
+       "p_against": 0.3
+      }
+     }
+    }
+   ],
+   "m1_rises_with_alpha_chi": [
+    {
+     "cell": "m1",
+     "tests": {
+      "slope": {
+       "p_support": 0.001,
+       "p_against": 0.99
+      }
+     }
+    }
+   ],
+   "setblind_gap_zero_with_fixed_lists": [
+    {
+     "cell": "deterministic_lists",
+     "tests": {
+      "gap": {
+       "metrics": {
+        "max_relative_gap": 1e-09
+       }
+      }
+     }
+    }
+   ],
+   "setblind_gap_grows": [
+    {
+     "cell": "m3",
+     "tests": {
+      "slope_on_variation": {
+       "p_support": 0.01,
+       "p_against": 0.99
+      }
+     }
+    }
+   ]
+  },
+  "H3a": {
+   "separation_identity": [
+    {
+     "cell": "part_b",
+     "tests": {
+      "separated_policy": {
+       "metrics": {
+        "max_relative_difference": 1e-11,
+        "across_state_variance": 0.0
+       }
+      }
+     }
+    }
+   ],
+   "composition_blind_exposure": [
+    {
+     "cell": "headphones",
+     "n": 200,
+     "tests": {
+      "exposure_ratio": {
+       "p_support": 0.001,
+       "p_against": 0.99
+      }
+     }
+    },
+    {
+     "cell": "mugs",
+     "n": 200,
+     "tests": {
+      "exposure_ratio": {
+       "p_support": 0.002,
+       "p_against": 0.99
+      }
+     }
+    },
+    {
+     "cell": "kettles",
+     "n": 200,
+     "tests": {
+      "exposure_ratio": {
+       "p_support": 0.5,
+       "p_against": 0.6
+      }
+     }
+    }
+   ]
+  },
+  "H3b": {
+   "closed_forms": [
+    {
+     "cell": "part_a_grid",
+     "tests": {
+      "grid": {
+       "metrics": {
+        "quadratic_max_abs_y_error": 2e-05,
+        "quadratic_max_objective_relative_error": 1e-08,
+        "overflow_max_objective_relative_error": 3e-07,
+        "overflow_max_finite_n_excess": 0.0,
+        "share_of_grid_points_passing": 0.98
+       }
+      }
+     }
+    }
+   ]
+  },
+  "H3c": {
+   "m3_buy_back": [
+    {
+     "cell": "m3",
+     "n": 300,
+     "tests": {
+      "buy_back_share": {
+       "n": 300,
+       "counts": {
+        "buy_backs": 12
+       }
+      }
+     }
+    }
+   ],
+   "m4_congestion": [
+    {
+     "cell": "m4",
+     "tests": {
+      "coincidence_share": {
+       "share": 0.97
+      }
+     }
+    }
+   ]
+  },
+  "H4a": {
+   "reachability_identity": [
+    {
+     "cell": "all_designs",
+     "tests": {
+      "identified_equals_reachable": {
+       "metrics": {
+        "max_abs_difference": 0.0
+       }
+      }
+     }
+    }
+   ],
+   "comparisons_not_inclusions": [
+    {
+     "cell": "competitor_vs_leader",
+     "n": 200,
+     "tests": {
+      "paired_difference": {
+       "p_support": 0.001,
+       "p_against": 0.99,
+       "estimate": 0.31
+      }
+     }
+    }
+   ]
+  },
+  "H4b": {
+   "variance_closed_form": [
+    {
+     "cell": "checked_cells",
+     "n": 10000,
+     "tests": {
+      "bias_and_variance": {
+       "metrics": {
+        "max_abs_bias_in_mc_se": 1.1,
+        "max_abs_variance_ratio_minus_one": 0.02
+       }
+      }
+     }
+    }
+   ],
+   "rate_in_h": [
+    {
+     "cell": "slope",
+     "n": 200,
+     "tests": {
+      "log_log_slope": {
+       "p_support": 0.3,
+       "p_against": 0.001,
+       "estimate": -0.31
+      }
+     }
+    }
+   ]
+  },
+  "H4c": {
+   "bound_holds": [
+    {
+     "cell": "grid_search",
+     "n": 200,
+     "tests": {
+      "violation_share": {
+       "n": 200,
+       "counts": {
+        "violations": 5
+       }
+      }
+     }
+    }
+   ],
+   "gain_declines": [
+    {
+     "cell": "slope",
+     "tests": {
+      "slope_on_log_h": {
+       "p_support": 0.01,
+       "p_against": 0.99
+      }
+     }
+    }
+   ]
+  },
+  "H4d": {
+   "exponent": [
+    {
+     "cell": "slope",
+     "n": 200,
+     "tests": {
+      "log_log_slope": {
+       "p_support": 0.4,
+       "p_against": 0.6,
+       "estimate": 0.55
+      }
+     }
+    }
+   ]
+  },
+  "H5a": {
+   "value_invariance": [
+    {
+     "cell": "strong_vs_weak",
+     "tests": {
+      "log_ratio": {
+       "p_support": 0.03,
+       "p_against": 0.5,
+       "estimate": 0.02
+      }
+     }
+    }
+   ]
+  },
+  "H5b": {
+   "predicts_better": [
+    {
+     "cell": "arm_strong",
+     "tests": {
+      "log_loss_difference": {
+       "p_support": 0.001,
+       "p_against": 0.99
+      }
+     }
+    },
+    {
+     "cell": "arm_weak",
+     "tests": {
+      "log_loss_difference": {
+       "p_support": 0.3,
+       "p_against": 0.4
+      }
+     }
+    }
+   ]
+  }
+ }
+}

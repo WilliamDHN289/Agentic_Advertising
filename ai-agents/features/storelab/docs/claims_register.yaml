@@ -1,0 +1,723 @@
+# StoreLab claims register (SL-01). Machine-readable: analysis/register.py loads and
+# validates it (schema: contracts/storelab/claims_register.schema.json) and
+# analysis/decide.py labels results with it. Sources: requirements/A1_formal_statements.md
+# (statements, closed forms, corrections §E, which govern over tickets.md §1.1) and
+# requirements/A12_thresholds.md (venue, thresholds, rules, floors). Narrative:
+# docs/preregistration_E1.md, docs/preregistration_E5.md.
+#
+# Decision rules are written as interval rules in A12; decide.py applies them through
+# the dual one-sided p-values (a bound at level 1 - a lies beyond the threshold exactly
+# when the one-sided p-value against it is at most a), which makes Holm's step-down
+# adjustment within a family exact. See conventions.decision_mechanics.
+register_version: 1
+status: draft  # registered (frozen) only after SL-17 writes the sample sizes; see docs/registrations.yaml
+sources:
+  - {path: requirements/A1_formal_statements.md, sha256: be45dbfa81b0694693435f5cd2a32eedbf9370ccd24418c11250102b5dd278b5}
+  - {path: requirements/A12_thresholds.md, sha256: 82217db6d087b78799db59aa680f0be70bfb26040d7acc06bbd533e9c3813f9d}
+  - {path: requirements/paper.tex, sha256: e4bcf05266b5c835d8dc827e829a86d1856f23bb3f295766aae899c154d63295}
+
+registrations:
+  E1: {venue: "OSF Registries, OSF Preregistration template", covers: [H1a, H1b, H1c, H1d, H1e, H2a, H2b, H2c, H3a, H3b, H3c, H4a, H4b, H4c, H4d], document: docs/preregistration_E1.md, when: "after SL-17 freezes the sample sizes, before the first SL-18 trial"}
+  E5: {venue: "OSF Registries, OSF Preregistration template", covers: [H5a, H5b], document: docs/preregistration_E5.md, when: "before any field data exists; cites the SL-22 protocol version"}
+
+conventions:
+  alpha: 0.05
+  ci_level: 0.95
+  sidedness: "Two-sided unless the claim is directional: the sign part of H1c and the slope signs named in the rules are one-sided (A12 §2). A bound of a two-sided 95% interval is a one-sided 97.5% bound (alpha 0.025 per side); a one-sided 95% bound uses alpha 0.05."
+  equivalence: "TOST with the 90% interval (two one-sided 5% tests); 'entirely outside the margin' uses the 95% interval."
+  three_way_rule: "supported: the interval lies entirely on the claim's side of the threshold or inside the equivalence margin; not supported: entirely on the other side or entirely outside the margin; inconclusive: otherwise, or a floor (min_n) is not met, or the cell is excluded for missingness."
+  multiplicity: "Holm-Bonferroni within each family: the confirmatory cell-level tests of one hypothesis ID and test. No correction across hypothesis IDs. Cells below a floor or excluded for missingness are not in the family."
+  decision_mechanics: "For each test and cell decide.py uses p_support (the one-sided p-value whose rejection puts the claim-side bound beyond the threshold) and p_against (the same for the other side). Holm step-down adjusted p-values are computed within the family, separately for p_support and p_against; the cell is supported if adjusted p_support <= alpha_support (< for a strict threshold), not supported if adjusted p_against < alpha_against. For counts, decide.py computes the p-values itself: exact binomial for Clopper-Pearson rules, the score test for Wilson rules, so the decision equals the Holm-adjusted interval rule exactly."
+  resampling: "Cluster bootstrap over candidate sets (E1) and over markets or replications (E2-E4); B = 2,000; percentile intervals; seeds derived from the registered master seed with stream(seed, 'bootstrap', analysis_id)."
+  e1_primary_cells: "(model version x interface) at default temperature. Temperature-0 cells are secondary: reported, not in the claim-level label."
+  aggregation: {two_thirds: "supported in at least 2/3 of the cells; not supported in more than 1/3; inconclusive otherwise", all: "supported if every cell is supported; not supported if any is not supported; inconclusive otherwise", single: "the label of the one cell"}
+  combination: "A claim with several groups (parts) is supported if every primary group is supported, not supported if any primary group is not supported, inconclusive otherwise. A failed implementation check (I-type) is never 'not supported': the claim is inconclusive, flagged implementation_error, and reporting is blocked until it is root-caused."
+  operating_characteristics: "Every confirmatory test must have empirical size in [0.03, 0.07] at alpha = 0.05 over 1,000 Monte Carlo null replications (verified in SL-15 and SL-22). A test that fails is replaced by its permutation version before registration."
+  exploratory: "Any analysis not in this register is labelled exploratory."
+
+shared_definitions:
+  ground_truth_utility:
+    id: shrunk_rating@1
+    definition: "u(x, j) = (n_j r_j + m rbar_x) / (n_j + m): the average rating r_j shrunk towards the mean rating rbar_x of E(x) with prior weight m = 20 ratings (n_j = rating count). Defined for every product in E(x). Implemented by core/tasks.py (UTILITY_DEFINITION) and recorded with every SL-05 build."
+    used_by: [H1d alignment, H2b match quality, E3 match quality]
+  effective_choice:
+    definition: "A confirmed selection of a displayed product (paper l.316); the outside option is an explicit choice of none."
+    per_interface:
+      text: "a reply that parses (core/protocol.py parse_reply) to Select(product_id) of a candidate; choice null is the outside option"
+      structured: "as text: the JSON reply's choice is a candidate id (Select) or null (outside option)"
+      browser_tool: "a select(product_id) tool call on a displayed product (core/storefront.py); leave() is the outside option; open_product calls are page requests, not choices"
+      field_E5: "the partner's qualifying event (confirmed selection or add-to-cart instruction), fixed in the SL-22 protocol"
+  non_choices:
+    statuses: [invalid, refusal, error, not_run]
+    primary: "missing (complete-case)"
+    sensitivity: "coded as the outside option"
+    note: "Engineering completeness (SL-18: >= 95% of trials with a recorded outcome) is separate: an invalid outcome is recorded but missing for analysis. Refusals are also reported by label arm."
+  missingness:
+    cell: "(model version x interface x temperature)"
+    rate: "m_c = (invalid + refusal + error + not_run) / planned trials"
+    rules:
+      - "m_c <= 0.10: complete-case primary analysis; the sensitivity analysis (missing as the outside option) is reported alongside"
+      - "0.10 < m_c <= 0.25: analysed and flagged; the cell keeps its label only if the sensitivity analysis gives the same label, else inconclusive"
+      - "m_c > 0.25: excluded from confirmatory tests, reported incomplete with reasons, inconclusive in the aggregation"
+      - "within a set: H1b needs >= 8 valid repeats of 10"
+      - "differential missingness: a chi-square test per cell of missingness on sponsored label and on position (Holm across cells); if it rejects, the cell's H1c and position estimates keep their label only if both missing-data codings agree"
+  thresholds:
+    H1b_modal_share: 0.80
+    H1b_score_gap: "ln 4 = 1.3862943611198906 (sigma units)"
+    H1d_change_share: 0.10
+    H2a_margin: "0.01 of mean advertiser value per agent request (psi units)"
+    missingness: [0.10, 0.25]
+  presentation_randomisation:
+    id: A15
+    rule: "per_set: positions and sponsored labels (rate 0.3) are drawn once per candidate set and repeated identically r = 10 times, so repeats measure pure choice noise; label and position effects are identified across sets (core/design.py, design.randomisation)."
+  profit_rule_regularity:
+    id: A16
+    rule: "ironing: wherever a registered value distribution's virtual value theta - (1 - F(theta)) / f(theta) is not monotone (lognormal with large s), the profit rule uses Myerson's ironed virtual value; the value-distribution grid is not restricted. Uniform values are regular and need no ironing."
+  symbols: "A1 §E7 governs: N_x = |E(x)|; n_0 = audit requests per cell per period; chi_m = probability of requesting each displayed product's page, independent of the choice; F(x) excludes the outside option; 'gated' as defined there."
+
+claims:
+  # ------------------------------------------------------------------ E1
+  - id: H1a
+    kind: P
+    sources: [premise]
+    statement: "The odds of choosing i over j change when a product preferred to both is added or removed (an IIA violation)."
+    amendments: []
+    experiment: E1
+    run_mode: sandbox
+    unit_of_analysis: "informative triple (i, j, k) within an E1 primary cell: sets containing i and j with and without k, where k is chosen over both"
+    metric: "log odds ratio of i over j with versus without k (Haldane-corrected)"
+    estimator: "pooled triple odds statistic over the cell's informative triples; Hausman-McFadden statistic from the cell's conditional logit with and without k"
+    test: "triple odds permutation test (primary, decides the label); Hausman-McFadden test (reported)"
+    alpha: 0.05
+    ci_level: 0.95
+    multiplicity_family: "H1a: the triple odds tests of all E1 primary cells (Holm)"
+    tolerance_or_margin: "none: a rejection test (no equivalence margin is registered)"
+    min_n: "20 informative triples per primary cell"
+    decision_rule: "Cell: supported if the Holm-adjusted p-value of the triple odds permutation test is <= 0.05 (IIA rejected); otherwise inconclusive, since a non-rejection without a registered margin is not evidence for IIA. Claim: two-thirds aggregation over primary cells."
+    decision:
+      groups:
+        - name: iia
+          aggregation: two_thirds
+          floor: {field: n, min: 20}
+          missingness: true
+          tests:
+            - {name: triple_odds, kind: rejects_null, alpha_support: 0.05}
+    interpretation:
+      supported: "Agents are set-dependent as the model assumes: separable approximations do not suffice for this traffic, and the gaps of Section 4 apply."
+      not_supported: "Not reachable by this rule (no equivalence margin is registered); see inconclusive."
+      inconclusive: "If H1a and H1b fail for a model or interface, separable approximations suffice for that traffic and the Section 4 gaps should shrink; E2 then reports results by interface (paper E1 Interpretation)."
+    status: draft
+    registration: E1
+
+  - id: H1b
+    kind: P
+    sources: [lem:small-noise, ass:deterministic]
+    statement: "Repeated identical presentations give the same choice in most trials (mean modal share >= 0.80), and score gaps are large relative to sigma (median top-two gap >= ln 4)."
+    amendments: []
+    experiment: E1
+    run_mode: sandbox
+    unit_of_analysis: "candidate set presented r = 10 times identically (A15 per_set) within an E1 primary cell; a set needs >= 8 valid repeats"
+    metric: "(i) mean over eligible sets of the modal share m_s = max_j n_sj / r_valid (j over displayed products and the outside option); (ii) median over sets of the gap G_s in sigma units between the highest and second-highest label-adjusted scores in S u {0}"
+    estimator: "(i) sample mean with a cluster bootstrap over sets; (ii) gaps from the cell's conditional-logit fit (penalised under separation, a lower bound), bootstrap median"
+    test: "one-sided comparisons of the 95% bootstrap interval bounds with 0.80 and ln 4"
+    alpha: 0.05
+    ci_level: 0.95
+    multiplicity_family: "H1b part (i) across primary cells; H1b part (ii) across primary cells (Holm, separately)"
+    tolerance_or_margin: "thresholds 0.80 (modal share) and ln 4 = 1.386 (gap)"
+    min_n: "30 eligible sets per primary cell"
+    decision_rule: "Cell: supported if the Holm-adjusted lower bounds of both parts are at or above their thresholds; not supported if the Holm-adjusted upper bound of either part is below its threshold; inconclusive otherwise. Claim: two-thirds aggregation."
+    decision:
+      groups:
+        - name: near_determinism
+          aggregation: two_thirds
+          floor: {field: n, min: 30}
+          missingness: true
+          tests:
+            - {name: modal_share, kind: bound, side: above, threshold: 0.80, alpha_support: 0.025, alpha_against: 0.025}
+            - {name: score_gap, kind: bound, side: above, threshold: 1.3862943611198906, alpha_support: 0.025, alpha_against: 0.025}
+    interpretation:
+      supported: "Agents are near-deterministic in the sense the deterministic-limit results use; the mechanism results of Section 4 are a reasonable first-order description for this traffic."
+      not_supported: "Choice noise is large: with H1a failing too, separable approximations suffice for that traffic, the Section 4 gaps should shrink, and E2 reports results by interface."
+      inconclusive: "The data cannot place consistency or gaps relative to the thresholds; E2 calibrates on the estimated sigma as is and reports by interface."
+    status: draft
+    registration: E1
+
+  - id: H1c
+    kind: P
+    sources: [premise]
+    statement: "The label effect delta_m / sigma_m is negative, and it differs across models."
+    amendments: []
+    experiment: E1
+    run_mode: sandbox
+    unit_of_analysis: "E1 primary cell (sign); model (heterogeneity)"
+    metric: "delta_m / sigma_m from the conditional logit with product fixed effects, label and position effects"
+    estimator: "conditional-logit MLE (penalised under separation), cluster bootstrap over sets"
+    test: "sign: one-sided Wald test of delta/sigma < 0 per primary cell; heterogeneity: Wald chi-square test of equal delta/sigma across models"
+    alpha: 0.05
+    ci_level: 0.95
+    multiplicity_family: "H1c sign: all primary cells (Holm); heterogeneity: one claim-level test"
+    tolerance_or_margin: "threshold 0 (sign); minimum effect of interest for power delta/sigma = -0.25 (SL-17 sizes for 80% power at max(0.25, |pilot estimate|))"
+    min_n: "80% power at the minimum effect of interest, per primary cell"
+    decision_rule: "Sign cell: supported if the Holm-adjusted one-sided 95% upper bound is < 0; not supported if the lower bound is > 0; two-thirds aggregation. Heterogeneity: supported if equality is rejected at 0.05, else inconclusive. Claim: supported if both parts are supported; not supported if either is."
+    decision:
+      groups:
+        - name: sign
+          aggregation: two_thirds
+          floor: {field: power, min: 0.80}
+          missingness: true
+          differential_missingness: true
+          tests:
+            - {name: label_effect, kind: bound, side: below, threshold: 0.0, strict: true, alpha_support: 0.05, alpha_against: 0.05}
+        - name: heterogeneity
+          aggregation: single
+          tests:
+            - {name: equal_across_models, kind: rejects_null, alpha_support: 0.05}
+    interpretation:
+      supported: "Labels penalise sponsored products and the penalty is model-specific, so E2 uses model-specific delta_m/sigma_m and the labelled-favourite screen of A1 §E5 matters."
+      not_supported: "Labels do not lower agents' choice odds (or raise them): position-rent arguments that rely on a label penalty do not apply to that traffic."
+      inconclusive: "E2 uses the estimated delta_m/sigma_m with its uncertainty and reports both the estimate and a zero-penalty arm."
+    status: draft
+    registration: E1
+
+  - id: H1d
+    kind: P
+    sources: [premise]
+    statement: "Version changes within a provider reorder favourites for a non-negligible share of tasks (>= 0.10); alignment of the reorderings with the ground-truth utility u is tested."
+    amendments: []
+    experiment: E1
+    run_mode: sandbox
+    unit_of_analysis: "task x, for one provider's version pair (A, B), within one interface at default temperature"
+    metric: "share of tasks whose favourite f_v(x) = argmax over E(x) u {0} of unlabeled v_j/sigma differs between versions: raw changes, and credible changes (different in >= 90% of bootstrap replicates resampling sets within the task)"
+    estimator: "per-version conditional-logit scores; task-level bootstrap for credible changes"
+    test: "exact Clopper-Pearson bounds, one-sided 95%, tasks as units; alignment: exact binomial test against 0.5"
+    alpha: 0.05
+    ci_level: 0.95
+    multiplicity_family: "H1d: all (provider version pair x interface) cells (Holm)"
+    tolerance_or_margin: "threshold 0.10 (share of tasks); alignment thresholds 0.5 (aligned) and 0.65 (not aligned)"
+    min_n: "20 tasks per provider version pair; alignment needs 10 credible changes"
+    decision_rule: "Cell: supported if the Clopper-Pearson one-sided 95% lower bound of the credible-change share is > 0.10; not supported if the upper bound of the raw-change share is < 0.10; inconclusive otherwise; two-thirds aggregation. Alignment (secondary, pooled over the credible changes of all H1d cells, ties in u excluded): aligned if the lower bound of the share whose new favourite has higher u is > 0.5; not aligned if the upper bound is < 0.65; inconclusive otherwise or with fewer than 10 credible changes."
+    decision:
+      groups:
+        - name: favourite_change
+          aggregation: two_thirds
+          floor: {field: n, min: 20}
+          tests:
+            - {name: change_share, kind: bound, side: above, threshold: 0.10, strict: true, method: clopper_pearson, support_count: credible_changes, against_count: raw_changes, alpha_support: 0.05, alpha_against: 0.05}
+        - name: alignment
+          role: secondary
+          aggregation: single
+          floor: {field: n, min: 10}
+          labels: {supported: aligned, not_supported: not_aligned, inconclusive: inconclusive}
+          tests:
+            - {name: aligned_share, kind: bound, side: above, threshold: 0.5, strict: true, against_threshold: 0.65, method: clopper_pearson, support_count: aligned, against_count: aligned, alpha_support: 0.05, alpha_against: 0.05}
+    interpretation:
+      supported: "Version changes are a common shock across agents of one provider: states matter for set design (E3) at any realistic volume (A12 §3.2). If the changes are aligned with u, the state carries quality information and prop:threshold, not prop:separation, governs set design."
+      not_supported: "Version changes rarely move favourites; common-state exposure from versions is small and E3 Part B is reported as a sensitivity analysis."
+      inconclusive: "The set-level change share becomes the main descriptive evidence for E3 (A12 §5 note: with fewer than 20 tasks H1d is inconclusive by rule)."
+    status: draft
+    registration: E1
+
+  - id: H1e
+    kind: P
+    sources: [ass:retrieval]
+    statement: "Browser-based agents request pages of products they do not choose (rate >= 0.10)."
+    amendments: ["A2 / A1 §E7: chi_m is the probability of requesting each displayed product's page, independent of the choice; H1e estimates it from non-chosen products"]
+    experiment: E1
+    run_mode: "sandbox (browser_tool; GUI agents only if SL-10b runs)"
+    unit_of_analysis: "non-chosen displayed product in a browser_tool trial, within an E1 primary browser cell"
+    metric: "page-request rate for non-chosen displayed products (estimates chi_m for E2)"
+    estimator: "pooled proportion over trials"
+    test: "Wilson 95% interval"
+    alpha: 0.05
+    ci_level: 0.95
+    multiplicity_family: "H1e: all primary browser_tool cells (Holm)"
+    tolerance_or_margin: "threshold 0.10"
+    min_n: "200 non-chosen displayed products per browser cell"
+    decision_rule: "Cell: supported if the Holm-adjusted Wilson 95% lower bound is >= 0.10; not supported if the upper bound is < 0.10; inconclusive otherwise. Claim: two-thirds aggregation over browser cells."
+    decision:
+      groups:
+        - name: page_requests
+          aggregation: two_thirds
+          floor: {field: n, min: 200}
+          missingness: true
+          tests:
+            - {name: request_rate, kind: bound, side: above, threshold: 0.10, method: wilson, support_count: requested, against_count: requested, alpha_support: 0.025, alpha_against: 0.025}
+    interpretation:
+      supported: "Browser agents generate page requests that are not choices, so click-based charging (M1) bills agent traffic for inclusion, not choice (lem:click); E2 uses the estimated chi_m."
+      not_supported: "Page requests are rare among non-chosen products; M1's agent charges track choices, and E2 sets chi_m near 0 for that agent."
+      inconclusive: "E2 varies chi_m over {0, 0.5, 1} without an E1 anchor for that model. Conclusions apply to browser_tool only unless SL-10b runs."
+    status: draft
+    registration: E1
+
+  # ------------------------------------------------------------------ E2
+  - id: H2a
+    kind: Pr
+    sources: [prop:rents, cor:aware]
+    statement: "Under agent-aware organic policies, agent-traffic payments under M3 are 0 (equivalent within the margin) and total payments go to 0 as alpha -> 1; under human-optimised organic policies agent-traffic payments rise with the excess e(x) = |F(x)| - (K - K^s)."
+    amendments: ["A1 §E5: payments split by traffic type, P^A_j = b_j X^A_j - int_0^{b_j} X^A_j dz; markets must pass the labelled-favourite screen, failing markets reported separately"]
+    experiment: E2
+    run_mode: "offline, calibrated on E1"
+    unit_of_analysis: "simulated market (>= 200 per configuration)"
+    metric: "psi_A = sum_j P^A_j / (n E_mu[alpha] thetabar); psi_tot = sum_j P_j / (n thetabar)"
+    estimator: "mean over markets with a bootstrap over markets; OLS slopes with bootstrap intervals"
+    test: "part 1: TOST of mean psi_A within (-0.01, 0.01); part 2: one-sided slope of psi_tot on alpha < 0 and TOST of psi_tot(alpha=1) within 0.01; part 3: one-sided slope of psi_A on e(x) > 0"
+    alpha: 0.05
+    ci_level: 0.95
+    multiplicity_family: "H2a part 1: the (alpha in {0.25, 0.5, 0.75, 1} x organic variation) configurations (Holm)"
+    tolerance_or_margin: "equivalence margin 0.01 in psi units"
+    min_n: "200 markets passing the A1 §E5 screen per configuration"
+    decision_rule: "Part 1 per configuration: supported if the 90% interval of mean psi_A lies in (-0.01, 0.01); not supported if the 95% interval lies entirely outside [-0.01, 0.01]; all configurations must be supported. Part 2: supported if the slope's 95% upper bound is < 0 and psi_tot(alpha=1) is equivalent to 0 within 0.01. Part 3: supported if the slope's 95% lower bound is > 0. H2a: supported if all three parts are supported, not supported if any is not supported, inconclusive otherwise."
+    decision:
+      groups:
+        - name: zero_agent_payments
+          aggregation: all
+          floor: {field: n, min: 200}
+          tests:
+            - {name: psi_a, kind: equivalence, margin: 0.01, alpha_support: 0.05, alpha_against: 0.05}
+        - name: total_payments_fall
+          aggregation: single
+          multiplicity: none
+          tests:
+            - {name: slope_on_alpha, kind: bound, side: below, threshold: 0.0, strict: true, alpha_support: 0.05, alpha_against: 0.05}
+            - {name: psi_tot_at_alpha_1, kind: equivalence, margin: 0.01, alpha_support: 0.05, alpha_against: 0.05}
+        - name: payments_rise_with_excess
+          aggregation: single
+          multiplicity: none
+          tests:
+            - {name: slope_on_excess, kind: bound, side: above, threshold: 0.0, strict: true, alpha_support: 0.05, alpha_against: 0.05}
+    interpretation:
+      supported: "Inclusion rents, not position rents, drive revenue from agent traffic once noise is finite and agent types are heterogeneous (paper E2 Interpretation)."
+      not_supported: "Agent traffic pays position rents under agent-aware policies, or payments do not track excess favourites: the deterministic-limit mechanism argument does not survive calibrated noise."
+      inconclusive: "The simulation cannot separate the payments from the margin; reported with the screened-out boundary markets."
+    status: draft
+    registration: E1
+
+  - id: H2b
+    kind: I/Pr
+    sources: [prop:gating, conj:gating]
+    statement: "In a monoculture, gating raises profit by n xi E[min{theta_f, theta_r}] and lowers match quality by the amount in prop:gating(b) (exact); with human traffic added, the profit gain from gating is nondecreasing in alpha."
+    amendments: []
+    experiment: E2
+    run_mode: offline
+    unit_of_analysis: "simulated market (I-part); configuration alpha in {0, 0.25, 0.5, 0.75, 1} (Pr-part)"
+    metric: "Pi_b - Pi_a against n xi min{theta_f, theta_r}; adjacent increments of DeltaPi(alpha)"
+    estimator: "per-market solver output; mean increments with bootstrap intervals over markets"
+    test: "I-part: tolerance checks; Pr-part: Holm-adjusted 95% bounds of the four adjacent increments against -tau"
+    alpha: 0.05
+    ci_level: 0.95
+    multiplicity_family: "H2b Pr-part: the four adjacent increments (Holm)"
+    tolerance_or_margin: "I-part: relative error <= 1e-6 per market; |mean - n xi E min| <= 3 Monte Carlo SE. Pr-part: tau = 1% of DeltaPi(1)"
+    min_n: "200 markets per configuration"
+    decision_rule: "I-part: pass if every market's relative error is <= 1e-6 and the mean is within 3 MC SE of the closed form; a failure is an implementation error, not a finding. Pr-part: supported if every increment's Holm-adjusted 95% lower bound is >= -tau; not supported if some increment's upper bound is < -tau."
+    closed_forms:
+      - "Pi_b - Pi_a = n xi min{theta_f, theta_r}; M_a - M_b = n xi (u(f) - u(r)) 1{theta_f < theta_r}"
+      - "E[Pi_b - Pi_a] = n xi int_0^inf (1 - F_f(t))(1 - F_r(t)) dt; uniform U[0, thetabar]: E min = thetabar / 3; lognormal: E min = 2 exp(mu + s^2/2) Phi(-s / sqrt 2)"
+    decision:
+      groups:
+        - name: gating_identity
+          aggregation: single
+          tests:
+            - kind: implementation_check
+              name: closed_form
+              checks:
+                - {metric: max_relative_error, op: "<=", bound: 1.0e-6}
+                - {metric: mean_minus_formula_in_mc_se, op: "<=", bound: 3.0}
+        - name: monotone_in_alpha
+          aggregation: all
+          floor: {field: n, min: 200}
+          tests:
+            - {name: increment, kind: bound, side: above, threshold_rule: "-tau, tau = 0.01 x DeltaPi(1); the results give the value", alpha_support: 0.025, alpha_against: 0.025}
+    interpretation:
+      supported: "Gating sells inclusion to agent traffic at the predicted price, and adding human traffic does not erode the gain (conj:gating holds numerically)."
+      not_supported: "With human traffic the gain from gating falls with alpha at some step: the conjecture fails in the calibrated environment."
+      inconclusive: "The increments cannot be signed within tau; or the closed-form check failed (implementation error) and reporting is blocked."
+    status: draft
+    registration: E1
+
+  - id: H2c
+    kind: I/Pr
+    sources: [lem:click, prop:setblind]
+    statement: "M2 revenue is proportional to E_mu[1 - alpha(x)]; M1 payment per effective choice rises with alpha chibar; the set-blind gap V^aw - V^bl is 0 with fixed organic lists (exact) and grows with organic variation."
+    amendments: ["A1 index: prop:setblind(a) is registered as I-type (the E2 implementation gate), lem:click as Pr; tickets.md §1.1 lists H2c as Pr"]
+    experiment: E2
+    run_mode: offline
+    unit_of_analysis: "simulated market; regression across configurations"
+    metric: "M2 revenue on E[1 - alpha]; M1 payment per effective choice on alpha chibar; V^aw - V^bl"
+    estimator: "OLS slopes and intercepts with bootstrap intervals over markets; solver values"
+    test: "one-sided slope signs; TOST of the M2 intercept within 0.01 psi; I-check of the gap with deterministic organic lists; one-sided slope of the gap on organic variation"
+    alpha: 0.05
+    ci_level: 0.95
+    multiplicity_family: "none within H2c (each part is one test)"
+    tolerance_or_margin: "intercept margin 0.01 (psi units); gap I-check |V^aw - V^bl| <= 1e-6 relative"
+    min_n: "200 markets per configuration"
+    closed_forms:
+      - "V^aw(b) = n sum_x mu(x) E_R[max_S U_b] >= V^bl(b) = n sum_x mu(x) max_S E_R[U_b], with equality when Q^o(. | x) is deterministic for every x"
+      - "hand-solved instance (prop:setblind(b)): (V^bl - V^0) / (V^aw - V^0) = 1 / H_{N_a}"
+    decision_rule: "M2: supported if the slope on E[1 - alpha] is positive (one-sided 95% lower bound > 0) and the intercept is equivalent to 0 within 0.01; M1: supported if the slope on alpha chibar is positive; set-blind: the deterministic-list gap must pass the I-check (a positive gap blocks reporting, SL-19) and the slope on organic variation must have a 95% lower bound > 0. All parts combine."
+    decision:
+      groups:
+        - name: m2_proportional
+          aggregation: single
+          multiplicity: none
+          tests:
+            - {name: slope, kind: bound, side: above, threshold: 0.0, strict: true, alpha_support: 0.05, alpha_against: 0.05}
+            - {name: intercept, kind: equivalence, margin: 0.01, alpha_support: 0.05, alpha_against: 0.05}
+        - name: m1_rises_with_alpha_chi
+          aggregation: single
+          multiplicity: none
+          tests:
+            - {name: slope, kind: bound, side: above, threshold: 0.0, strict: true, alpha_support: 0.05, alpha_against: 0.05}
+        - name: setblind_gap_zero_with_fixed_lists
+          aggregation: single
+          tests:
+            - kind: implementation_check
+              name: gap
+              checks:
+                - {metric: max_relative_gap, op: "<=", bound: 1.0e-6}
+        - name: setblind_gap_grows
+          aggregation: single
+          multiplicity: none
+          tests:
+            - {name: slope_on_variation, kind: bound, side: above, threshold: 0.0, strict: true, alpha_support: 0.05, alpha_against: 0.05}
+    interpretation:
+      supported: "Click benchmarks misprice agent traffic as lem:click predicts, and set awareness is worth something only when organic lists vary."
+      not_supported: "A failure of the M1 prediction under browser agents points to page requests that track choices, which ass:retrieval rules out (paper E2 Interpretation)."
+      inconclusive: "A positive set-awareness gap with deterministic organic lists would contradict prop:setblind and indicates an implementation or calibration error: reporting is blocked until root-caused."
+    status: draft
+    registration: E1
+
+  # ------------------------------------------------------------------ E3
+  - id: H3a
+    kind: I/Pr
+    sources: [lem:contested, prop:separation]
+    statement: "The separated policy matches expected loads, contributions and match quality with no across-state variation (exact); composition-blind randomisation keeps exposure near the lem:contested bound."
+    amendments: ["A1 §E4: the bound Theta_j^2/4 is attained only with two equally likely state outcomes; E3 Part B states are equally likely model versions, so the attainable ratio is 1"]
+    experiment: E3
+    run_mode: "offline, calibrated on E1"
+    unit_of_analysis: "calibrated category (Part B); leader product"
+    metric: "I: relative differences of loads, contributions and match quality; across-state variance. Pr: r = Var_Lambda(p_j) / (Theta_j^2 / 4) for leaders under composition-blind randomisation"
+    estimator: "solver output; bootstrap over replications for r"
+    test: "I: tolerance checks; Pr: Holm-adjusted 95% lower bound of r against 0.5 per category"
+    alpha: 0.05
+    ci_level: 0.95
+    multiplicity_family: "H3a Pr-part: calibrated categories (Holm)"
+    tolerance_or_margin: "I: equal within 1e-9 relative, across-state variance <= 1e-12; Pr: threshold r = 0.5"
+    min_n: "R = 200 replications per category"
+    decision_rule: "I-part passes or is an implementation error. Pr-part per category: supported if the lower bound of r is >= 0.5, not supported if the upper bound is < 0.5; supported in at least 2/3 of calibrated categories (two-thirds aggregation)."
+    closed_forms:
+      - "Var_Lambda(p_j^Q) <= Theta_j(Q)^2 / 4; two states (w, 1 - w) flipping together: Var = w (1 - w) Theta_j^2, ratio 4 w (1 - w)"
+      - "Example diversify, n = 1000: Var(D_A) = 250,000; 250; 62,625"
+    decision:
+      groups:
+        - name: separation_identity
+          aggregation: single
+          tests:
+            - kind: implementation_check
+              name: separated_policy
+              checks:
+                - {metric: max_relative_difference, op: "<=", bound: 1.0e-9}
+                - {metric: across_state_variance, op: "<=", bound: 1.0e-12}
+        - name: composition_blind_exposure
+          aggregation: two_thirds
+          floor: {field: n, min: 200}
+          tests:
+            - {name: exposure_ratio, kind: bound, side: above, threshold: 0.5, alpha_support: 0.025, alpha_against: 0.025}
+    interpretation:
+      supported: "If separated policies lower cost without lowering match quality in calibrated environments, prop:separation applies in practice; composition-blind randomisation does not remove common-shock exposure."
+      not_supported: "Composition-blind randomisation removes most exposure in calibrated categories: the bound is loose there."
+      inconclusive: "If separated policies lower match quality, the calibrated states carry quality information and the relevant trade-off is prop:threshold (paper E3 Interpretation)."
+    status: draft
+    registration: E1
+
+  - id: H3b
+    kind: I
+    sources: [prop:threshold]
+    statement: "When states carry quality information, the optimal head-to-head share follows the closed forms (E3 Part A)."
+    amendments: ["A1 §E6: quadratic case compares y and the objective; overflow compares objective values, y only away from knife-edges; the grid excludes Delta in {0, lambda}"]
+    experiment: E3
+    run_mode: offline
+    unit_of_analysis: "grid point of (Delta, lambda, omega, n) in the two-leader environment"
+    metric: "|y - y*|, objective relative error, finite-n excess f(y*) - f(y_n) - 2 lambda / sqrt n"
+    estimator: "convex solver"
+    test: "tolerance checks at every grid point"
+    alpha: 0.05
+    ci_level: 0.95
+    multiplicity_family: "none (implementation check)"
+    tolerance_or_margin: "quadratic: |y - y*| <= 1e-4 and objective relative error <= 1e-6; overflow limit: objective relative error <= 1e-6; finite n: f(y*) - f(y_n) <= 2 lambda / sqrt n + 1e-6"
+    min_n: "100% of grid points"
+    decision_rule: "Supported if every grid point passes; otherwise an implementation error that blocks E3 Part B (SL-20)."
+    closed_forms:
+      - "quadratic: y* = min{1, Delta B / (lambda (n - 1))}"
+      - "overflow: y* = 1 if Delta > lambda or omega >= 1; y* = |2 omega - 1| if Delta < lambda and omega < 1"
+    decision:
+      groups:
+        - name: closed_forms
+          aggregation: single
+          tests:
+            - kind: implementation_check
+              name: grid
+              checks:
+                - {metric: quadratic_max_abs_y_error, op: "<=", bound: 1.0e-4}
+                - {metric: quadratic_max_objective_relative_error, op: "<=", bound: 1.0e-6}
+                - {metric: overflow_max_objective_relative_error, op: "<=", bound: 1.0e-6}
+                - {metric: overflow_max_finite_n_excess, op: "<=", bound: 1.0e-6}
+                - {metric: share_of_grid_points_passing, op: ">=", bound: 1.0}
+    interpretation:
+      supported: "The numerical solver reproduces prop:threshold; E3 Part B may run."
+      not_supported: "Not reachable: an exact result failing is an implementation error."
+      inconclusive: "Implementation error: Part B is blocked until root-caused."
+    status: draft
+    registration: E1
+
+  - id: H3c
+    kind: Pr
+    sources: [cor:congestion]
+    statement: "With sponsorship, leaders buy back sponsored inclusion under M3, and under M4 only when their bids exceed the congestion term."
+    amendments: []
+    experiment: E3
+    run_mode: offline
+    unit_of_analysis: "(market, leader) pair"
+    metric: "M3: share of leaders sponsored back into lists the organic policy removed them from; M4: share of pairs where buy-back coincides with b_j DeltaX_j exceeding the remaining terms of cor:congestion"
+    estimator: "solver output, term by term"
+    test: "M3: 95% lower bound of the buy-back share > 0; M4: coincidence share >= 0.95 (pairs within 1e-6 of indifference excluded)"
+    alpha: 0.05
+    ci_level: 0.95
+    multiplicity_family: "none (one test per mechanism)"
+    tolerance_or_margin: "M4 coincidence >= 0.95; indifference band 1e-6"
+    min_n: "200 markets per configuration"
+    decision_rule: "Supported if the M3 buy-back share's Clopper-Pearson 95% lower bound is > 0 and the M4 coincidence share is >= 0.95; not supported if the M4 share is < 0.95. The M3 part can only be supported or inconclusive: no interval of a share lies below 0 and no other threshold is registered."
+    decision:
+      groups:
+        - name: m3_buy_back
+          aggregation: single
+          floor: {field: n, min: 200}
+          multiplicity: none
+          tests:
+            - {name: buy_back_share, kind: bound, side: above, threshold: 0.0, strict: true, method: clopper_pearson, support_count: buy_backs, against_count: buy_backs, alpha_support: 0.025, alpha_against: 0.025}
+        - name: m4_congestion
+          aggregation: single
+          tests:
+            - {name: coincidence_share, kind: share_at_least, threshold: 0.95}
+    interpretation:
+      supported: "Under M3 leaders buy back the concentration that organic diversification removed; M4 charges them for it (paper l.674)."
+      not_supported: "Buy-back is absent under M3 or does not follow the congestion term under M4."
+      inconclusive: "The buy-back share cannot be separated from zero."
+    status: draft
+    registration: E1
+
+  # ------------------------------------------------------------------ E4
+  - id: H4a
+    kind: I/Pr
+    sources: [prop:identify, cor:design]
+    statement: "The identified share of target sets is determined by reachability in G_A, not by inclusion frequency."
+    amendments: ["A1 §E1: cor:design(b) lower bound uses A(N_x) = floor(e N_x!) choice functions, not (N_x + 1)!"]
+    experiment: E4
+    run_mode: offline
+    unit_of_analysis: "audit design x target set, within replications"
+    metric: "identified share; competitor-varying minus leader-inclusive at matched inclusion frequency"
+    estimator: "reachability prediction (exact); paired difference over replications with a bootstrap"
+    test: "I: exact equality; Pr: paired difference 95% lower bound > 0"
+    alpha: 0.05
+    ci_level: 0.95
+    multiplicity_family: "none (one comparison)"
+    tolerance_or_margin: "I: difference 0 exactly"
+    min_n: "R = 200 replications per cell"
+    decision_rule: "I-part: the identified share equals the reachability prediction exactly, else implementation error. Pr-part: supported if the paired difference's 95% lower bound is > 0; not supported if the upper bound is < 0."
+    closed_forms:
+      - "identified iff some alternative in S' u {0} reaches every other in G_A (prop:identify)"
+      - "audited sets >= log A(N_x) / log(K + 1), A(N_x) = floor(e N_x!)"
+    decision:
+      groups:
+        - name: reachability_identity
+          aggregation: single
+          tests:
+            - kind: implementation_check
+              name: identified_equals_reachable
+              checks:
+                - {metric: max_abs_difference, op: "<=", bound: 0.0}
+        - name: comparisons_not_inclusions
+          aggregation: single
+          floor: {field: n, min: 200}
+          multiplicity: none
+          tests:
+            - {name: paired_difference, kind: bound, side: above, threshold: 0.0, strict: true, alpha_support: 0.025, alpha_against: 0.025}
+    interpretation:
+      supported: "Exploration must vary competitors; including the leader often teaches nothing about choices against it."
+      not_supported: "Inclusion frequency identifies as much as comparison structure in the calibrated designs."
+      inconclusive: "The designs cannot be separated at R = 200."
+    status: draft
+    registration: E1
+
+  - id: H4b
+    kind: I/Pr
+    sources: ["prop:learning(a)"]
+    statement: "Estimation error falls like h^(-1/2) (log-log RMSE slope in [-0.55, -0.45]); in n_0 it follows the closed form RMSE(n_0)/RMSE(inf) = sqrt(1 + E[q(1-q)] / (n_0 Var_Lambda q)), falling to a floor when Var_Lambda(q) > 0."
+    amendments: ["A1 §E3: RMSE in n_0 is not flat; 'flat beyond small values' means within 5% of the floor, which holds once n_0 >= 10 E[q(1-q)] / Var_Lambda q; H4b is checked against the closed form, not against 'flat'"]
+    experiment: E4
+    run_mode: offline
+    unit_of_analysis: "cell (h, n_0, state variance, N_x), replications"
+    metric: "bias and variance of q-hat against the closed form; log-log slope of RMSE on h"
+    estimator: "Monte Carlo over replications (10,000 per checked cell for the I-check)"
+    test: "I: |bias| <= 3 MC SE and variance ratio within +-5%; Pr: 95% interval of the slope within [-0.55, -0.45]"
+    alpha: 0.05
+    ci_level: 0.95
+    multiplicity_family: "none (one slope)"
+    tolerance_or_margin: "I: 3 MC SE, +-5% variance ratio; slope margin 0.05 around -0.5"
+    min_n: "10,000 replications per checked cell (I-check); R = 200 replications per cell (slope)"
+    decision_rule: "I-part passes or is an implementation error. Slope: supported if the 95% interval lies within [-0.55, -0.45]; not supported if it lies entirely outside; inconclusive otherwise."
+    closed_forms:
+      - "Var q-hat_j(c) = (1/h) {Var_Lambda q_j(c | Lambda) + (1/n_0) E_Lambda[q_j (1 - q_j)]}; RMSE = sqrt(Var) since q-hat is unbiased"
+    decision:
+      groups:
+        - name: variance_closed_form
+          aggregation: single
+          floor: {field: n, min: 10000}
+          tests:
+            - kind: implementation_check
+              name: bias_and_variance
+              checks:
+                - {metric: max_abs_bias_in_mc_se, op: "<=", bound: 3.0}
+                - {metric: max_abs_variance_ratio_minus_one, op: "<=", bound: 0.05}
+        - name: rate_in_h
+          aggregation: single
+          floor: {field: n, min: 200}
+          multiplicity: none
+          tests:
+            - {name: log_log_slope, kind: equivalence, center: -0.5, margin: 0.05, alpha_support: 0.025, alpha_against: 0.05}
+    interpretation:
+      supported: "Learning is limited by periods, not requests: more audit requests per period do not help beyond the floor when states vary."
+      not_supported: "A failure in the direction of errors that keep falling with n_0 when Var_Lambda(q) > 0 would indicate that the calibrated states are less persistent than assumed (paper E4 Interpretation)."
+      inconclusive: "The slope cannot be placed within the margin; or the closed-form check failed (implementation error)."
+    status: draft
+    registration: E1
+
+  - id: H4c
+    kind: Pr
+    sources: ["prop:learning(d)"]
+    statement: "The largest gain from misreporting, by grid search, is below 2 theta_j n epsilon_1 (at rho = 0.05) and declines with h."
+    amendments: []
+    experiment: E4
+    run_mode: offline
+    unit_of_analysis: "(replication, advertiser j) grid search"
+    metric: "share of searches whose best misreport gain exceeds 2 theta_j n epsilon_1; slope of the maximum gain on log h"
+    estimator: "proportion over searches; OLS slope with a bootstrap"
+    test: "Clopper-Pearson 95% upper bound of the violation share against 3 rho = 0.15; one-sided slope sign"
+    alpha: 0.05
+    ci_level: 0.95
+    multiplicity_family: "none (one test per part)"
+    tolerance_or_margin: "violation share 0.15 = 3 rho"
+    min_n: "R = 200 replications per cell"
+    decision_rule: "Supported if the Clopper-Pearson 95% upper bound of the violation share is <= 0.15 and the slope on log h has a 95% upper bound < 0; not supported if the lower bound of the violation share is > 0.15 or the slope's lower bound is > 0."
+    decision:
+      groups:
+        - name: bound_holds
+          aggregation: single
+          floor: {field: n, min: 200}
+          multiplicity: none
+          tests:
+            - {name: violation_share, kind: bound, side: below, threshold: 0.15, method: clopper_pearson, support_count: violations, against_count: violations, alpha_support: 0.025, alpha_against: 0.025}
+        - name: gain_declines
+          aggregation: single
+          multiplicity: none
+          tests:
+            - {name: slope_on_log_h, kind: bound, side: below, threshold: 0.0, strict: true, alpha_support: 0.05, alpha_against: 0.05}
+    interpretation:
+      supported: "The plug-in mechanism is approximately incentive compatible at the bound's rate."
+      not_supported: "Misreporting gains exceed the bound more often than the failure probability allows, or do not decline with audit length."
+      inconclusive: "The grid search cannot place the violation share relative to 0.15."
+    status: draft
+    registration: E1
+
+  - id: H4d
+    kind: Pr
+    sources: [cor:cumulative]
+    statement: "The growth exponent of cumulative loss in h does not exceed the bound's (log-log slope <= 0.6); bounded loss (slope near 0) is consistent with the theory."
+    amendments: ["A1 §E2: cor:cumulative is an upper bound of order sqrt(h log h), not a growth rate; tickets.md §1.1 'cumulative loss proportional to sqrt h' is replaced"]
+    experiment: E4
+    run_mode: offline
+    unit_of_analysis: "replication, h in {5, 10, 20, 50, 100}"
+    metric: "log-log slope of cumulative loss on h"
+    estimator: "OLS on log means with a bootstrap over replications"
+    test: "95% interval bounds against 0.6"
+    alpha: 0.05
+    ci_level: 0.95
+    multiplicity_family: "none (one slope)"
+    tolerance_or_margin: "threshold 0.6"
+    min_n: "R = 200 replications per cell"
+    decision_rule: "Supported if the 95% upper bound is <= 0.6; not supported if the 95% lower bound is > 0.6; inconclusive otherwise."
+    decision:
+      groups:
+        - name: exponent
+          aggregation: single
+          floor: {field: n, min: 200}
+          multiplicity: none
+          tests:
+            - {name: log_log_slope, kind: bound, side: below, threshold: 0.6, alpha_support: 0.025, alpha_against: 0.025}
+    interpretation:
+      supported: "Cumulative loss grows no faster than the bound allows."
+      not_supported: "Loss grows faster than the bound's exponent: the calibrated environment violates the corollary's conditions or the implementation is wrong."
+      inconclusive: "The exponent cannot be placed relative to 0.6."
+    status: draft
+    registration: E1
+
+  # ------------------------------------------------------------------ E5
+  - id: H5a
+    kind: P
+    sources: [ass:value]
+    statement: "Purchases net of returns per effective choice are equal (within +-0.10 on the log ratio) between requests randomised to strong-competitor and weak-competitor candidate sets."
+    amendments: []
+    experiment: E5
+    run_mode: field
+    unit_of_analysis: "request, randomised at the request level for a subset of products"
+    metric: "log ratio of purchases net of returns per effective choice, strong vs weak arm"
+    estimator: "difference in means of the ratio's logs with Fisher randomisation intervals (10,000 draws)"
+    test: "TOST via Fisher randomisation intervals"
+    alpha: 0.05
+    ci_level: 0.95
+    multiplicity_family: "none (one primary comparison)"
+    tolerance_or_margin: "equivalence margin +-0.10 on the log ratio (about +-10%)"
+    min_n: "set by the SL-22 power design (A10: partner and sample size to be determined)"
+    decision_rule: "Supported if the 90% randomisation interval lies within (-0.10, 0.10); not supported if the 95% interval lies entirely outside [-0.10, 0.10]; inconclusive otherwise."
+    decision:
+      groups:
+        - name: value_invariance
+          aggregation: single
+          multiplicity: none
+          tests:
+            - {name: log_ratio, kind: equivalence, margin: 0.10, alpha_support: 0.05, alpha_against: 0.05}
+    interpretation:
+      supported: "Effective choices are a valid advertising unit across policies (ass:value)."
+      not_supported: "Effective choices are not a valid unit across policies: ass:value would need context- or set-dependent values and prop:ic would require multidimensional bids (paper E5)."
+      inconclusive: "The field data cannot establish invariance within +-10%."
+    status: draft
+    registration: E5
+
+  - id: H5b
+    kind: P
+    sources: [ass:value]
+    statement: "The qualifying event predicts purchases better than clicks, consistently across arms and, where identifiable, across traffic types."
+    amendments: []
+    experiment: E5
+    run_mode: field
+    unit_of_analysis: "request, by arm and, where identifiable, traffic type"
+    metric: "out-of-sample log-loss difference (event - click) for predicting purchase; AUC reported"
+    estimator: "cross-fitted predictions with a randomisation-respecting bootstrap"
+    test: "95% interval of the log-loss difference against 0, per arm and traffic type"
+    alpha: 0.05
+    ci_level: 0.95
+    multiplicity_family: "H5b: the arm (x traffic type) cells (Holm)"
+    tolerance_or_margin: "threshold 0 (superiority)"
+    min_n: "set by the SL-22 power design"
+    decision_rule: "Per cell: supported if the Holm-adjusted 95% upper bound is < 0; not supported if the lower bound is > 0. Claim: supported if every cell is supported; not supported if any is not supported."
+    decision:
+      groups:
+        - name: predicts_better
+          aggregation: all
+          tests:
+            - {name: log_loss_difference, kind: bound, side: below, threshold: 0.0, strict: true, alpha_support: 0.025, alpha_against: 0.025}
+    interpretation:
+      supported: "The qualifying event is the better surrogate for purchases (prentice1989surrogate, athey2026surrogate)."
+      not_supported: "Clicks predict purchases at least as well in some arm or traffic type: the qualifying event is not the better unit there."
+      inconclusive: "The partner data cannot rank the two predictors."
+    status: draft
+    registration: E5

@@ -73,8 +73,8 @@ that misses a requirement is counted as `failed_requirements`; the rest form the
 eligible pool. The eligible set E(x) is `design.eligible_size` products drawn without
 replacement from the pool (sorted by id) with `stream(seed, "eligible", task_id)`.
 
-**Ground-truth utility** (`shrunk_rating@1`; decided for SL-05 in place of the SL-01
-register, which does not exist yet):
+**Ground-truth utility** (`shrunk_rating@1`, registered in the SL-01 claims register,
+`claims_register.yaml` `shared_definitions.ground_truth_utility`):
 
 u(x, j) = (n_j r_j + m r̄_x) / (n_j + m),
 

@@ -1,0 +1,21 @@
+# Registration receipts (SL-01): filled in when each registration is filed on OSF
+# Registries (A12 §1). analysis/registration.py reads this file; `check-e1` compares the
+# E1 registration time with the first trial of the SL-18 runs, from their manifests.
+receipts_version: 1
+registrations:
+  - id: E1
+    venue: OSF Registries
+    template: OSF Preregistration
+    covers: [H1a, H1b, H1c, H1d, H1e, H2a, H2b, H2c, H3a, H3b, H3c, H4a, H4b, H4c, H4d]
+    status: not_filed  # filed after SL-17 freezes the sample sizes, before the first SL-18 trial
+    url: null
+    registered_utc: null
+    embargo_until: null
+  - id: E5
+    venue: OSF Registries
+    template: OSF Preregistration
+    covers: [H5a, H5b]
+    status: not_filed  # filed before any field data exists; cites the SL-22 protocol version
+    url: null
+    registered_utc: null
+    embargo_until: null

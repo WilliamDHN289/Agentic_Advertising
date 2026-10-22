@@ -1,0 +1,121 @@
+# Audit: no acceptance criterion requires a particular direction of result (SL-01 AC-3)
+
+Reviewer checklist item for SL-01: every acceptance criterion in `tickets.md` (§6), read
+against the rule that engineering acceptance never depends on the direction of a research result
+(tickets.md §1.2). A criterion **requires a direction** if it can only pass when a hypothesis
+H1a–H5b comes out a particular way (supported, not supported, or a sign or size of an effect on
+real agents or calibrated markets). Checks of exact model identities (I-type results), of
+simulators against their own analytic model, and of test operating characteristics on simulated
+data with a known truth do not: they hold or fail whatever the experiments find.
+
+`tests/features/storelab/test_claims_register.py` checks that this table lists every criterion
+of `tickets.md` verbatim, once.
+
+**Result: 102 criteria, none requires a particular direction.** Four gate on exact identities or
+worked examples (SL-19 AC-3, SL-20 AC-1 to AC-3); they are implementation checks (A1 index:
+I-type) and are listed with their reasons below.
+
+| Ticket | AC | Criterion | Direction required? | Reason |
+|---|---|---|---|---|
+| SL-00 | AC-1 | sha256 of every vendored file equals that of its source file. | No | Engineering: hashes, reproduction and a defect list; independent of any research result. |
+| SL-00 | AC-2 | `analyze.py` on the saved data regenerates `findings.md` with zero diff. Any diff blocks closure until it is root-caused and documented. | No | Engineering: hashes, reproduction and a defect list; independent of any research result. |
+| SL-00 | AC-3 | `build_catalog()` yields 2,004 SKUs, 712 of them ad-eligible. | No | Engineering: hashes, reproduction and a defect list; independent of any research result. |
+| SL-00 | AC-4 | Every defect has a file:line reference and a target ticket. | No | Engineering: hashes, reproduction and a defect list; independent of any research result. |
+| SL-01 | AC-1 | A unit test validates the register against its schema; every claim H1a–H5b has all required fields filled in. | No | Registration process: schema, automatic labelling and timing; every label, including 'not supported', is an acceptable outcome. |
+| SL-01 | AC-2 | `analysis/decide.py` maps a synthetic results file to a decision label for every claim without manual input. | No | Registration process: schema, automatic labelling and timing; every label, including 'not supported', is an acceptable outcome. |
+| SL-01 | AC-3 | No acceptance criterion in this document requires a particular direction of result (reviewer checklist item). | No | This criterion: the audit itself. |
+| SL-01 | AC-4 | The E1 registration timestamp is earlier than the first SL-18 trial timestamp (checked from manifests). | No | Registration process: schema, automatic labelling and timing; every label, including 'not supported', is an acceptable outcome. |
+| SL-02 | AC-1 | For every example config, load → dump → load gives the same `config_hash`. | No | Engineering: configuration, hashing and validation behaviour. |
+| SL-02 | AC-2 | Changing any trial-affecting field changes `config_hash`; changing an excluded field does not (table-driven test). | No | Engineering: configuration, hashing and validation behaviour. |
+| SL-02 | AC-3 | Unknown fields, unpinned aliases in sandbox mode and unsupported temperatures are rejected with messages naming the field or model. | No | Engineering: configuration, hashing and validation behaviour. |
+| SL-02 | AC-4 | A written manifest validates against `manifest.schema.json`. | No | Engineering: configuration, hashing and validation behaviour. |
+| SL-02 | AC-5 | Import-boundary test: `core/` imports only the standard library and an allow-list (numpy, scipy, pandas, pyarrow, pydantic, cvxpy). | No | Engineering: configuration, hashing and validation behaviour. |
+| SL-03 | AC-1 | 100% of parser fixtures map to the expected `Action` or invalid reason. | No | Engineering: parser, record formats and legacy mapping. |
+| SL-03 | AC-2 | Property test: with random strings as model output, no `Select` is ever produced for an id outside the observation. | No | Engineering: parser, record formats and legacy mapping. |
+| SL-03 | AC-3 | Parquet and JSONL round trips preserve every field; files carry `schema_version`. | No | Engineering: parser, record formats and legacy mapping. |
+| SL-03 | AC-4 | Every legacy event field maps one-to-one (test over the vendored `events.json`). | No | Engineering: parser, record formats and legacy mapping. |
+| SL-04 | AC-1 | `legacy_shared` port and original produce byte-identical record hashes for the items in step 2. | No | Engineering: determinism and failure behaviour of the legacy port. |
+| SL-04 | AC-2 | `keyed` mode: three random episode orders plus one run interrupted and resumed at a random point all produce the same record-set hash. | No | Engineering: determinism and failure behaviour of the legacy port. |
+| SL-04 | AC-3 | Config validation rejects `legacy_parse_fallback` outside the legacy experiment. | No | Engineering: determinism and failure behaviour of the legacy port. |
+| SL-04 | AC-4 | `local_llm` with ollama stopped yields `error/provider_unavailable` trials and zero `choice` outcomes (test against a closed port). | No | Engineering: determinism and failure behaviour of the legacy port. |
+| SL-05 | AC-1 | Every product pair in every eligible set co-occurs in at least one set for each K; λ_min and λ_max are reported. | No | Engineering: design coverage, randomisation and rendering of the stimuli. |
+| SL-05 | AC-2 | The overall label rate is within 0.3 ± the 99% binomial bound for the realised N. | No | Engineering: design coverage, randomisation and rendering of the stimuli. |
+| SL-05 | AC-3 | Same seed → same design hash; different seed → different hash. | No | Engineering: design coverage, randomisation and rendering of the stimuli. |
+| SL-05 | AC-4 | The same (set, presentation) renders byte-identically regardless of mode or backend (hash test). | No | Engineering: design coverage, randomisation and rendering of the stimuli. |
+| SL-05 | AC-5 | u is defined for 100% of eligible (task, product) pairs; items missing a required field are excluded and counted. | No | Engineering: design coverage, randomisation and rendering of the stimuli. |
+| SL-06 | AC-1 | Example diversify variances are reproduced exactly from the analytic formula (Lemma load) and within 3 Monte Carlo standard errors by simulation (20,000 periods). | No | Simulator correctness: the backend reproduces its own analytic model (Lemma load, its own choice_probs); says nothing about real agents. |
+| SL-06 | AC-2 | Empirical choice frequencies match `choice_probs` (χ² test, fixed seed, p > 0.001). | No | Goodness of fit of the simulator to its own choice_probs (fixed seed): a test of the sampler, not of a research claim. |
+| SL-06 | AC-3 | Same seed → identical choices; the order-invariance test from SL-04 passes for this backend. | No | Simulator correctness: the backend reproduces its own analytic model (Lemma load, its own choice_probs); says nothing about real agents. |
+| SL-06 | AC-4 | The backend passes the SL-03 protocol conformance suite, emitting the same `Action` types as the LLM backends. | No | Simulator correctness: the backend reproduces its own analytic model (Lemma load, its own choice_probs); says nothing about real agents. |
+| SL-07 | AC-1 | Kill and resume: an offline run killed at 5 random points finishes with the same record-set hash as an uninterrupted run. | No | Engineering: runner, resume and failure policy. |
+| SL-07 | AC-2 | Executing a trial twice leaves one record; exports contain no duplicate `trial_key`. | No | Engineering: runner, resume and failure policy. |
+| SL-07 | AC-3 | Table-driven test: for each row of §3.5, the trial status, error code and run status match. No trial has `status=choice` after a failed backend call. | No | Engineering: runner, resume and failure policy. |
+| SL-07 | AC-4 | `auto` with no credentials → `offline` with the reason recorded; partial credentials → plan error naming the missing providers. | No | Engineering: runner, resume and failure policy. |
+| SL-07 | AC-5 | `plan` trial counts equal the closed-form count from the design (test). | No | Engineering: runner, resume and failure policy. |
+| SL-08 | AC-1 | Replaying a completed mock-provider run makes 0 provider calls and reproduces the record-set hash. Volatile fields (wall-clock timestamps, latency) are enumerated and excluded. | No | Engineering: cache and replay fidelity. |
+| SL-08 | AC-2 | On a cold cache, a run with r = 10 makes exactly 10 × (number of presentations) calls (counting mock). | No | Engineering: cache and replay fidelity. |
+| SL-08 | AC-3 | A `read_only` miss yields `error/cache_miss` and zero live calls. | No | Engineering: cache and replay fidelity. |
+| SL-08 | AC-4 | `verify` detects a tampered entry; `purge` and `export` write an audit entry (local log in the CLI, `storelab_run_event` in production). | No | Engineering: cache and replay fidelity. |
+| SL-09 | AC-1 | With the SDKs mocked, the `model` argument of every call, including retries, equals the trial's configured id. No adapter imports `get_adgraph_client` or the fallback settings (import test). | No | Engineering: provider adapters and governance hooks. |
+| SL-09 | AC-2 | Fixture tests record requested id, returned id, token usage and latency for each provider. | No | Engineering: provider adapters and governance hooks. |
+| SL-09 | AC-3 | Forced kill switch (`LOADTEST_LLM_KILL_SWITCH_FORCE=1`, `llm_guard.py:128`) → run `CANCELLED` with reason `kill_switch` and zero calls afterwards. | No | Engineering: provider adapters and governance hooks. |
+| SL-09 | AC-4 | Each live call produces exactly one invocation-log write (`PlatformGovernance`) or one local log line (`LocalGovernance`) that carries `run_id` and `trial_key`. | No | Engineering: provider adapters and governance hooks. |
+| SL-09 | AC-5 | The live-smoke report lists returned id, access date and cost for every configured model. | No | Engineering: provider adapters and governance hooks. |
+| SL-10 | AC-1 | Every tool call in a fixture transcript appears as exactly one event with product id and turn index. | No | Engineering: browser tool events, turn limit, rendering and a documented limitation. |
+| SL-10 | AC-2 | Hitting the turn limit gives `invalid/max_turns`, never a choice. | No | Engineering: browser tool events, turn limit, rendering and a documented limitation. |
+| SL-10 | AC-3 | Identical observations render identically across modes (hash test). | No | Engineering: browser tool events, turn limit, rendering and a documented limitation. |
+| SL-10 | AC-4 | The docs state the limitation that H1e conclusions apply to `browser_tool` only unless SL-10b runs. | No | Engineering: browser tool events, turn limit, rendering and a documented limitation. |
+| SL-11 | AC-1 | On a fixture design, the estimator's call count equals the hand count exactly and its USD is within ±1%. | No | Engineering: cost estimate and budget enforcement; the 25% gate is estimator accuracy, not a research result. |
+| SL-11 | AC-2 | Mock-provider budget test: spend ≤ `max_usd` + `max_concurrency` × max per-call cost; the run ends `LIMIT_REACHED` and can be resumed. | No | Engineering: cost estimate and budget enforcement; the 25% gate is estimator accuracy, not a research result. |
+| SL-11 | AC-3 | A model with no price refuses the plan. | No | Engineering: cost estimate and budget enforcement; the 25% gate is estimator accuracy, not a research result. |
+| SL-11 | AC-4 | Engineering gate for SL-18: after the pilot, \|estimate − actual\| / actual ≤ 25% for every model. | No | Engineering: cost estimate and budget enforcement; the 25% gate is estimator accuracy, not a research result. |
+| SL-12 | AC-1 | Same `Idempotency-Key` and body → same run_id and a single row; same key with a different body → 422. | No | Engineering: API idempotency, authorisation, approval and audit trail. |
+| SL-12 | AC-2 | A user without allow-list access gets 403 on every route (parametrised test); the creator's own approval is refused. | No | Engineering: API idempotency, authorisation, approval and audit trail. |
+| SL-12 | AC-3 | A run above the approval threshold is not enqueued until another allow-listed user approves it (mocked enqueue). | No | Engineering: API idempotency, authorisation, approval and audit trail. |
+| SL-12 | AC-4 | Every status transition writes exactly one `storelab_run_event`; UPDATE and DELETE on that table fail on Postgres (migration test). | No | Engineering: API idempotency, authorisation, approval and audit trail. |
+| SL-12 | AC-5 | `model-schema-drift.yml` and `flyway-migrations.yml` pass. | No | Engineering: API idempotency, authorisation, approval and audit trail. |
+| SL-13 | AC-1 | A chunk delivered twice → no duplicate records and no duplicate provider calls (counting mock and cache). | No | Engineering: orchestration, recovery and routing. |
+| SL-13 | AC-2 | Worker killed mid-chunk → the run completes after redelivery or reaper resume, with a record-set hash equal to an uninterrupted run. | No | Engineering: orchestration, recovery and routing. |
+| SL-13 | AC-3 | Heartbeat older than the threshold → `STALLED` → resumed at most `max_resumes` times, then `FAILED` with a reason. | No | Engineering: orchestration, recovery and routing. |
+| SL-13 | AC-4 | Container-boot steps in the `build-app` job of `docker-build.yml` pass (Supervisord beat and worker, `GET /health`). | No | Engineering: orchestration, recovery and routing. |
+| SL-13 | AC-5 | Routing test: no StoreLab task lands on an existing ad-generation queue. | No | Engineering: orchestration, recovery and routing. |
+| SL-14 | AC-1 | Editing a prompt template without changing its version fails CI (a fixture demonstrates it). | No | Engineering: CI gates, quality report and alerts. |
+| SL-14 | AC-2 | The quality report flags a synthetic run with 6% invalid outcomes in one cell when the threshold is 5%. | No | Engineering: CI gates, quality report and alerts. |
+| SL-14 | AC-3 | Every StoreLab test runs with sockets blocked (CI has no provider keys). | No | Engineering: CI gates, quality report and alerts. |
+| SL-14 | AC-4 | Alert rules are covered by a rule unit test or a staging firing test. | No | Engineering: CI gates, quality report and alerts. |
+| SL-15 | AC-1 | For σ ∈ {1, 0.3}, the 95% CI coverage of δ/σ and β/σ is in [0.92, 0.98] and \|bias\| < 0.1 SE over 200 replications. | No | Operating characteristics on simulated data with known truth (coverage, bias, separation handling, test size); power is reported without a threshold. |
+| SL-15 | AC-2 | For σ = 0.05, separation is flagged in ≥95% of the replications where it occurs, and penalised estimates are returned rather than a failure. | No | Operating characteristics on simulated data with known truth (coverage, bias, separation handling, test size); power is reported without a threshold. |
+| SL-15 | AC-3 | Empirical size of the IIA tests at α = 0.05 is in [0.03, 0.07]; power is reported (no threshold). | No | Test size under a simulated null is an operating characteristic (A12 §2); power is reported with no threshold, so no direction is required. |
+| SL-15 | AC-4 | `agent_params.json` validates and loads into SL-06 (round trip). | No | Operating characteristics on simulated data with known truth (coverage, bias, separation handling, test size); power is reported without a threshold. |
+| SL-16 | AC-1 | At least 5 hand-solved markets match to 1e-8. | No | Solver correctness on hand-solved and random markets (numerical tolerances, incentive checks, failure accounting). |
+| SL-16 | AC-2 | The externality and integral payments agree within 1e-6 relative on 100 random markets (surplus rule). | No | Solver correctness on hand-solved and random markets (numerical tolerances, incentive checks, failure accounting). |
+| SL-16 | AC-3 | On 100 random markets, X_j is monotone in b_j and no grid deviation gains more than 1e-6 (M3, M4, profit rule). | No | Solver correctness on hand-solved and random markets (numerical tolerances, incentive checks, failure accounting). |
+| SL-16 | AC-4 | Solver failures are excluded and counted; a test asserts that none is used. | No | Solver correctness on hand-solved and random markets (numerical tolerances, incentive checks, failure accounting). |
+| SL-16 | AC-5 | Runtime per market is reported and used to size SL-19. | No | Solver correctness on hand-solved and random markets (numerical tolerances, incentive checks, failure accounting). |
+| SL-17 | AC-1 | Every planned pilot cell is executed or explicitly marked with an error code; invalid + error rates are reported per model with CIs. | No | Pilot execution, estimator calibration and a seeded power analysis; no hypothesis is tested (the pilot is not confirmatory). |
+| SL-17 | AC-2 | Estimator error ≤25% per model, or SL-11 is recalibrated and re-checked. | No | Accuracy of the cost estimator (engineering); the alternative branch (recalibrate SL-11) means no outcome blocks closure. |
+| SL-17 | AC-3 | The power analysis is seeded and reruns identically; the chosen design is written into SL-01 before SL-18 starts. | No | Pilot execution, estimator calibration and a seeded power analysis; no hypothesis is tested (the pilot is not confirmatory). |
+| SL-17 | AC-4 | The analysis code excludes `pilot=true` records from confirmatory runs (test). | No | Pilot execution, estimator calibration and a seeded power analysis; no hypothesis is tested (the pilot is not confirmatory). |
+| SL-18 | AC-1 | The registration timestamp is earlier than the first trial (manifest check). | No | Execution completeness and traceability; the criterion 'closure does not depend on the label' rules out a required direction explicitly. |
+| SL-18 | AC-2 | ≥95% of planned trials in each (model, interface, temperature) cell have a recorded outcome, or the cell is reported incomplete with its reason; the substituted-outcome count is 0. | No | Execution completeness and traceability; the criterion 'closure does not depend on the label' rules out a required direction explicitly. |
+| SL-18 | AC-3 | Every model row lists requested and returned ids and an access-date range. | No | Execution completeness and traceability; the criterion 'closure does not depend on the label' rules out a required direction explicitly. |
+| SL-18 | AC-4 | Re-running the analysis from the archived dataset (replay plus seeded bootstrap) reproduces every table exactly. | No | Execution completeness and traceability; the criterion 'closure does not depend on the label' rules out a required direction explicitly. |
+| SL-18 | AC-5 | Every hypothesis carries a registered decision label; closure does not depend on the label. | No | Requires a label to exist and states that closure does not depend on it. |
+| SL-19 | AC-1 | Every configuration has ≥200 valid markets; solver exclusions are <1% per configuration or investigated before reporting. | No | Simulation completeness, common random numbers and reproducibility; labels come from the register. |
+| SL-19 | AC-2 | CRN check: the hashes of market inputs are identical across mechanisms. | No | Simulation completeness, common random numbers and reproducibility; labels come from the register. |
+| SL-19 | AC-3 | Implementation gate from the paper's Interpretation: a positive set-awareness gap with deterministic organic lists, beyond solver tolerance, blocks reporting until it is root-caused as an implementation or calibration error. | No | Implementation gate, not a research result: prop:setblind(a) is an exact identity (A1 §1.6, registered I-type in H2c); with deterministic organic lists V^aw = V^bl must hold, so a positive gap beyond solver tolerance can only be an implementation or calibration error (paper E2 Interpretation). Whatever E2 finds about H2c's Pr parts, this criterion is unaffected. |
+| SL-19 | AC-4 | A seeded rerun reproduces every table exactly; decision labels follow the register. | No | Simulation completeness, common random numbers and reproducibility; labels come from the register. |
+| SL-20 | AC-1 | Part A: numeric optimum and closed form agree within the registered tolerance at 100% of grid points; otherwise Part B is blocked (implementation check). | No | Implementation check of an exact closed form (prop:threshold, H3b, I-type): the numerical optimum must reproduce the closed form within the registered tolerance; this tests the solver, not a hypothesis about agents or markets. |
+| SL-20 | AC-2 | Within- and across-state components sum to the total variance (within 1e-9 analytic; within Monte Carlo error simulated). | No | Variance decomposition is an identity (law of total variance); an implementation check. |
+| SL-20 | AC-3 | Example diversify (l.388) is reproduced through the E3 code path. | No | Reproducing a worked example of the paper through the code path; an implementation check. |
+| SL-20 | AC-4 | A seeded rerun reproduces every table; decision labels follow the register. | No | Implementation checks and reproducibility; labels come from the register. |
+| SL-21 | AC-1 | Reachability and identification code passes unit tests on at least 5 hand-built graphs. | No | Unit tests, replication counts and reproducibility; labels come from the register. |
+| SL-21 | AC-2 | Every cell has R completed replications; a seeded rerun is identical. | No | Unit tests, replication counts and reproducibility; labels come from the register. |
+| SL-21 | AC-3 | Decision labels follow the register; the exploratory recovery analysis is labelled exploratory. | No | Unit tests, replication counts and reproducibility; labels come from the register. |
+| SL-22 | AC-1 | Permutation-test size at α = 0.05 is in [0.03, 0.07] over 1,000 synthetic datasets; power at the designed effect is within ±5 percentage points of the analytic target. | No | Size and power of the E5 permutation test on synthetic data: operating characteristics, not a result about H5a/H5b. |
+| SL-22 | AC-2 | Schema fixtures validate; a PII field scan finds no email, name or address fields. | No | Operating characteristics of the E5 test on synthetic data, schema checks and a citation. |
+| SL-22 | AC-3 | The E5 pre-registration (SL-01) cites this protocol version. | No | Operating characteristics of the E5 test on synthetic data, schema checks and a citation. |
+| SL-23 | AC-1 | Every Mermaid block renders without error (`mmdc` in CI). | No | Engineering: documentation rendering, reproducible quickstart and release checksums. |
+| SL-23 | AC-2 | The quickstart in a fresh virtualenv with no network and no credentials reproduces the golden offline hash. | No | Engineering: documentation rendering, reproducible quickstart and release checksums. |
+| SL-23 | AC-3 | A doc test confirms that every config field in `run_config.schema.json` appears in the README reference table. | No | Engineering: documentation rendering, reproducible quickstart and release checksums. |
+| SL-23 | AC-4 | Release checksums verify, and the contents cover each item in the paper's Reproducibility section. | No | Engineering: documentation rendering, reproducible quickstart and release checksums. |

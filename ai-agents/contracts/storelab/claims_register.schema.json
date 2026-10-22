@@ -1,0 +1,846 @@
+{
+  "$defs": {
+    "BoundTest": {
+      "additionalProperties": false,
+      "description": "A bound of the cell's interval against a threshold (three-way rule).\n\n``side`` is the claim's side: ``above`` means supported when the lower bound is at\nor above ``threshold`` (above it if ``strict``), not supported when the upper bound\nis below ``against_threshold`` (default ``threshold``). ``method`` ``p_values``\nreads the one-sided p-values from the results; ``clopper_pearson`` and ``wilson``\ncompute them from counts (``support_count`` / ``against_count`` successes of ``n``).",
+      "properties": {
+        "against_count": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9_]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Against Count"
+        },
+        "against_threshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Against Threshold"
+        },
+        "alpha_against": {
+          "exclusiveMaximum": 0.5,
+          "exclusiveMinimum": 0.0,
+          "title": "Alpha Against",
+          "type": "number"
+        },
+        "alpha_support": {
+          "exclusiveMaximum": 0.5,
+          "exclusiveMinimum": 0.0,
+          "title": "Alpha Support",
+          "type": "number"
+        },
+        "kind": {
+          "const": "bound",
+          "title": "Kind",
+          "type": "string"
+        },
+        "method": {
+          "default": "p_values",
+          "enum": [
+            "p_values",
+            "clopper_pearson",
+            "wilson"
+          ],
+          "title": "Method",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z0-9][a-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "side": {
+          "enum": [
+            "above",
+            "below"
+          ],
+          "title": "Side",
+          "type": "string"
+        },
+        "strict": {
+          "default": false,
+          "title": "Strict",
+          "type": "boolean"
+        },
+        "support_count": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9_]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Support Count"
+        },
+        "threshold": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Threshold"
+        },
+        "threshold_rule": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Threshold Rule"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "side",
+        "alpha_support",
+        "alpha_against"
+      ],
+      "title": "BoundTest",
+      "type": "object"
+    },
+    "Check": {
+      "additionalProperties": false,
+      "properties": {
+        "bound": {
+          "title": "Bound",
+          "type": "number"
+        },
+        "metric": {
+          "pattern": "^[a-z0-9][a-z0-9_]*$",
+          "title": "Metric",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "<=",
+            ">=",
+            "=="
+          ],
+          "title": "Op",
+          "type": "string"
+        }
+      },
+      "required": [
+        "metric",
+        "op",
+        "bound"
+      ],
+      "title": "Check",
+      "type": "object"
+    },
+    "Claim": {
+      "additionalProperties": false,
+      "properties": {
+        "alpha": {
+          "exclusiveMaximum": 0.5,
+          "exclusiveMinimum": 0.0,
+          "title": "Alpha",
+          "type": "number"
+        },
+        "amendments": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Amendments",
+          "type": "array"
+        },
+        "ci_level": {
+          "exclusiveMaximum": 1.0,
+          "exclusiveMinimum": 0.5,
+          "title": "Ci Level",
+          "type": "number"
+        },
+        "closed_forms": {
+          "default": [],
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Closed Forms",
+          "type": "array"
+        },
+        "decision": {
+          "$ref": "#/$defs/Decision"
+        },
+        "decision_rule": {
+          "minLength": 1,
+          "title": "Decision Rule",
+          "type": "string"
+        },
+        "estimator": {
+          "minLength": 1,
+          "title": "Estimator",
+          "type": "string"
+        },
+        "experiment": {
+          "enum": [
+            "E1",
+            "E2",
+            "E3",
+            "E4",
+            "E5"
+          ],
+          "title": "Experiment",
+          "type": "string"
+        },
+        "id": {
+          "enum": [
+            "H1a",
+            "H1b",
+            "H1c",
+            "H1d",
+            "H1e",
+            "H2a",
+            "H2b",
+            "H2c",
+            "H3a",
+            "H3b",
+            "H3c",
+            "H4a",
+            "H4b",
+            "H4c",
+            "H4d",
+            "H5a",
+            "H5b"
+          ],
+          "title": "Id",
+          "type": "string"
+        },
+        "interpretation": {
+          "$ref": "#/$defs/Interpretation"
+        },
+        "kind": {
+          "enum": [
+            "P",
+            "Pr",
+            "I",
+            "I/Pr"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "metric": {
+          "minLength": 1,
+          "title": "Metric",
+          "type": "string"
+        },
+        "min_n": {
+          "minLength": 1,
+          "title": "Min N",
+          "type": "string"
+        },
+        "multiplicity_family": {
+          "minLength": 1,
+          "title": "Multiplicity Family",
+          "type": "string"
+        },
+        "registration": {
+          "enum": [
+            "E1",
+            "E5"
+          ],
+          "title": "Registration",
+          "type": "string"
+        },
+        "run_mode": {
+          "minLength": 1,
+          "title": "Run Mode",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        },
+        "statement": {
+          "minLength": 1,
+          "title": "Statement",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "draft",
+            "registered",
+            "amended"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "test": {
+          "minLength": 1,
+          "title": "Test",
+          "type": "string"
+        },
+        "tolerance_or_margin": {
+          "minLength": 1,
+          "title": "Tolerance Or Margin",
+          "type": "string"
+        },
+        "unit_of_analysis": {
+          "minLength": 1,
+          "title": "Unit Of Analysis",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "sources",
+        "statement",
+        "amendments",
+        "experiment",
+        "run_mode",
+        "unit_of_analysis",
+        "metric",
+        "estimator",
+        "test",
+        "alpha",
+        "ci_level",
+        "multiplicity_family",
+        "tolerance_or_margin",
+        "min_n",
+        "decision_rule",
+        "decision",
+        "interpretation",
+        "status",
+        "registration"
+      ],
+      "title": "Claim",
+      "type": "object"
+    },
+    "Decision": {
+      "additionalProperties": false,
+      "properties": {
+        "groups": {
+          "items": {
+            "$ref": "#/$defs/Group"
+          },
+          "minItems": 1,
+          "title": "Groups",
+          "type": "array"
+        }
+      },
+      "required": [
+        "groups"
+      ],
+      "title": "Decision",
+      "type": "object"
+    },
+    "EquivalenceTest": {
+      "additionalProperties": false,
+      "description": "TOST: supported when the interval lies inside ``center`` ± ``margin``\n(``p_support`` is the TOST p-value), not supported when it lies entirely outside\n(``p_against``).",
+      "properties": {
+        "alpha_against": {
+          "exclusiveMaximum": 0.5,
+          "exclusiveMinimum": 0.0,
+          "title": "Alpha Against",
+          "type": "number"
+        },
+        "alpha_support": {
+          "exclusiveMaximum": 0.5,
+          "exclusiveMinimum": 0.0,
+          "title": "Alpha Support",
+          "type": "number"
+        },
+        "center": {
+          "default": 0.0,
+          "title": "Center",
+          "type": "number"
+        },
+        "kind": {
+          "const": "equivalence",
+          "title": "Kind",
+          "type": "string"
+        },
+        "margin": {
+          "exclusiveMinimum": 0,
+          "title": "Margin",
+          "type": "number"
+        },
+        "name": {
+          "pattern": "^[a-z0-9][a-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "margin",
+        "alpha_support",
+        "alpha_against"
+      ],
+      "title": "EquivalenceTest",
+      "type": "object"
+    },
+    "Floor": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "pattern": "^[a-z0-9][a-z0-9_]*$",
+          "title": "Field",
+          "type": "string"
+        },
+        "min": {
+          "title": "Min",
+          "type": "number"
+        }
+      },
+      "required": [
+        "field",
+        "min"
+      ],
+      "title": "Floor",
+      "type": "object"
+    },
+    "Group": {
+      "additionalProperties": false,
+      "properties": {
+        "aggregation": {
+          "enum": [
+            "two_thirds",
+            "all",
+            "single"
+          ],
+          "title": "Aggregation",
+          "type": "string"
+        },
+        "differential_missingness": {
+          "default": false,
+          "title": "Differential Missingness",
+          "type": "boolean"
+        },
+        "floor": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Floor"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "labels": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "propertyNames": {
+                "enum": [
+                  "supported",
+                  "not_supported",
+                  "inconclusive"
+                ]
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Labels"
+        },
+        "missingness": {
+          "default": false,
+          "title": "Missingness",
+          "type": "boolean"
+        },
+        "multiplicity": {
+          "default": "holm",
+          "enum": [
+            "holm",
+            "none"
+          ],
+          "title": "Multiplicity",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z0-9][a-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "role": {
+          "default": "primary",
+          "enum": [
+            "primary",
+            "secondary"
+          ],
+          "title": "Role",
+          "type": "string"
+        },
+        "tests": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "bound": "#/$defs/BoundTest",
+                "equivalence": "#/$defs/EquivalenceTest",
+                "implementation_check": "#/$defs/ImplementationCheck",
+                "rejects_null": "#/$defs/RejectsNullTest",
+                "share_at_least": "#/$defs/ShareAtLeast"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/BoundTest"
+              },
+              {
+                "$ref": "#/$defs/EquivalenceTest"
+              },
+              {
+                "$ref": "#/$defs/RejectsNullTest"
+              },
+              {
+                "$ref": "#/$defs/ImplementationCheck"
+              },
+              {
+                "$ref": "#/$defs/ShareAtLeast"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Tests",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "aggregation",
+        "tests"
+      ],
+      "title": "Group",
+      "type": "object"
+    },
+    "ImplementationCheck": {
+      "additionalProperties": false,
+      "description": "An exact (I-type) result: every metric within its tolerance. A failure is an\nimplementation error, never a finding.",
+      "properties": {
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/Check"
+          },
+          "minItems": 1,
+          "title": "Checks",
+          "type": "array"
+        },
+        "kind": {
+          "const": "implementation_check",
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z0-9][a-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "checks"
+      ],
+      "title": "ImplementationCheck",
+      "type": "object"
+    },
+    "Interpretation": {
+      "additionalProperties": false,
+      "properties": {
+        "inconclusive": {
+          "minLength": 1,
+          "title": "Inconclusive",
+          "type": "string"
+        },
+        "not_supported": {
+          "minLength": 1,
+          "title": "Not Supported",
+          "type": "string"
+        },
+        "supported": {
+          "minLength": 1,
+          "title": "Supported",
+          "type": "string"
+        }
+      },
+      "required": [
+        "supported",
+        "not_supported",
+        "inconclusive"
+      ],
+      "title": "Interpretation",
+      "type": "object"
+    },
+    "RegistrationPlan": {
+      "additionalProperties": false,
+      "properties": {
+        "covers": {
+          "items": {
+            "enum": [
+              "H1a",
+              "H1b",
+              "H1c",
+              "H1d",
+              "H1e",
+              "H2a",
+              "H2b",
+              "H2c",
+              "H3a",
+              "H3b",
+              "H3c",
+              "H4a",
+              "H4b",
+              "H4c",
+              "H4d",
+              "H5a",
+              "H5b"
+            ],
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Covers",
+          "type": "array"
+        },
+        "document": {
+          "minLength": 1,
+          "title": "Document",
+          "type": "string"
+        },
+        "venue": {
+          "minLength": 1,
+          "title": "Venue",
+          "type": "string"
+        },
+        "when": {
+          "minLength": 1,
+          "title": "When",
+          "type": "string"
+        }
+      },
+      "required": [
+        "venue",
+        "covers",
+        "document",
+        "when"
+      ],
+      "title": "RegistrationPlan",
+      "type": "object"
+    },
+    "RejectsNullTest": {
+      "additionalProperties": false,
+      "description": "Supported when the null is rejected (Holm-adjusted ``p_value`` ≤ alpha); with no\nregistered margin a non-rejection is inconclusive, never 'not supported'.",
+      "properties": {
+        "alpha_support": {
+          "exclusiveMaximum": 0.5,
+          "exclusiveMinimum": 0.0,
+          "title": "Alpha Support",
+          "type": "number"
+        },
+        "kind": {
+          "const": "rejects_null",
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z0-9][a-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "alpha_support"
+      ],
+      "title": "RejectsNullTest",
+      "type": "object"
+    },
+    "ShareAtLeast": {
+      "additionalProperties": false,
+      "description": "A computed (not sampled) share against a threshold: supported if ≥ it, else not.",
+      "properties": {
+        "kind": {
+          "const": "share_at_least",
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "pattern": "^[a-z0-9][a-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "threshold": {
+          "title": "Threshold",
+          "type": "number"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "threshold"
+      ],
+      "title": "ShareAtLeast",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "sha256"
+      ],
+      "title": "Source",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "claims": {
+      "items": {
+        "$ref": "#/$defs/Claim"
+      },
+      "title": "Claims",
+      "type": "array"
+    },
+    "conventions": {
+      "patternProperties": {
+        "^[a-z0-9][a-z0-9_]*$": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "patternProperties": {
+                "^[a-z0-9][a-z0-9_]*$": {
+                  "minLength": 1,
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "title": "Conventions",
+      "type": "object"
+    },
+    "register_version": {
+      "const": 1,
+      "title": "Register Version",
+      "type": "integer"
+    },
+    "registrations": {
+      "additionalProperties": {
+        "$ref": "#/$defs/RegistrationPlan"
+      },
+      "propertyNames": {
+        "enum": [
+          "E1",
+          "E5"
+        ]
+      },
+      "title": "Registrations",
+      "type": "object"
+    },
+    "shared_definitions": {
+      "patternProperties": {
+        "^[a-z0-9][a-z0-9_]*$": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "items": {},
+              "type": "array"
+            },
+            {
+              "additionalProperties": true,
+              "type": "object"
+            }
+          ]
+        }
+      },
+      "title": "Shared Definitions",
+      "type": "object"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/Source"
+      },
+      "minItems": 1,
+      "title": "Sources",
+      "type": "array"
+    },
+    "status": {
+      "enum": [
+        "draft",
+        "registered"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "register_version",
+    "status",
+    "sources",
+    "registrations",
+    "conventions",
+    "shared_definitions",
+    "claims"
+  ],
+  "title": "Register",
+  "type": "object"
+}

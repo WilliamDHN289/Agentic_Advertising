@@ -31,6 +31,9 @@ from pathlib import Path
 import yaml
 from pydantic import ValidationError
 
+from .analysis.decide import results_schema
+from .analysis.register import register_schema
+from .analysis.registration import Receipts
 from .config_files import dump_config, load_config, parse_set
 from .core.agent_params import AgentParams
 from .core.config import format_errors, run_config_schema
@@ -55,6 +58,9 @@ SCHEMAS = {
     "trial_record.schema.json": _model_schema(TrialRecord),
     "event_record.schema.json": _model_schema(EventRecord),
     "agent_params.schema.json": _model_schema(AgentParams),
+    "claims_register.schema.json": register_schema,  # SL-01
+    "analysis_results.schema.json": results_schema,
+    "registrations.schema.json": _model_schema(Receipts),
 }
 
 
