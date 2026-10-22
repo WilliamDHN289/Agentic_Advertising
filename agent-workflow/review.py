@@ -23,6 +23,7 @@ ROOT = HERE.parent
 RUNS = HERE / "runs"
 STATE = RUNS / "state.json"
 WAIVERS = HERE / "waivers"
+REQUIREMENTS = "requirements"  # owner inputs that tickets.md refers to, frozen like the ticket document
 REVIEWER_CONFIG = os.path.expanduser(os.environ.get("REVIEWER_CLAUDE_CONFIG_DIR", "~/.claude-reviewer"))
 
 
@@ -145,8 +146,14 @@ def adopt_workflow(args):
     head = git("rev-parse", "HEAD")
     parent = git("rev-parse", "HEAD^")
     changed = git("diff", "--name-only", parent, head).splitlines()
-    require(changed and all(path.startswith(HERE.name + "/") for path in changed),
-            "HEAD must be a commit that changes only " + HERE.name + "/ files")
+    if state["decision"] == "APPROVED":
+        # Between tickets the owner may also change the requirement documents; begin snapshots them afresh.
+        require(changed and all(path.startswith((HERE.name + "/", REQUIREMENTS + "/")) or path == state["tickets_path"]
+                                for path in changed),
+                "HEAD must be a commit that changes only " + HERE.name + "/, " + REQUIREMENTS + "/ or " + state["tickets_path"])
+    else:
+        require(changed and all(path.startswith(HERE.name + "/") for path in changed),
+                "HEAD must be a commit that changes only " + HERE.name + "/ files")
     if state["decision"] == "APPROVED":
         require(state["approved_head"] == parent, "HEAD^ is not the approved candidate")
         state["approved_head"] = head
@@ -254,8 +261,8 @@ def review(args):
     workflow_changes = git("rev-list", state["base_commit"] + ".." + head, "--", HERE.name).split()
     require(set(workflow_changes) <= set(state.get("workflow_commits", [])),
             "Workflow files changed during implementation; ask the user to handle configuration separately")
-    require(not git("diff", "--name-only", state["base_commit"], head, "--", state["tickets_path"]),
-            "The ticket document changed during implementation; review against the original requirements")
+    require(not git("diff", "--name-only", state["base_commit"], head, "--", state["tickets_path"], REQUIREMENTS),
+            "The ticket document or " + REQUIREMENTS + "/ changed during implementation; review against the original requirements")
     handoff = read_json(Path(args.handoff).resolve())
     require(handoff.get("ticket_id") == state["ticket_id"], "Handoff ticket ID mismatch")
     criteria = handoff.get("acceptance_criteria")

@@ -325,8 +325,8 @@ flowchart TD
 
 | ID | Item | Assumption used in this plan | Blocks |
 |---|---|---|---|
-| A1 | Formal statements of Props rents, gating, setblind, separation, threshold, identify, learning; Lemmas click and contested; Cors congestion, design, cumulative; Conj gating. They are referenced by E2–E4 but are **not in** `~/Desktop/v1.tex` (it ends at §model-questions, l.513) | supplied before SL-01 is frozen | SL-01, SL-16, SL-19–21 |
-| A2 | Symbol definitions not in v1.tex: χ_m, F(x), ξ, ε₁, h, n₀, N_x, "agent-aware", "gated", "set-blind M3" | χ_m = probability that a model-m agent requests the page of an included product it does not choose; F(x) = the set of products that are the favourite of some (model, version, state) in x; h = audit periods; n₀ = audit requests per period; N_x = number of contexts | SL-06, SL-16, SL-19, SL-21 |
+| A1 | Formal statements of Props rents, gating, setblind, separation, threshold, identify, learning; Lemmas click and contested; Cors congestion, design, cumulative; Conj gating | **Supplied 2026-10-22** in `requirements/A1_formal_statements.md` from the paper snapshot `requirements/paper.tex`. Its §E (corrections: Cor design(b) bound, H4b and H4d wording, H2a payment attribution and screen) governs where it differs from §1.1 | SL-01, SL-16, SL-19–21 |
+| A2 | Symbol definitions: χ_m, F(x), ξ, ε₁, h, n₀, N_x, "agent-aware", "gated", "set-blind M3" | **Fixed 2026-10-22** in `requirements/A1_formal_statements.md` §E7. Corrections: N_x = \|E(x)\| (eligible products in context x, not the number of contexts); n₀ = audit requests per cell per period; χ_m = probability of requesting each displayed product's page, independent of the choice. "Gated" now has an operational definition | SL-06, SL-16, SL-19, SL-21 |
 | A3 | "AI-Infra design in memory" | no such memory note exists; taken to be the AI-INFRA-000…024 control plane in `webserver-v2` | §3.2 |
 | A4 | "Original experiment logic" | StoreLab at `~/Desktop/agentic_amazon/5_storelab`, run on 2026-08-14 with `qwen2:7b` (520 episodes, 430 calls); not under version control | SL-00, SL-04 |
 | A5 | E1 providers and versions | OpenAI, Google, Anthropic, with ≥2 pinned snapshots each. Anthropic needs a new SDK dependency and key; the gateway supports only OpenAI and Google (`config/settings.py:959`) | SL-09, SL-17 |
@@ -336,7 +336,7 @@ flowchart TD
 | A9 | API and compute budget ("TBD" in the paper) | set after SL-17; pilot cap to be agreed (placeholder $150) | SL-17, SL-18 |
 | A10 | E5 partner and sample size | TBD; SL-22 delivers protocol and analysis only | SL-22 |
 | A11 | Human position weights | taken from Ursu (2018) where reported, otherwise a grid; the numbers still need extracting | SL-06, SL-19 |
-| A12 | Pre-registration venue and thresholds ("most trials" in H1b, "non-negligible" in H1d, the H2a equivalence margin, per-cell missingness tolerance) | OSF; thresholds fixed in SL-01 | SL-01 |
+| A12 | Pre-registration venue and thresholds ("most trials" in H1b, "non-negligible" in H1d, the H2a equivalence margin, per-cell missingness tolerance) | **Fixed 2026-10-22** in `requirements/A12_thresholds.md`: OSF Registries; H1b modal share ≥ 0.80 and gap ≥ ln 4; H1d favourite-change share ≥ 0.10; H2a margin 0.01 of mean value per agent request; missingness 10% / 25%; plus the other registered numbers and minimum N | SL-01 |
 | A13 | S3 bucket, retention, data classification | dedicated prefix; no customer or PII data is ever in prompts or records | SL-12, SL-13 |
 | A14 | PR size convention (≤400 added lines) vs the vendored legacy snapshot (~1,700 lines) | one vendored PR exempted and labelled, or the snapshot archived outside the repo with hashes | SL-00 |
 | A15 | Presentation randomisation for H1b | positions and labels drawn once per set and repeated identically r=10 times (`per_set`), so repeats measure pure choice noise; label and position effects are identified across sets | SL-05, SL-01 |

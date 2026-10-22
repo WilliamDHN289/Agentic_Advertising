@@ -1,0 +1,979 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%	Author Submission Template for Operations Research (OPRE)
+%%	INFORMS, <informs@informs.org>
+%%	Ver. 1.1, February 21, 2025
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Use dblanonrev for Double Anonymous Review submission
+% Use sglanonrev for Single Anonymous Review submission
+% For example, submission to INFORMS Mathematics of Operation Research, MOOR will have
+% \documentclass[moor,dblanonrev]{informs4}
+%
+\documentclass[opre,dblanonrev]{informs4}
+% \documentclass[opre,sglanonrev]{informs4}
+\usepackage{eqndefns-left} % For checking the display equation width and equation environment definitions %
+\RequirePackage{tgtermes}
+\RequirePackage{newtxtext}
+\RequirePackage{newtxmath}
+\RequirePackage{bm}
+\RequirePackage{endnotes}
+
+%\OneAndAHalfSpacedXI
+\OneAndAHalfSpacedXII % Current default line spacing
+%%\DoubleSpacedXI
+%%\DoubleSpacedXII
+
+% Optional LaTeX Packages
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{tikz}
+% Private macros here (check that there is no clash with the style)
+
+% Natbib setup for author-number style
+\usepackage{natbib}
+\usepackage{tabularx}
+\usepackage{booktabs}
+
+ \bibpunct[, ]{(}{)}{,}{a}{}{,}%
+ \def\bibfont{\small}%
+ \def\bibsep{\smallskipamount}%
+ \def\bibhang{24pt}%
+ \def\newblock{\ }%
+ \def\BIBand{and}%
+
+
+% Mathematical 
+\providecommand{\E}{\mathbb{E}}
+\providecommand{\1}{\mathbf{1}}
+\providecommand{\Var}{\operatorname{Var}}
+\providecommand{\Cov}{\operatorname{Cov}}
+\providecommand{\TBD}[1]{\textcolor{red}{[TBD: #1]}}
+% Theorem-type environments used in v2 that the class may not predefine
+\makeatletter
+\@ifundefined{corollary}{\newtheorem{corollary}{Corollary}}{}
+\@ifundefined{conjecture}{\newtheorem{conjecture}{Conjecture}}{}
+\makeatother
+ 
+
+
+%% Setup of the equation numbering system. Outcomment only one.
+%% Preferred default is the first option.
+\EquationsNumberedThrough    % Default: (1), (2), ...
+%\EquationsNumberedBySection % (1.1), (1.2), ...
+
+%% Setup of theorem styles. Outcomment only one.
+%% Preferred default is the first option.
+\TheoremsNumberedThrough     % Preferred (Theorem 1, Lemma 1, Theorem 2)
+%\TheoremsNumberedByChapter  % (Theorem 1.1, Lema 1.1, Theorem 1.2)
+\ECRepeatTheorems  %  
+
+% For new submissions, leave this number blank.
+% For revisions, input the manuscript number assigned by the on-line
+% system along with a suffix ".Rx" where x is the revision number.
+\MANUSCRIPTNO{}
+
+%%%%%%%%%%%%%%%%
+\begin{document}
+%%%%%%%%%%%%%%%%
+
+% Outcomment only when entries are known. Otherwise leave as is and
+%   default values will be used.
+%\setcounter{page}{1}
+%\VOLUME{00}%
+%\NO{0}%
+%\MONTH{Xxxxx}% (month or a similar seasonal id)
+%\YEAR{0000}% e.g., 2005
+%\FIRSTPAGE{000}%
+%\LASTPAGE{000}%
+%\SHORTYEAR{00}% shortened year (two-digit)
+%\ISSUE{0000} %
+%\LONGFIRSTPAGE{0001} %
+%\DOI{10.1287/xxxx.0000.0000}%
+
+% Author's names for the running heads
+% Sample depending on the number of authors;
+% \RUNAUTHOR{Jones}
+% \RUNAUTHOR{Jones and Wilson}
+% \RUNAUTHOR{Jones, Miller, and Wilson}
+% \RUNAUTHOR{Jones et al.} % for four or more authors
+% Enter authors following the given pattern:
+%\RUNAUTHOR{}
+\RUNAUTHOR{Haonan and Huiwen}
+
+% Title or shortened title suitable for running heads. Sample:
+% \RUNTITLE{Predictive Maintenance in Manufacturing}
+% Enter the (shortened) title:
+\RUNTITLE{Agentic Advertising Policy}
+
+% Full title. Sample:
+% \TITLE{Optimal Resource Allocation in Humanitarian Logistics: A Stochastic Programming Approach}
+% Enter the full title:
+\TITLE{Agentic Advertising Policy}
+
+% Block of authors and their affiliations starts here:
+% NOTE: Authors with same affiliation, if the order of authors allows,
+%   should be entered in ONE field, separated by a comma.
+%   \EMAIL field can be repeated if more than one author
+\ARTICLEAUTHORS{%
+%\AUTHOR{John Doe,\textsuperscript{a} Jane Smith,\textsuperscript{b}}
+%\AFF{\textsuperscript{a}Department of Industrial Engineering, University of XYZ, \EMAIL{john.doe@xyz.edu; \textsuperscript{b}Department of Computer Science, University of ABC, \EMAIL{jane.smith@abc.edu}} 
+\AUTHOR{Haonan Deng}
+\AFF{Department of Industrial Engineering and Operations Research,
+University of California, Berkeley \EMAIL{121090096_dhn@berkeley.edu}}
+
+\AUTHOR{Huiwen Jia}
+\AFF{Department of Industrial Engineering and Operations Research,
+University of California, Berkeley, \EMAIL{huiwenj@berkeley.edu}}
+% Enter all authors
+} % end of the block
+
+\ABSTRACT{%
+% Enter your abstract
+How should a retail platform's advertising business change when its buyers are AI agents that read candidate lists and choose among them? We model a platform that serves an unobserved mix of humans and agents built on a few shared models. Advertisers bid per effective choice, and the platform allocates inclusion in candidate sets subject to a bid-independent organic list, a match-quality guardrail, and convex operating costs. In the limit of near-deterministic agents, agent traffic pays no position rents: when organic lists already contain each agent type's favorite product, sponsorship cannot change agent choices and agent traffic yields no advertising revenue. Revenue from agents requires organic lists that omit favorites, which gives a profit-maximizing platform an incentive to gate organic visibility that bid-independence alone does not remove. Click-based auctions either leave agent choices unpriced or turn click pricing into payment per inclusion. When the state shared by agents of one model does not affect match quality, showing state-sensitive rivals in separate sets dominates showing them together and removes common-shock exposure; otherwise, the optimal share of head-to-head sets has a closed form. What the platform can learn depends on which products it compares, and estimation error falls with the number of periods rather than requests. We design experiments to test these predictions; results are pending.
+}%
+
+% \FUNDING{This research was supported by [grant number, funding agency].}
+
+%Supplemental Material:
+%Data Ethics & Reproducibility Note:
+
+% Sample
+%\KEYWORDS{Stochastic programming, Decision support,Uncertainty, Disaster response, Optimization}
+
+% Fill in data. If unknown, outcomment the field
+\KEYWORDS{advertising auctions; AI shopping agents; mechanism design; assortment; online learning} 
+%\HISTORY{Received: Month DD, YYYY; Accepted: Month DD, YYYY; Published Online: Month DD, YYYY}
+
+\maketitle
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Text of your paper here
+
+\section{Introduction}\label{sec:Intro}
+
+Online shopping is increasingly delegated to AI agents. Consumers already ask conversational assistants which product to buy and then complete the purchase themselves. Browser-based agents go further: they navigate a retailer's store, compare listings, and check out on the consumer's behalf. A growing set of protocols also lets agents transact with merchants directly through application programming interfaces, without rendering a web page at all. In September 2025, OpenAI and Stripe launched Instant Checkout in ChatGPT together with the Agentic Commerce Protocol, an open standard for agent-initiated purchases. Amazon operates its own shopping agents, Rufus and Buy for Me. Meta has introduced the personal AI agent Muse that can also take over the purchasing tasks. Regardless of the interface, an emerging trend is that the entity consuming a retailer’s webpage and ultimately making purchasing decisions is no longer necessarily a human.
+
+For large retail platforms, this shift is both an opportunity and a threat to one of their most profitable businesses. Amazon's advertising revenue exceeded \$68 billion in 2025, driven largely by sponsored placements displayed to shoppers within its own marketplace. The tension surfaced in Amazon's lawsuit against Perplexity. Amazon sued in November 2025, alleging that the AI agent in Perplexity's Comet browser shopped in customers' password-protected accounts while presenting itself as an ordinary Chrome session. A federal district court granted a preliminary injunction in March 2026. Whatever the final outcome of the case, it suggests that platforms may not be able to keep third-party agents out by technical or legal means alone. The more durable question is: once agents are admitted, what does the platform's advertising business sell, and to whom?
+
+Existing ad mechanisms target on human buyers. Sponsored-search and retail-media auctions sell position-indexed human attention, and they rest on a behavioral regularity known as click-through-rate (CTR) separability: the probability that an ad is clicked factorizes into an ad-specific quality and a position-specific probability that a person looks at the slot \citep{edelman2007internet,varian2007position,athey2011position}. This regularity justifies ranking ads by quality-weighted bids, pricing them per click, and learning ad quality from click data pooled across positions. It is a statement about how people search with costly attention and noisy choices. However, recent evidence suggests that AI agents behave very differently. In randomized audits of shopping agents built on leading AI models, \citet{allouah2026your} find that agents concentrate on a few products, that their position biases are strong but differ across models and model versions, that they penalize products labeled as sponsored while rewarding platform endorsements, and that model updates can sharply reshuffle market shares. In simulated two-sided markets, \citet{bansal2025magentic} find that agents are heavily biased toward the first proposal they receive.
+
+These behaviors break the attention paradigm in three ways. First, position loses much of its meaning. An agent parses a list of candidates and picks the best one in the set, so its choice depends on which competitors are included. The scarce resource therefore shifts from attention within the page to membership in the agent's consideration set. Second, the click stops being evidence of human interest. An agent's request for a product page is a step in its evaluation, not a person's attention, so metrics built on CTR misstate what advertisers are buying, and advertisers cannot easily verify which of their impressions reached a human. Third, the data that power the platform's own learning deteriorate. Human browsing is noisy, and that noise generates information about products that are not chosen. Near-deterministic agents instead choose the same product for every user who shares an underlying model, which both starves the platform's learning of exploration and makes demand move together across users.
+
+We are studying how an online retail platform should redesign its advertising mechanism when a growing share of its buyers are AI agents. Throughout, we evaluate designs by the platform's profit, defined as advertising revenue plus sales commissions net of the costs of volatile demand, and by the match quality delivered to buyers. Profit is thus a criterion for comparing different mechanisms.
+
+We ask three questions. First, when buyers are a mix of humans and agents, what should the platform sell to advertisers in place of clicks, how should it price what it sells, and how does the resulting mechanism compare with a generalized second-price auction based on predicted CTRs? Second, how should the platform manage the correlation in demand created by agents that share an underlying model? Third, how should it learn the quantities its mechanism needs when feedback comes from an unobserved mix of human browsing and near-deterministic agent choice?
+
+We model a platform that delivers short candidate lists, each with a bid-independent organic part and a labeled sponsored part, to requests from an unobserved mix of humans and agents. Advertisers value \emph{effective choices}, explicit product selections recorded before payment. The platform allocates inclusion in candidate sets subject to a match-quality guardrail and convex operating costs, and a threshold payment makes truthful bidding a dominant strategy (Proposition~\ref{prop:ic}). The analysis can therefore focus on what the allocation buys.
+
+Working mostly in the limit of near-deterministic agents, we obtain five results. First, agent traffic pays no position rents. If the organic list already places each agent type's favorite product near the top, sponsorship cannot change any agent's choice, and agent traffic generates no advertising revenue (Proposition~\ref{prop:rents}); such lists exist unless agent types disagree about more products than the organic list can hold (Corollary~\ref{cor:aware}). Second, requiring organic lists to be independent of bids does not prevent pay-to-play. By omitting the agent's favorite from its organic lists before bids are submitted, a platform turns the agent's choice into a contest between the favorite and its closest rival and earns revenue in proportion to the slack in its match-quality guardrail (Proposition~\ref{prop:gating}). Third, click-based auctions fail for reasons that better bot detection does not address. Filtering agent clicks leaves agent choices unpriced, and not filtering them turns click pricing into payment per inclusion (Lemma~\ref{lem:click}); even with correct values per click, an auction that ignores the organic composition of each list can lose most of the attainable surplus (Proposition~\ref{prop:setblind}). Fourth, when the state shared by agents of one model does not change match quality, letting state-sensitive rivals compete head to head is dominated: showing them in separate sets with independent randomization preserves expected outcomes and removes common-shock exposure (Proposition~\ref{prop:separation}). When the state carries quality information, the optimal share of head-to-head sets has a closed form (Proposition~\ref{prop:threshold}). Fifth, what the platform can learn depends on which products it compares rather than how often it includes them (Proposition~\ref{prop:identify}), and estimation error falls with the number of periods rather than requests; an audit-then-commit mechanism is approximately truthful with an explicit bound (Proposition~\ref{prop:learning}). Section~\ref{sec:experiments} designs experiments that test the behavioral premises and the predicted boundaries; their results are \TBD{pending}.
+
+Section~\ref{sec:lit} reviews related work, Section~\ref{sec:model} presents the model, Sections~\ref{sec:mechanism}--\ref{sec:learning} contain the analysis, Section~\ref{sec:experiments} sets out the experimental design, and Section~\ref{sec:discussion} discusses implications and limitations. Proofs are in the appendix.
+
+
+\section{Literature Review}\label{sec:lit}
+
+\paragraph{Ad auctions and CTR separability.}
+Traditional auctions in sponsored search and retail media treats advertising as the sale of scarce and position-indexed human attention. Foundational analyses of the generalized second-price auction show that its locally envy-free equilibria reproduce the efficient Vickrey--Clarke--Groves outcome \citep{edelman2007internet,varian2007position,aggarwal2006truthful}. Subsequent work shifts the objective toward revenue through reserve prices and ranking rules \citep{edelman2010optimal,lahaie2007revenue,ostrovsky2023reserve}. For platforms that are also marketplaces, the objective becomes a balance between advertising fees and transaction commissions, because promoted placements can degrade search efficiency \citep{choi2019monetizing,long2022designing}. Whatever the objective, these designs share a behavioral primitive: CTR separability, the assumption that the probability an ad is clicked factorizes into an ad-specific quality and a position-specific probability that the user examines the slot \citep{richardson2007predicting,craswell2008experimental}. Separability is a reduced form of costly, top-down human search \citep{athey2011position}, and field evidence confirms that position shapes which options consumers search rather than what they buy conditional on search \citep{ursu2018power}. The assumption is also load-bearing. It justifies ranking by quality-weighted bids, pricing per click, and pooling click data across positions to learn click-through rates, both in industrial prediction systems and in bandit-based ranking and truthful learning mechanisms \citep{graepel2010web,joachims2017unbiased,kveton2015cascading,babaioff2014characterizing}. Empirical work shows that an ad's click-through rate also depends on which rivals are displayed \citep{jeziorski2015makes}, and cascade models accommodate such externalities \citep{kempe2008cascade,aggarwal2008sponsored}, but they retain monotonically decaying human examination as the source of scarcity. Non-human clicks, in turn, enter this literature only as fraud to be filtered out \citep{wilbur2009click}. In short, the literature takes for granted that the scarce resource is human attention and that clicks are informative signals of it. We study a setting in which the buyer is an AI agent that need not exhibit either regularity. For such a buyer, the object the platform sells shifts from a position on the page to inclusion in the set of products the agent considers.
+
+\section{Model}\label{sec:model}
+
+The online retail platforms respond to purchasing requests by delivering a list of eligible products. Some buyers browse the list themselves, some of them delegate the selection task to AI agents. We model an operating period of a retail platform. During the period, many shopping requests arrive, and the platform cannot tell the request of human and AI agents built on one of a few underlying models. For each request, the platform delivers a short list of candidate products, and the buyer either selects one of them or leaves. Advertisers pay to have their products included in these lists. The platform must therefore decide which sponsored products to include. We first describe requests and choices, then define the outcome that advertisers value and the platform can measure. These primitives determine operating costs, the allocation and payment rule, the click-based benchmarks, and the learning problem.
+
+\subsection{Requests and candidate sets}\label{sec:model-requests}
+
+There are $N$ products, indexed by $j\in\mathcal N=\{1,\ldots,N\}$, each offered by a different seller. A subset $\mathcal N^{\mathrm{ad}}\subseteq\mathcal N$ of sellers are advertisers. During an operating period, $n$ requests arrive, indexed by $t = 1, ..., n$. Request $t$ has an observable context $x_t$, which is drawn independently from a distribution $\mu$ on a finite set $\mathcal X$. The context contains the query, request metadata, and the attributes needed to determine the eligible set $E(x_t)\subseteq\mathcal N$. Eligibility represents the request's hard requirements such as a delivery deadline or a price ceiling.
+
+The platform delivers at most $K$ products per request. This limit represents screen space, interface bandwidth, or the number of items an agent can evaluate within a task. We assume $K<|E(x)|$ on a set of contexts with positive probability, then inclusion in the delivered candidates is a scarce resource. In current sponsored-product advertising practice, the delivered list has an organic part and a labeled sponsored part. Before bids are submitted, the platform fixes an organic policy $Q^o(\cdot\mid x)$ over rankings $R$ of $E(x)$. For specific request $t$, the advertising mechanism selects an ordered list $S_t^s$ of distinct products from $E(x)\cap\mathcal N^{\mathrm{ad}}$ with $|S_t^s| \le K^s\le K$. These products occupy the first $|S_t^s|$ position in the specified order and carry sponsored labels. The remaining positions are filled in order from $R_t$, skipping products already in $S_t^s$. We represent the resulting allocation by $a_t=(R_t,S_t^s)$.
+
+
+
+Let $S(a_t)$ denote the set of products in the final displayed list,
+and let $k_j(a_t)$ denote the position of product $j\in S(a_t)$
+in that list. For each product $j$, define
+\[
+I_{jt}=\mathbf{1}\{j\in S(a_t)\},
+\qquad
+\ell_{jt}=\ell_j(a_t)=\mathbf{1}\{j\in S_t^s\}.
+\]
+Here, $I_{jt}$ indicates whether product $j$ is displayed, and
+$\ell_{jt}$ indicates whether it is displayed as sponsored.
+An organic display therefore has $I_{jt}=1$ and $\ell_{jt}=0$.
+
+When $S_t^s=\emptyset$, no sponsored products are inserted:
+the displayed list consists of the first
+$\min\{K,|E(x_t)|\}$ products in $R_t$.
+
+\begin{definition}[Organic integrity]\label{def:organic-integrity}
+A policy has organic integrity if, after the labeled sponsored products are placed, its unlabeled products are filled in order from a ranking drawn from a bid-independent organic policy $Q^o$.
+\end{definition}
+
+Under organic integrity, a bid can affect the unlabeled portion only through the displacement caused by labeled insertions. It cannot remove a particular rival from the organic component. The organic ranking may be randomized and may reflect operating costs, but fixed independently of bids. We maintain this restriction in the mechanism. An unrestricted rule that lets bids change the organic ranking would also permit undisclosed paid exclusion. Section~\ref{sec:mechanism-gating} shows that organic integrity does not remove the incentive to sell inclusion; it moves the relevant choice to the design of $Q^o$.
+
+For each context $x$ and realized organic list $R$, a sponsored policy $Q^s(\cdot\mid x,R)$ specifies a distribution over feasible
+choices of sponsored products and their placements. Together with $Q^o$ it induces $Q(a\mid x)=Q^o(R\mid x)Q^s(S^s\mid x,R)$. The policy is selected before the period and held fixed within it. Conditional on contexts, allocations are drawn independently across requests: $a_t\sim Q(\cdot\mid x_t)$. In particular, the platform does not use earlier choices in the period to update later allocations. 
+
+\subsection{Buyers and choice}\label{sec:model-buyers}
+
+Each request comes from a buyer with latent type $\tau_t\in\mathcal T=\{H,A_1,\ldots,A_L\}$, where $H$ denotes a human and $A_m$ an agent built on model $m\in\{1,\ldots,L\}$. Given context $x$, the request comes from an agent with probability $\alpha(x)$, and an agent request uses model $m$ with probability $\pi_m(x)$. We assume that buyer types are drawn exogenously and are conditionally independent across requests given their contexts. We consider two information structures: In the baseline setting,
+the platform observes $x_t$ but not $\tau_t$; we also consider a setting in which a verifiable interface reveals $\tau_t$ before allocation as a benchmark.
+
+We summarize the shared factors of agents built on the same model by an unobserved state $\Lambda$, drawn from $F_\Lambda$ at the start of the period and held fixed for its $n$ requests. The state is independent of contexts, types, and the randomization in the policy. Let $J_t\in S(a_t)\cup\{0\}$ denote the buyer's chosen product, with $J_t=0$ if buyers select nothing, and let $Z_{jt}=\1\{J_t=j\}$.
+
+\begin{assumption}[Conditional independence]\label{ass:cond-indep}
+Conditional on $\Lambda$ and the period's policy $Q$, the tuples $(x_t,\tau_t,a_t,J_t)$ are independent and identically distributed. The conditional law of $J_t$ depends only on $(x_t,\tau_t,a_t,\Lambda)$.
+\end{assumption}
+
+Write $q_j^\tau(x,a\mid\Lambda)=\Pr(J_t=j\mid x_t=x,\tau_t=\tau,a_t=a,\Lambda)$. Because the platform does not observe the buyer types in the baseline setting, the probability that product $j$ being effectively chosen is:
+\begin{equation}\label{eq:mixed-q}
+\begin{aligned}
+q_j(x,a\mid\Lambda)
+  &=\bigl(1-\alpha(x)\bigr)q_j^H(x,a) \\
+  &\quad +\alpha(x)\sum_{m=1}^{L}\pi_m(x)q_j^{A_m}(x,a\mid\Lambda),\\
+\bar q_j(x,a)&=\E_\Lambda[q_j(x,a\mid\Lambda)].
+\end{aligned}
+\end{equation}
+Both probabilities are zero for $j\notin S(a)$.
+
+\paragraph{Human buyers.}
+We model human effective choice through position and product effects.
+Let $\gamma_k^H>0$ denote the weight associated with display position $k$, and let $w_j(x,\ell)\ge0$ denote the choice weight of product $j$ in context $x$ when displayed with label $\ell$. The product weight captures its appeal to the buyer and may differ between organic ($\ell=0$) and sponsored ($\ell=1$) displays.
+
+\begin{assumption}[Human response]\label{ass:human}
+For every context $x$ and feasible allocation $a$, the probability that a human buyer effectively chooses a displayed product $j$ is
+\[
+q_j^H(x,a)
+=
+\gamma^H_{k_j(a)}w_j(x,\ell_j(a)),
+\qquad j\in S(a).
+\]
+The position weights satisfy $\gamma_1^H\ge\cdots\ge\gamma_K^H>0$, and
+\[
+\sum_{j\in S(a)}
+\gamma^H_{k_j(a)}w_j(x,\ell_j(a))\le1.
+\]
+Conditional on $x$ and $a$, human choice probabilities do not depend on the common latent state $\Lambda$.
+\end{assumption}
+
+The probability of no effective choice is
+\[
+q_0^H(x,a)=1-\sum_{j\in S(a)}q_j^H(x,a).
+\]
+Under this specification, sponsored placement affects human choice through both the product's display position and its sponsored label.
+
+
+\paragraph{Agent response.}
+An agent with LLM model $m$ evaluates each displayed product $j\in S(a)$ according to
+\[
+s_j^m(x,a,\Lambda)
+=
+v_j^m(x,\Lambda)
++\delta_m\ell_j(a)
++\beta_{m,k_j(a)}.
+\]
+Here, $v_j^m(x,\Lambda)$ is the agent's baseline evaluation of
+product $j$ in context $x$ and common latent state $\Lambda$.
+The coefficient $\delta_m$ captures the effect of a sponsored
+label on this evaluation, with $\delta_m<0$ indicating a penalty.
+The parameter $\beta_{m,k}$ captures the effect of display
+position $k$ for model $m$.
+
+The agent chooses among the displayed products and an outside
+option, which represents continuing the search or making no
+effective choice on the current request.
+Let $v_0^m(x)$ denote the score of this outside option and define
+\[
+\begin{aligned}
+\Psi_m(x,a,\Lambda) = & \exp\bigl(v_0^m(x)/\sigma_m\bigr) \\
+& + \sum _ {i \in S(a) } \exp \bigl (s_i^m(x,a, \Lambda )/ \sigma _m \bigr ),
+\end{aligned}
+\]
+where $\sigma_m>0$ is the scale of idiosyncratic choice noise.
+A larger $\sigma_m$ makes choices less sensitive to differences
+in scores.
+The effective-choice probability of each displayed product is
+\begin{equation}\label{eq:agent-logit}
+q_j^{A_m}(x,a\mid\Lambda)
+=
+{\textstyle \frac{\exp(s_j^m(x,a,\Lambda)/\sigma_m)}{\Psi_m(x,a,\Lambda)}},
+\quad j\in S(a),
+\end{equation}
+and is zero for products outside $S(a)$.
+The probability of no effective choice on the current request is
+\[
+q_0^{A_m}(x,a\mid\Lambda)
+=
+\frac{\exp\bigl(v_0^m(x)/\sigma_m\bigr)}
+     {\Psi_m(x,a,\Lambda)}.
+\]
+
+In the main analysis, we set $\beta_{m,k}=0$ for all $m$ and $k$.
+Conditional on $x$ and $\Lambda$, agent choice then depends on
+which products are displayed and their sponsored labels,
+but not on their display order.
+
+\begin{lemma}[Small-noise limit]\label{lem:small-noise}
+Fix $(x,a,\Lambda)$ and let $\beta_{m,k}=0$. If one alternative $i^\ast$ uniquely maximizes $\{s_i^m(x,a,\Lambda):i\in S(a)\}\cup\{v_0^m(x)\}$, then $q_j^{A_m}(x,a\mid\Lambda)\to\1\{j=i^\ast\}$ as $\sigma_m\to0$ for every product $j$.
+\end{lemma}
+
+Conditional on the state, a nearly deterministic agent rejects an included product whenever the set contains a higher-scoring product or the outside option scores higher. The value of inclusion therefore depends on the \emph{whole candidate set}, even without position effects.
+
+
+\subsection{Effective choices and the advertising unit}\label{sec:model-unit}
+
+In our model, an agent may open product pages solely to retrieve information, generating clicks without selecting a product for purchase. Click-through rates alone therefore need not provide a reliable basis for pricing sponsored exposure. We instead evaluate sponsored exposure through an ``effective choice": an explicit product-selection event recorded by the platform before payment and attributable to a single product and a single request. In a single-item shopping task, this event may be a confirmed product selection or a valid add-to-cart instruction; requests that merely retrieve information do not qualify.
+
+We assume that effective choices are observable, although the qualifying event and its relationship to subsequent purchases must be validated for each interface. When purchases occur outside the platform, validating this relationship requires a transaction receipt or an external integration. These records establish which products the platform delivered and which product was selected, but do not reveal which products an agent considered internally.
+
+The platform controls inclusion $I_{jt}$, observes the realized choice $Z_{jt}$, and assigns an inclusion the expected-choice weight $\tilde c_{jt}=I_{jt}\bar q_j(x_t,a_t)$. The indicator is redundant in the formula because $\bar q_j=0$ off the set, but distinguishes the allocated object from the outcome. For a fixed period policy,
+\begin{lemma}[Calibration]\label{lem:calibration}
+Under Assumption~\ref{ass:cond-indep},
+\begin{align*}
+X_j(Q) &:= \E_Q\!\left[\sum_{t=1}^{n}Z_{jt}\right] = \E_Q\!\left[\sum_{t=1}^{n}\tilde c_{jt}\right] \\
+&= n\sum_{x\in\mathcal X}\mu(x)\sum_a Q(a\mid x)\bar q_j(x,a).
+\end{align*}
+\end{lemma}
+The equality uses the independence of $a_t$ from $\Lambda$. If the policy learned from choices within the period, the relevant weight would instead condition on the information accumulated about $\Lambda$.
+
+\begin{example}[The same inclusion count can have different value]\label{ex:inclusion}
+Consider one agent model with $\sigma_m\to0$, scores $v_A>v_B>v_C>v_0^m$, and $K=2$. Abstract in this illustration from the organic--sponsored split and labels. Product $B$ is included in every request under either the set $\{A,B\}$ or the set $\{B,C\}$. It receives no effective choices in the first set and all effective choices in the second. Thus a product's inclusion count cannot by itself determine its expected-choice value.
+\end{example}
+
+Advertisers report value per effective choice, while the platform allocates candidate-set inclusions and their frequency (Table~\ref{tab:model-unit}). Formally, we use the following reduced form.
+\begin{assumption}[Advertiser value]\label{ass:value}
+An advertiser $j$ has private value $\theta_j\ge0$ per effective choice of its product and expected value $V_j(Q)=\theta_j X_j(Q)$. The values are independently drawn from distributions $F_j$. Advertisers are risk neutral and have quasilinear utility.
+\end{assumption}
+
+This values all effective choices of an enrolled advertiser's product, including those reached through an organic listing; the payment rule below is normalized so that a zero bid is charged zero. The assumption is strong: the policy must affect the advertiser's downstream value only through the number of effective choices, with a stable value per choice across contexts and candidate sets. A correlation between choices and purchases does not establish that property \citep{prentice1989surrogate,athey2026surrogate,chen2007criteria}. We focus on sufficiently homogeneous shopping intent and leave context-dependent values for an extension; Section~\ref{sec:exp-unit} describes a randomized check of policy invariance. The assumption also excludes branding value from unchosen exposure and direct utility from excluding a rival.
+
+\begin{table}[htbp]
+\centering\small
+\caption{What the platform allocates and what advertisers value}\label{tab:model-unit}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.28\textwidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+& Position auction & Candidate-set mechanism \\
+\midrule
+Allocated object & Page positions & Labeled inclusion in delivered candidate sets \\
+Bid unit & Value per click & Value per effective choice \\
+Outcome weight & Predicted click-through rate, often position separable & Set-dependent $\bar q_j(x,a)$ \\
+Expected payment & Click charge under GSP & Threshold payment based on $X_j(Q)$ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+% ---------------------------------------------------------------------
+\subsection{Correlated demand and operating cost}\label{sec:model-load}
+
+A common agent state changes not only a product's expected demand but also how concentrated its load is within a period. Given policy $Q$ and state $\Lambda$, a request yields an effective choice of $j$ with probability
+\begin{equation}\label{eq:pQ}
+p_j^Q(\Lambda)=\sum_{x\in\mathcal X}\mu(x)\sum_a Q(a\mid x)q_j(x,a\mid\Lambda).
+\end{equation}
+Let $D_j=\sum_{t=1}^{n}Z_{jt}$ be the period's load in effective choices. Conditional on $\Lambda$, $D_j$ is binomial with parameters $n$ and $p_j^Q(\Lambda)$. Thus $X_j(Q)=n\E_\Lambda[p_j^Q(\Lambda)]$ and
+\begin{lemma}[Load moments]\label{lem:load}
+Under Assumption~\ref{ass:cond-indep},
+\[
+\E[D_j]=n\E_\Lambda[p_j^Q(\Lambda)],\qquad
+\Var(D_j)=n\E_\Lambda[p_j^Q(\Lambda)(1-p_j^Q(\Lambda))]
++n^2\Var_\Lambda(p_j^Q(\Lambda)),
+\]
+with $\Cov(Z_{jt},Z_{js})=\Var_\Lambda(p_j^Q(\Lambda))$ for $t\ne s$.
+\end{lemma}
+
+The first variance component is request-level variation and grows on the order of $n$; the second reflects a state shared by all requests and grows on the order of $n^2$ when the state's effect persists. High \emph{concentration} means expected load is large relative to a capacity scale. High \emph{common-shock exposure} means $p_j^Q(\Lambda)$ varies strongly across states. A known, deterministic preference can cause concentration without common-shock exposure. The two effects should therefore not be represented by the same parameter.
+
+\begin{assumption}[Operating cost]\label{ass:cost}
+For each product $j$, the platform bears $C_j(D_j)$, where $C_j:\{0,\ldots,n\}\to\mathbb R_+$ is nondecreasing and has nonnegative second differences.
+\end{assumption}
+
+The cost represents service, inventory, or fulfillment pressure caused by choices that cluster on a product. For example, a quadratic specification $C_j(D)=\lambda_jD^2/(2B_j)$ yields
+\begin{equation}\label{eq:quad-cost}
+\E[C_j(D_j)]=\frac{\lambda_j}{2B_j}\left\{(\E D_j)^2+\Var(D_j)\right\},
+\end{equation}
+while $C_j(D)=\lambda_j(D-B_j)^+$ charges only for load beyond capacity $B_j$. Effective choices are not necessarily orders: an inventory interpretation requires a calibrated mapping from the former to the latter. Otherwise $C_j$ is a reduced-form cost of concentrated choices. With constant marginal cost and ample capacity, concentration on a superior product need not be inefficient.
+
+\begin{example}[Candidate-set diversification]\label{ex:diversify}
+Take one nearly deterministic agent model, $K=2$, $n=1{,}000$, and two equally likely states. In $\Lambda_1$, $v_A>v_B>v_C$; in $\Lambda_2$, $v_B>v_A>v_C$; the outside option is inferior to $C$ in both. Products $A$ and $B$ each have capacity $600$. If every request receives $\{A,B\}$, then $p_A^Q(\Lambda_1)=1$ and $p_A^Q(\Lambda_2)=0$. Consequently $\E[D_A]=500$ but $\Var(D_A)=250{,}000$, and in either state the preferred product receives $1{,}000$ choices. If each request independently receives $\{A,C\}$ or $\{B,C\}$ with equal probability, then $p_A^Q(\Lambda)=1/2$ in both states and $\Var(D_A)=250$. By comparison, randomizing equally between $\{A,B\}$ and $\{A,C\}$ leaves $p_A^Q$ equal to $1$ in $\Lambda_1$ and $1/2$ in $\Lambda_2$, so $\Var(D_A)=62{,}625$.
+\end{example}
+
+The example abstracts from sponsorship to isolate the allocation effect; its sets can be delivered by a randomized, bid-independent organic policy. What matters is \emph{which products compete in each set}, not merely how often the platform randomizes. Diversification may reduce convex operating costs but withhold the state's best match from some buyers, a tradeoff represented in the objective and quality constraint below. A fixed quota across sets would also reduce conditional binomial variation; it would not remove variation due to the common state unless it made $p_j^Q(\Lambda)$ state invariant.
+
+% ---------------------------------------------------------------------
+\subsection{Platform objective and feasible policies}\label{sec:model-objective}
+
+An effective choice of $j\ne0$ in context $x$ gives the platform operating contribution $g(x,j)\ge0$, net of variable cost, and gives the buyer's principal match quality $u(x,j)$. These need not agree with the agent's score $v_j^m$. Set $g(x,0)=u(x,0)=0$. The platform's operating value and aggregate match quality are
+\[
+G(Q)=\E_Q\!\left[\sum_{t=1}^{n}g(x_t,J_t)\right]
+      -\sum_{j\in\mathcal N}\E_Q[C_j(D_j)],
+\qquad
+M(Q)=\E_Q\!\left[\sum_{t=1}^{n}u(x_t,J_t)\right].
+\]
+The cost term makes the platform internalize both expected concentration and exposure to common agent-state shocks. Neither $g$ nor $u$ requires agent scores to equal realized welfare.
+
+Let $\mathcal Q^o$ be the set of bid-independent organic policies and $M^{\mathrm{ref}}=\max_{Q^o\in\mathcal Q^o}M(Q^o,\varnothing)$, which we assume is positive under the stated outside-option normalization. For an organic policy $Q^o$, the feasible set $\mathcal Q=\mathcal Q(Q^o)$ consists of sponsored policies respecting eligibility, list-size limits, organic integrity, and
+\begin{equation}\label{eq:mq-constraint}
+M(Q^o,Q^s)\ge(1-\kappa)M^{\mathrm{ref}},\qquad 0\le\kappa<1.
+\end{equation}
+The parameter $\kappa$ bounds the fraction of attainable match quality that the platform may sacrifice through its organic design and sponsored allocation together. The benchmark does not depend on $Q^o$: measuring the loss against $M(Q^o,\varnothing)$ would let the platform relax the guardrail by choosing a worse organic policy, which matters once $Q^o$ is itself a design choice (Sections~\ref{sec:mechanism-gating} and~\ref{sec:correlated}). This constraint is meaningful only under a fixed cardinal normalization of $u$; an absolute-loss constraint could be used instead. If $M(Q^o,\varnothing)\ge(1-\kappa)M^{\mathrm{ref}}$, the no-sponsorship policy belongs to $\mathcal Q$, so the feasible set is nonempty; otherwise, we assume that some sponsored policy satisfies~\eqref{eq:mq-constraint}.
+
+\begin{lemma}[Convexity]\label{lem:convexity}
+Fix $Q^o$. The functions $X_j(Q)$ and $M(Q)$ are linear in $Q^s$, $G(Q)$ is concave in $Q^s$, and $\mathcal Q$ is compact and convex.
+\end{lemma}
+
+To see the cost argument, conditional on $\Lambda$ the load is $\operatorname{Bin}(n,p_j^Q(\Lambda))$. For a cost with nonnegative second differences, its binomial expectation is convex in the success probability. Equation~\eqref{eq:pQ} is linear in $Q^s$ for every state, so expected cost is convex. Thus the allocation objective below is concave over a compact convex set. The convexity statement concerns distributions over candidate sets; an optimal distribution need not correspond to a deterministic set.
+
+% ---------------------------------------------------------------------
+\subsection{Allocation and payments}\label{sec:model-mechanism}
+
+The period unfolds in five steps. The platform announces $Q^o$, $\mathcal Q$, and the mechanism; advertisers privately learn their values $\theta_j$ and bid $b_j\ge0$ per effective choice; the platform chooses $Q^s(b)$; a common state is drawn and requests are served under the fixed policy; finally, the platform collects payments. For now, the platform knows the reduced-form quantities needed to evaluate a policy. Section~\ref{sec:model-learning} relaxes this information assumption.
+
+\begin{assumption}[Known policy outcomes]\label{ass:known}
+For every feasible policy, the platform knows $X_j(Q)$, the law of $p_j^Q(\Lambda)$ needed to evaluate expected operating costs, and the functions $g$, $u$, and $C_j$. Advertisers' only private information is $\theta_j$, and a bid does not change buyer response.
+\end{assumption}
+
+Knowledge of $\mu$, $\alpha$, $\pi$, type-specific choices, and $F_\Lambda$ would suffice, but the mechanism needs only the resulting policy outcomes. The restriction that bids do not alter choices excludes strategic changes to product descriptions or other agent-facing attributes. Such changes may matter in practice \citep{allouah2026your}; they require a different incentive model.
+
+We first study an allocation rule that maximizes reported advertiser value plus the platform's operating value:
+\begin{equation}\label{eq:alloc}
+Q^{s\ast}(b)\in\arg\max_{Q^s\in\mathcal Q}
+\left\{\sum_{j\in\mathcal N^{\mathrm{ad}}}b_jX_j(Q^o,Q^s)+G(Q^o,Q^s)\right\}.
+\end{equation}
+A fixed bid-independent rule breaks ties. The policy exists by Lemma~\ref{lem:convexity}. It determines $X_j(b)=X_j(Q^o,Q^{s\ast}(b))$. We normalize payments to zero at a zero bid and charge
+\begin{equation}\label{eq:payment}
+P_j(b)=b_jX_j(b)-\int_0^{b_j}X_j(z,b_{-j})\,dz.
+\end{equation}
+The platform sells access to the candidate-set allocation indirectly: the bid and payment are indexed by expected effective choices generated by that allocation, not by raw inclusions.
+
+\begin{proposition}[Implementation]\label{prop:ic}
+Under Assumptions~\ref{ass:cond-indep}--\ref{ass:known}, for each advertiser $j$ and fixed $b_{-j}$:
+\begin{enumerate}
+\item[(a)] $X_j(b_j,b_{-j})$ is nondecreasing in $b_j$;
+\item[(b)] truthful bidding $b_j=\theta_j$ is a dominant strategy in expected utility, payments are nonnegative, and truthful bidding yields nonnegative expected utility;
+\item[(c)] the payment equals the externality imposed on the other bidders and the platform,
+\[
+\begin{aligned}
+P_j(b)&=\max_{Q^s\in\mathcal Q}W_{-j}(Q^o,Q^s)
+       -W_{-j}(Q^o,Q^{s\ast}(b)),\\
+W_{-j}(Q)&=\sum_{i\ne j}b_iX_i(Q)+G(Q).
+\end{aligned}
+\]
+\end{enumerate}
+\end{proposition}
+
+The monotone allocation is the expected number of effective choices $X_j$, not the number of times $j$ is included. A higher bid can move $j$ from many weak sets to fewer sets in which it is more likely to be chosen. The externality expression also accounts for displacement, changes in other products' choices, and operating costs. With the normalization in~\eqref{eq:payment}, a zero bidder pays nothing even if the organic policy or the platform objective delivers some choices of its product.
+
+Equation~\eqref{eq:payment} specifies an expected payment. The platform may collect that amount ex ante. Alternatively, when $X_j(b)>0$ it may charge $P_j(b)/X_j(b)$ on \emph{every} realized effective choice of enrolled advertiser $j$, including choices from an unlabeled organic appearance. This has the same expected payment for a risk-neutral advertiser. Charging only labeled choices at that rate is generally invalid: the bid can change $X_j$ through its effects on organic outcomes even when labeled choices are absent. A mechanism that insists on billing only labeled events would need a different value and allocation specification, or an additional condition ensuring a suitable labeled denominator.
+
+Proposition~\ref{prop:ic} relies on private values being one-dimensional and buyer response being known and unaffected by bids. Sellers may instead possess private match-quality information, in which case eliciting both values and quality raises a different mechanism-design problem \citep{balseiro2023incentive}. Estimated choice probabilities likewise make the exact incentive claim conditional on estimation accuracy.
+
+\paragraph{Platform profit and virtual values.} Under bids $b$, profit is
+\[
+\Pi(b)=\sum_{j\in\mathcal N^{\mathrm{ad}}}P_j(b)+G(Q^o,Q^{s\ast}(b)).
+\]
+Rule~\eqref{eq:alloc} maximizes reported total surplus, not profit. To distinguish these objectives, suppose each $F_j$ has positive density $f_j$ on $[0,\bar\theta_j]$ and nondecreasing virtual value $\varphi_j(\theta)=\theta-[1-F_j(\theta)]/f_j(\theta)$.
+
+\begin{proposition}[Profit-maximizing mechanism]\label{prop:profit}
+Under Assumptions~\ref{ass:cond-indep}--\ref{ass:known} and the preceding regularity conditions, expected platform profit among Bayesian incentive-compatible, interim individually rational mechanisms choosing from $\mathcal Q$ is maximized by
+\[
+Q^{s,R}(b)\in\arg\max_{Q^s\in\mathcal Q}
+\left\{\sum_{j\in\mathcal N^{\mathrm{ad}}}\varphi_j(b_j)X_j(Q^o,Q^s)+G(Q^o,Q^s)\right\},
+\]
+with the payment identity~\eqref{eq:payment} evaluated at $Q^{s,R}$. This rule is also dominant-strategy incentive compatible in expected utility.
+\end{proposition}
+
+Negative virtual values can cause the profit-maximizing rule to withhold a sponsored inclusion from a low bidder, although the same product may still appear organically. Section~\ref{sec:exp-mechanism} compares the two rules numerically. The period-level formulation also separates policy choice from request-level execution. An online variant that updates allocations as realized loads accrue requires a separate analysis of the resulting dependence; our baseline draws independently from a fixed policy within each period. Related regularized online allocation methods provide a point of comparison \citep{balseiro2025regularized}.
+
+% ---------------------------------------------------------------------
+\subsection{Click-based benchmarks}\label{sec:model-benchmarks}
+
+The incumbent is a generalized second-price (GSP) position auction. It ranks eligible advertisers by bids multiplied by predicted click-through rates (CTRs), assigns sponsored positions, and charges a next-price amount when a product page is requested. Such a request can be generated by either a human or an agent. We use two versions to distinguish a poor estimate of traffic composition from the more basic choice of a click as the priced event. M1 estimates CTR from pooled logs; M2 uses an oracle composition-corrected CTR but retains click pricing and position-based ranking. Neither generally assigns value to the \emph{set-dependent effective choice} in~\eqref{eq:mixed-q}. M3 uses~\eqref{eq:alloc} with $C_j\equiv0$, isolating this change in the outcome unit. M4 is the full rule with operating costs. Table~\ref{tab:model-benchmarks} summarizes the four rules.
+
+The click-based benchmarks require a model of page requests, which the rest of the analysis does not use.
+\begin{assumption}[Page requests]\label{ass:retrieval}
+A human chooses a product only after requesting its page: the human requests the page of the product in position $k$ with probability $\gamma_k^H\rho_j(x,\ell)$ and, given the request, chooses it with probability $\zeta_j(x,\ell)$, so that $w_j=\rho_j\zeta_j$ in Assumption~\ref{ass:human}. An agent of model $m$ requests the page of each displayed product independently with probability $\chi_m\in[0,1]$, whether or not it chooses the product.
+\end{assumption}
+Browser-based agents that open listings correspond to $\chi_m$ near one, and agents that receive structured data through an interface to $\chi_m=0$. Let $\bar\chi(x)=\sum_m\pi_m(x)\chi_m$, and let $b_j^{\mathrm c}$ denote a bid per click. M1 ranks sponsored candidates by $b_j^{\mathrm c}$ times the pooled request rate $(1-\alpha(x))\gamma_k^H\rho_j(x,1)+\alpha(x)\bar\chi(x)$ and charges every page request. M2 identifies agent requests and discards them, as click-fraud filters discard non-human clicks; it ranks by $b_j^{\mathrm c}\gamma_k^H\rho_j(x,1)$ and charges only human requests. In both, the predicted rate depends on the context and position but not on which organic products are displayed.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Benchmarks and proposed allocation rules}\label{tab:model-benchmarks}
+\begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+& Allocation & Measured value & Payment \\
+\midrule
+M1 & GSP sponsored positions & CTR from pooled logs & Per click, next-price \\
+M2 & GSP sponsored positions & Composition-corrected CTR & Per click, next-price \\
+M3 & Rule~\eqref{eq:alloc}, $C_j\equiv0$ & Set-dependent $\bar q_j(x,a)$ & Rule~\eqref{eq:payment} \\
+M4 & Rule~\eqref{eq:alloc} & Set-dependent choices and operating cost & Rule~\eqref{eq:payment} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+A numerical bid in a click auction is not in the same units as a bid per effective choice. An allocation-only comparison must therefore use a stated conversion from advertiser value to click bid, with that conversion held fixed under the compared policies. All mechanisms obey the same eligibility and list-size limits. We report whether standard GSP violates the match-quality guardrail~\eqref{eq:mq-constraint}; like-for-like constrained comparisons use a GSP variant subject to the same guardrail. A revenue comparison also requires an explicit GSP bidding rule or equilibrium selection: truthful bidding is dominant in M3--M4 but not generally in GSP \citep{edelman2007internet}. We report advertising payments, operating value, and profit separately, alongside match quality, capacity-adjusted load and overflow, common-shock exposure, and outcome-measure calibration. When primitives are estimated, we report estimation error as well.
+
+% ---------------------------------------------------------------------
+\subsection{Unknown primitives and exploration}\label{sec:model-learning}
+
+Sections~\ref{sec:mechanism} and~\ref{sec:correlated} begin with known policy outcomes. In the learning analysis of Section~\ref{sec:learning}, periods $e=1,2,\ldots$ repeat, with $\Lambda_e$ independently drawn from $F_\Lambda$. The platform records $(x_t,a_t,J_t)$ within each period but does not observe $\tau_t$ or $\Lambda_e$. Its decision problem does not require separately identifying every human and model-specific score. It requires the pooled $\bar q_j(x,a)$ for actions it might use, the distribution of $p_j^Q(\Lambda)$ across periods for policies whose cost it evaluates, and external measurements of $g$ and $u$. Randomized actions with known propensities and support on the relevant $(x,a)$ cells identify the pooled conditional choice probabilities. They do not by themselves identify the latent type mixture or the agent's cardinal score differences.
+
+The cost distribution requires variation \emph{across periods}: many requests in one period sharpen an estimate of that period's choice rate, but they do not create independent realizations of the common state. Learning the distribution of $p_j^Q(\Lambda)$ for a policy requires repeated periods in which that policy, or a design with sufficient within-period support to evaluate it, is observed. Without such support, counterfactual state exposure under an untested policy is not identified nonparametrically.
+
+Near-deterministic agents make exploration more dependent on set composition. In Example~\ref{ex:inclusion}, $B$ can be shown on every request and never selected against $A$, even though it wins against $C$. A minimum product-inclusion probability does not guarantee information about the comparisons needed for an alternative policy. Exploration must deliberately vary the competitors and labels a product faces, record known allocation probabilities, and repeat informative comparisons over multiple periods. It can then learn choice probabilities on the explored support without assigning a model identity to each request. Inferring the match quality $u$ needs additional outcome data, such as satisfaction or returns; choices alone are insufficient.
+
+Estimation creates an incentive issue of its own. With estimated $X_j$, payment~\eqref{eq:payment} is exactly truthful for the estimated allocation model but only approximately truthful for the underlying buyer response; current bids can also distort future training data. We therefore use bid-independent audit traffic to estimate the choice quantities and hold those estimates fixed during a mechanism period. Proposition~\ref{prop:learning} bounds the resulting allocation and incentive losses for such a design. Bid-dependent exploration would require a different dynamic mechanism \citep{babaioff2014characterizing}.
+
+% ---------------------------------------------------------------------
+\subsection{Questions carried forward}\label{sec:model-questions}
+
+The model isolates three linked questions for the analysis. First, when does a separable product-and-position score suffice, and when does pricing inclusion require the complete candidate set? Second, when do changes in candidate-set composition lower convex operating costs enough to offset any loss in advertiser value or buyer match quality? Third, which set comparisons and repeated periods suffice to learn the pooled outcomes needed by the mechanism when types and common states are hidden? Sections~\ref{sec:mechanism}--\ref{sec:learning} address these questions in turn; the benchmarks keep the comparison with click pricing visible throughout.
+
+
+
+% =====================================================================
+% Sections 4--8 (new in v2)
+% =====================================================================
+
+\section{What Advertising Sells to Agent Traffic}\label{sec:mechanism}
+
+This section asks when a sponsored inclusion creates value for agent traffic and why click-based auctions misprice it. We work in the small-noise limit of Lemma~\ref{lem:small-noise}, where agent and human responses differ most; Section~\ref{sec:experiments} examines finite noise and residual position effects.
+
+\begin{assumption}[Deterministic agents]\label{ass:deterministic}
+For every model $m$, $\beta_{m,k}=0$ for all $k$, $\delta_m\le0$, and agent choice probabilities equal their limits as $\sigma_m\to0$. For every $(x,m,\Lambda)$, the score $v_0^m(x)$ differs from every $v_j^m(x,\Lambda)+d$, and $v_i^m(x,\Lambda)+d\ne v_j^m(x,\Lambda)+d'$ for all $i\ne j$ in $E(x)$ and $d,d'\in\{0,\delta_m\}$.
+\end{assumption}
+
+Under Assumption~\ref{ass:deterministic}, an agent of model $m$ in state $\Lambda$, which we call type $(m,\Lambda)$, chooses a unique alternative $w^m(x,a,\Lambda)\in S(a)\cup\{0\}$ under action $a$. Let $f_{m,\Lambda}(x)$ be the alternative in $E(x)\cup\{0\}$ with the highest unlabeled score, with $v_0^m(x)$ as the score of $0$; we call it the type's \emph{favorite}. For an organic list $R$ and a sponsored list $S^s$, let $O(R,S^s)$ denote the first $K-|S^s|$ products of $R$ that are not in $S^s$. These are the unlabeled products displayed under $(R,S^s)$.
+
+\subsection{Position rents and inclusion rents}\label{sec:mechanism-rents}
+
+A sponsored placement can raise a product's effective choices in two ways. It can move the product to a more prominent position, which we call a \emph{position rent}, or it can place the product in a candidate set from which it would otherwise be absent or in which it would be outranked, an \emph{inclusion rent}. Human traffic supports both. Agent traffic supports only the second, and only where the organic list leaves room for it.
+
+\begin{definition}[Agent-aware organic policy]\label{def:aware}
+Let $K^s<K$. An organic policy $Q^o$ is \emph{aware} of type $(m,\Lambda)$ at context $x$ if $f_{m,\Lambda}(x)\in E(x)$ and every organic list in the support of $Q^o(\cdot\mid x)$ places $f_{m,\Lambda}(x)$ among its first $K-K^s$ products.
+\end{definition}
+
+\begin{proposition}[Agent traffic pays no position rents]\label{prop:rents}
+Let Assumption~\ref{ass:deterministic} hold and $K^s<K$. Fix a context $x$ and a type $(m,\Lambda)$ with favorite $f=f_{m,\Lambda}(x)\in E(x)$, and suppose $Q^o$ is aware of $(m,\Lambda)$ at $x$.
+\begin{enumerate}
+\item[(a)] For every organic list $R$ in the support of $Q^o(\cdot\mid x)$ and every feasible $S^s$, the type chooses $f$ under $(R,\varnothing)$, and it chooses an alternative other than $f$ under $(R,S^s)$ only if $f\in S^s$.
+\item[(b)] If, in addition, $v_f^m(x,\Lambda)+\delta_m$ exceeds $v_0^m(x)$ and $v_i^m(x,\Lambda)$ for every $i\in E(x)\setminus\{f\}$, the type chooses $f$ under every $(R,S^s)$.
+\item[(c)] Suppose that at every context, $Q^o$ is aware of every type with positive probability whose favorite lies in $E(x)$, and the condition in (b) holds for each such type. Then the agent component $X_j^A$ of $X_j$ does not depend on the sponsored policy, and under rule~\eqref{eq:alloc}, for every advertiser $j$ and bid profile $b$,
+\[
+P_j(b)=b_jX_j^H(b)-\int_0^{b_j}X_j^H(z,b_{-j})\,dz\;\le\;b_j\,n\,\E_\mu[1-\alpha(x)],
+\]
+where $X_j^H=X_j-X_j^A$ is the human component. Total advertising payments therefore vanish as $\E_\mu[\alpha(x)]\to1$.
+\item[(d)] Under Assumption~\ref{ass:human}, sponsorship can raise a product's human choices under any organic policy. If $j$ is displayed organically in position $k$, or is not displayed (set $\gamma^H_k=0$), and $\gamma^H_1w_j(x,1)>\gamma^H_kw_j(x,0)$, then the sponsored list $S^s=(j)$ raises $j$'s human choice probability.
+\end{enumerate}
+\end{proposition}
+
+Part~(c) is the sharpest contrast with human traffic. When every agent type's favorite appears early in the organic list, agents choose it regardless of which products are sponsored. Bids then cannot change agent outcomes, and the payment identity charges nothing for them. Advertising revenue comes only from humans, through position rents as in part~(d), and falls to zero as the agent share approaches one. Agent traffic can be monetized only where the organic list omits some type's favorite. The next result states when that is unavoidable.
+
+\begin{corollary}[When agent-aware lists exist]\label{cor:aware}
+Let $F(x)$ be the set of favorites in $E(x)$ of the types $(m,\Lambda)$ with $\pi_m(x)>0$ and $\Lambda$ in the support of $F_\Lambda$. An organic policy that is aware of all these types at $x$ exists if and only if $|F(x)|\le K-K^s$.
+\end{corollary}
+
+Inclusion rents in agent traffic therefore have three possible sources: more distinct favorites across models and states than the organic list can hold, the platform's ignorance of agents' favorites, and deliberate omission. Agent monoculture shrinks $F(x)$ and removes the first source. A platform that knows the favorites of a monoculture and lists them organically has nothing to sell to agent traffic. Whether it would choose to list them is the subject of the next result.
+
+\subsection{Organic design and paid inclusion}\label{sec:mechanism-gating}
+
+Organic integrity requires the organic list to be independent of bids. It does not restrict how the platform designs its organic policy before bids are submitted. The following result compares two designs in the simplest environment where the comparison is sharp.
+
+\begin{proposition}[Organic gating]\label{prop:gating}
+Consider a single context with $\alpha\equiv1$, one agent model, a degenerate common state, Assumption~\ref{ass:deterministic}, $K^s=1<K$, $C_j\equiv0$, a common contribution $g(x,j)=g_0$, and an outside option scored below every product. Let $f$ be the agent's favorite and $r$ the product it ranks second, and suppose $v_f+\delta>v_r$ and $v_r+\delta>v_i$ for all $i\notin\{f,r\}$. Let $u(f)=\max_ju(j)>0$, and let $\xi=1$ if $u(r)=u(f)$ and $\xi=\min\{1,\kappa u(f)/(u(f)-u(r))\}$ otherwise. Advertisers bid truthfully, and $\theta_r$ is read as zero if $r\notin\mathcal N^{\mathrm{ad}}$.
+\begin{enumerate}
+\item[(a)] Under an organic policy that places $f$ among the first $K-1$ products of every list, every payment is zero, every request ends with $f$, and $M=M^{\mathrm{ref}}=nu(f)$.
+\item[(b)] Under an organic policy that never displays $f$ organically and places $r$ among the first $K-1$ products of every list, rule~\eqref{eq:alloc} sponsors $f$ on every request if $\theta_f>\theta_r$ and on a fraction $1-\xi$ of requests if $\theta_f<\theta_r$. Advertising revenue equals $n\xi\min\{\theta_f,\theta_r\}$. Match quality equals $nu(f)$ if $\theta_f>\theta_r$ and $n[u(f)-\xi(u(f)-u(r))]$ if $\theta_f<\theta_r$.
+\item[(c)] Both policies satisfy organic integrity and the guardrail~\eqref{eq:mq-constraint}. If $r\in\mathcal N^{\mathrm{ad}}$, $\kappa>0$, and $\Pr(\min\{\theta_f,\theta_r\}>0)>0$, the policy in (b) yields strictly higher expected profit than the policy in (a).
+\end{enumerate}
+\end{proposition}
+
+Proposition~\ref{prop:gating} separates two properties that organic integrity is often taken to deliver together. Bids never touch the organic list in either design. Yet under the design in (b), the agent sees its favorite only if the favorite wins the sponsored slot, and the favorite then pays its closest rival's value. When the favorite values the slot more, buyers lose nothing and the platform collects $n\theta_r$. When the rival values it more, buyers lose match quality up to the guardrail. Revenue scales with the guardrail's slack $\xi$ and is zero when the closest rival is not an advertiser, because only competition for the agent's choice creates a price. An unrestricted rule that let bids reorder the organic list could produce the outcome in (b) request by request; organic integrity moves the same outcome to the design of $Q^o$ rather than ruling it out. A rule that required predicted favorites to appear organically would remove this revenue, but by Proposition~\ref{prop:rents}(c) it would also remove all advertising revenue from agent traffic in a monoculture.
+
+Mixed traffic complicates the comparison, because gating also changes the positions humans see.
+
+\begin{conjecture}[Gating and the agent share]\label{conj:gating}
+In the setting of Proposition~\ref{prop:gating} with an added share $1-\alpha$ of human requests satisfying Assumption~\ref{ass:human}, the expected profit gain of the design in (b) over the design in (a) is nondecreasing in $\alpha$.
+\end{conjecture}
+
+The obstacle is that payments depend on the joint allocation to both traffic types, so revenue is not linear in $\alpha$, and the sign of the change in human position rents depends on $\gamma^H$ and on how labels affect $w_j$. Experiment~E2 tests the conjecture numerically; an analytical proof under equal position weights is a natural next step.
+
+\subsection{Set-blind allocation and click pricing}\label{sec:mechanism-click}
+
+Click-based auctions rank advertisers by predicted rates that depend on the query and the position, not on which organic products share the list.
+
+\begin{definition}[Set-blind policy]\label{def:setblind}
+A sponsored policy is \emph{set-blind} if $Q^s(\cdot\mid x,R)$ does not depend on the organic list $R$.
+\end{definition}
+
+\begin{proposition}[Value of conditioning on the organic list]\label{prop:setblind}
+Suppose $C_j\equiv0$ and the guardrail does not bind. For bids $b$, with $b_j=0$ for $j\notin\mathcal N^{\mathrm{ad}}$, let $U_b(x,R,S^s)=\sum_j\bigl(b_j+g(x,j)\bigr)\bar q_j\bigl(x,(R,S^s)\bigr)$.
+\begin{enumerate}
+\item[(a)] The optimal value of~\eqref{eq:alloc} is $V^{\mathrm{aw}}(b)=n\sum_x\mu(x)\E_R\bigl[\max_{S^s}U_b(x,R,S^s)\bigr]$, and the best set-blind policy attains $V^{\mathrm{bl}}(b)=n\sum_x\mu(x)\max_{S^s}\E_R\bigl[U_b(x,R,S^s)\bigr]$, where $R\sim Q^o(\cdot\mid x)$ and the maxima are over feasible sponsored lists. Hence $V^{\mathrm{aw}}(b)\ge V^{\mathrm{bl}}(b)$, with equality if and only if, for every $x$ with $\mu(x)>0$, one sponsored list maximizes $U_b(x,R,\cdot)$ for every $R$ in the support of $Q^o(\cdot\mid x)$.
+\item[(b)] For every integer $N_a\ge1$, there is an instance with one agent model, $\alpha\equiv1$, Assumption~\ref{ass:deterministic} with $\delta=0$, a common contribution, and $N_a$ advertisers in which $\bigl(V^{\mathrm{bl}}-V^{\varnothing}\bigr)/\bigl(V^{\mathrm{aw}}-V^{\varnothing}\bigr)=1/\mathsf H_{N_a}$, where $V^{\varnothing}$ is the value without sponsorship and $\mathsf H_{N_a}=\sum_{i=1}^{N_a}1/i$.
+\end{enumerate}
+\end{proposition}
+
+\begin{lemma}[Click-based benchmarks under agent traffic]\label{lem:click}
+Under Assumption~\ref{ass:retrieval}, M1 and M2 are set-blind. Under M2, agent requests generate no charges, and the ranking does not depend on agent choices. Under M1, the expected number of charged agent page requests for product $j$ in context $x$ equals $\bar\chi(x)$ times its expected number of sponsored inclusions in agent requests, regardless of how often agents choose it. As $\alpha(x)\to1$, the predicted rates of all products in a given position converge to $\bar\chi(x)$, and M1 ranks by click bid alone.
+\end{lemma}
+
+Lemma~\ref{lem:click} and Proposition~\ref{prop:setblind} separate three reasons why click auctions misallocate agent traffic. Better detection moves the platform from M1 to M2, but M2 does not price agent choices; it treats them as click fraud. Pricing effective choices removes that problem but not set-blindness, whose cost Proposition~\ref{prop:setblind} measures. In the instance of part~(b), the loss grows without bound in relative terms as the number of advertisers grows, although only logarithmically. The cost is zero when the organic composition of a list does not change which sponsored list creates the most value. Together with Proposition~\ref{prop:rents}(d), this answers the first question in Section~\ref{sec:model-questions}: a product-and-position score suffices for human traffic under Assumption~\ref{ass:human}, and for agent traffic only when the best sponsored list does not vary with the organic list within a context. Otherwise, inclusion must be priced conditional on the delivered set.
+
+% ---------------------------------------------------------------------
+\section{Correlated Agent Demand}\label{sec:correlated}
+
+Lemma~\ref{lem:load} shows that a common state adds a term of order $n^2$ to the variance of a product's load. This section asks how the composition of candidate sets determines that term and when the platform should change it. We study the organic design problem without sponsorship; Corollary~\ref{cor:congestion} returns to sponsorship.
+
+\begin{lemma}[Exposure comes from state-contested sets]\label{lem:contested}
+Let Assumption~\ref{ass:deterministic} hold. Call an action $a$ \emph{$j$-contested} at $x$ for model $m$ if $\1\{w^m(x,a,\Lambda)=j\}$ is not constant over $\Lambda$ in the support of $F_\Lambda$, let $\mathcal C_j^m(x)$ be the set of such actions, and let
+\[
+\Theta_j(Q)=\sum_x\mu(x)\alpha(x)\sum_m\pi_m(x)\,Q\bigl(\mathcal C_j^m(x)\mid x\bigr).
+\]
+Then $\Var_\Lambda\bigl(p_j^Q(\Lambda)\bigr)\le\Theta_j(Q)^2/4$. In particular, a policy that assigns no probability to $j$-contested actions has no common-shock exposure for $j$.
+\end{lemma}
+
+Exposure therefore depends on how much probability the policy places on sets whose winner changes with the state, not on how often products are included or how much the platform randomizes. In Example~\ref{ex:diversify}, the policy that mixes $\{A,B\}$ and $\{A,C\}$ places mass $1/2$ on $A$-contested sets, and the bound $n^2/16$ is attained. The next result shows that, when the state reflects agents' tendencies rather than match quality, contested sets can be removed at no expected cost.
+
+\begin{proposition}[Separating state-sensitive rivals]\label{prop:separation}
+Let Assumption~\ref{ass:deterministic} hold, with $\alpha\equiv1$, no sponsorship, and an outside option scored below every eligible product. Suppose that for every context $x$ and every product $j$ that some type chooses under some feasible action, there is a feasible organic list under which every type with positive probability chooses $j$; we call such a list an \emph{anchor} for $j$. Then for every organic policy $Q^o$ there is an organic policy $\tilde Q^o$ such that:
+\begin{enumerate}
+\item[(a)] $p_j^{\tilde Q}(\Lambda)=\E_\Lambda\bigl[p_j^{Q}(\Lambda)\bigr]$ for all $j$ and $\Lambda$, so $\tilde Q^o$ has no common-shock exposure;
+\item[(b)] $\tilde Q^o$ and $Q^o$ yield the same expected loads, expected contributions, and match quality;
+\item[(c)] $\E[C_j(D_j)]$ is weakly lower under $\tilde Q^o$ for every $j$, and strictly lower for every $j$ whose cost has a positive second difference and whose choice probability $p_j^{Q}(\Lambda)$ varies with the state.
+\end{enumerate}
+Consequently, if every $C_j$ has a positive second difference, every optimal organic policy has no common-shock exposure.
+\end{proposition}
+
+The construction replaces each list with a lottery over anchors that reproduces, request by request, the probability that each product is chosen, averaged over the state. The agent's choice from a contested set is a draw shared by all requests in the period; the lottery is a draw that is independent across requests. Because contributions and match quality do not depend on the state (Section~\ref{sec:model-objective}), replacing the shared draw with independent ones loses nothing in expectation and removes the common shock. In Example~\ref{ex:diversify}, alternating between $\{A,C\}$ and $\{B,C\}$ is the separated version of always showing $\{A,B\}$. The result has two limits. Anchors may not exist when every eligible product loses to some rival in some state. And separation removes exactly the head-to-head comparisons from which the platform learns how the state ranks rivals (Section~\ref{sec:learning-identify}).
+
+Proposition~\ref{prop:separation} relies on the state affecting only agents' scores. If a model update partly reflects real changes, such as new reviews or stock-outs, the product an agent prefers in a state may also be the better match in that state, and showing rivals together has value. To study this case, we let contributions and match quality depend on the state, $g(x,j,\Lambda)$ and $u(x,j,\Lambda)$, and write $\nu=g+\eta u$ for the net value of a choice, where $\eta\ge0$ is a multiplier on the guardrail. Because $G$ is concave and $M$ is linear in the organic policy, by the argument of Lemma~\ref{lem:convexity}, an optimal organic policy subject to~\eqref{eq:mq-constraint} maximizes $G+\eta M$ for some $\eta\ge0$ whenever the guardrail holds strictly at some policy.
+
+\paragraph{Two-leader environment.} There is one context, $\alpha\equiv1$, one agent model, $K=2$, and every list displays two of the products $\{1,2,3\}$. Two states are equally likely: $v_1>v_2>v_3>v_0$ in $\Lambda_1$ and $v_2>v_1>v_3>v_0$ in $\Lambda_2$. Products $1$ and $2$ have the same cost function, product $3$ has zero cost, and in each state the net value of the leader the state favors exceeds that of the other leader by $\Delta\ge0$. Let $y$ be the probability of displaying $\{1,2\}$.
+
+\begin{proposition}[Optimal head-to-head share]\label{prop:threshold}
+In the two-leader environment, some optimal organic policy displays $\{1,3\}$ and $\{2,3\}$ with equal probabilities $(1-y)/2$, and every such policy gives each leader expected load $n/2$.
+\begin{enumerate}
+\item[(a)] With quadratic cost $C_j(D)=\lambda D^2/(2B)$ for $j\in\{1,2\}$ and $n\ge2$, the optimal head-to-head share is $y^\ast=\min\{1,\Delta B/(\lambda(n-1))\}$.
+\item[(b)] With overflow cost $C_j(D)=\lambda(D-\omega n)^+$ for $j\in\{1,2\}$, the per-request objective converges, uniformly in $y$, as $n\to\infty$. Let $\Delta>0$. If $\Delta>\lambda$ or $\omega\ge1$, the limit objective is maximized at $y^\ast=1$. If $\Delta<\lambda$ and $\omega<1$, it is maximized at $y^\ast=|2\omega-1|$, at which, in each state, one leader's load equals its capacity.
+\end{enumerate}
+\end{proposition}
+
+Part~(a) carries two messages. Diversification in this environment never changes expected loads; it lowers cost only through the common-shock term, which is why the threshold involves $n-1$ rather than $n$. And if capacity grows with traffic, $B=\omega n$, the optimal share converges to $\min\{1,\Delta\omega/\lambda\}$, so the tradeoff does not disappear at scale. Part~(b) has a different shape: under an overflow cost, the platform either shows the rivals together everywhere or diversifies just enough to keep one leader at capacity, and the choice depends only on whether the value of the state's better match exceeds the marginal overflow cost. When $\Delta=0$, part~(a) gives $y^\ast=0$, consistent with Proposition~\ref{prop:separation}.
+
+Sponsorship interacts with diversification through payments.
+
+\begin{corollary}[Payments include congestion]\label{cor:congestion}
+Under the conditions of Proposition~\ref{prop:ic}, write $G=\Gamma-\sum_i\E[C_i(D_i)]$, where $\Gamma$ is expected contribution, and let $Q^{-j}=(Q^o,Q^{s\ast}(0,b_{-j}))$ and $Q^\ast=(Q^o,Q^{s\ast}(b))$. Then
+\[
+\begin{aligned}
+P_j(b)={}&\sum_{i\ne j}b_i\bigl[X_i(Q^{-j})-X_i(Q^\ast)\bigr]+\bigl[\Gamma(Q^{-j})-\Gamma(Q^\ast)\bigr]\\
+&+\sum_{i\in\mathcal N}\bigl\{\E_{Q^\ast}[C_i(D_i)]-\E_{Q^{-j}}[C_i(D_i)]\bigr\}.
+\end{aligned}
+\]
+\end{corollary}
+
+The last term includes the cost of $j$'s own load. A leader that bids for sponsored inclusion in lists from which the organic policy removed it therefore pays for the concentration and exposure it brings back. Under M3, which sets $C_j\equiv0$, the term is absent, and a leader can buy back the concentration that organic diversification removed. Experiment~E3 measures this difference.
+
+% ---------------------------------------------------------------------
+\section{Learning with Hidden Types and Common States}\label{sec:learning}
+
+Section~\ref{sec:model-learning} identified what the mechanism must learn: the pooled choice probabilities on the sets it may deliver and their variation across periods. This section shows that, with near-deterministic agents, the first depends on which products are compared, and that the precision of both depends on the number of periods.
+
+\subsection{Comparisons, not inclusions}\label{sec:learning-identify}
+
+Consider one context, one agent model, and a fixed state under Assumption~\ref{ass:deterministic}, so that choices follow a strict ranking of $E(x)\cup\{0\}$. Suppose the platform has observed the choice $w(S)$ from each set $S$ in an audited family $\mathcal A$ of unlabeled sets. Let $\mathcal G_{\mathcal A}$ be the directed graph on $E(x)\cup\{0\}$ with an edge from $w(S)$ to $i$ for every $S\in\mathcal A$ and every $i\in(S\cup\{0\})\setminus\{w(S)\}$.
+
+\begin{proposition}[Identification from comparisons]\label{prop:identify}
+The choice from a set $S'$ is identified, in the sense that it is the same under every strict ranking consistent with the observed choices, if and only if some alternative in $S'\cup\{0\}$ has a directed path in $\mathcal G_{\mathcal A}$ to every other alternative in $S'\cup\{0\}$.
+\end{proposition}
+
+\begin{corollary}[Inclusion frequency is not information]\label{cor:design}
+\begin{enumerate}
+\item[(a)] If every audited set that contains product $j$ also contains an alternative chosen over $j$, then for every set $S'$ from which $j$ is chosen, the choice from $S'$ is not identified, however often $j$ was included.
+\item[(b)] Let $K\ge2$ and $N_x=|E(x)|$. Any adaptive audit design that identifies, for every strict ranking, the choice from every subset of $E(x)$ with at most $K$ products uses at least $\log\bigl((N_x+1)!\bigr)/\log(K+1)$ audited sets.
+\end{enumerate}
+\end{corollary}
+
+Proposition~\ref{prop:identify} formalizes Example~\ref{ex:inclusion}: if $B$ always appears with $A$, the platform learns that $A$ beats $B$ and nothing about $B$ against $C$. Exploration must therefore be designed over competitor sets. Two consequences matter for the mechanism. A platform that separates state-sensitive rivals for cost reasons (Proposition~\ref{prop:separation}) must reserve some audit traffic in which they meet, or it cannot detect a state in which their order changes. And when the common state changes the ranking, identification holds state by state, so the same comparisons must be repeated across periods.
+
+\subsection{Periods, not requests}\label{sec:learning-periods}
+
+We now consider the general pooled model with hidden types. Fix a finite set $\mathcal S$ of context-action cells $c=(x,a)$ and a finite menu $\mathcal Q_{\mathrm{fin}}$ of policies supported on $\mathcal S$. In every period, for each $c\in\mathcal S$, exactly $n_0\ge2$ requests with context $x$ receive action $a$; these audit requests are selected without regard to bids or outcomes and are additional to the $n$ requests served by the mechanism. Let $Y_{e,c,j}$ be the fraction of the audit requests at cell $c$ in period $e$ that end with an effective choice of $j$, and $Y^g_{e,c}$ their average contribution. After $h$ periods, the platform estimates
+\[
+\hat q_j(c)=\frac1h\sum_{e=1}^hY_{e,c,j},\qquad\hat g(c)=\frac1h\sum_{e=1}^hY^g_{e,c}.
+\]
+For $Q\in\mathcal Q_{\mathrm{fin}}$, let $\iota_c(Q)=\mu(x)Q(a\mid x)$, and set $\hat X_j(Q)=n\sum_c\iota_c(Q)\hat q_j(c)$ and $\hat\Gamma(Q)=n\sum_c\iota_c(Q)\hat g(c)$. With quadratic costs $C_j(D)=\lambda_jD^2/(2B_j)$, the expected cost equals $(\lambda_j/2B_j)\{n\E_\Lambda[p_j^Q]+n(n-1)\E_\Lambda[(p_j^Q)^2]\}$, and we estimate it by
+\[
+\hat C_j(Q)=\frac{\lambda_j}{2B_j}\Bigl\{\hat X_j(Q)+n(n-1)\frac1h\sum_{e=1}^h\sum_{c,c'\in\mathcal S}\iota_c(Q)\iota_{c'}(Q)V_{e,c,c',j}\Bigr\},
+\]
+where $V_{e,c,c',j}=Y_{e,c,j}Y_{e,c',j}$ for $c\ne c'$ and $V_{e,c,c,j}=Y_{e,c,j}(n_0Y_{e,c,j}-1)/(n_0-1)$. Let $\hat W_b(Q)=\sum_jb_j\hat X_j(Q)+\hat\Gamma(Q)-\sum_j\hat C_j(Q)$. The \emph{plug-in mechanism} selects $\hat Q(b)\in\arg\max_{Q\in\mathcal Q_{\mathrm{fin}}}\hat W_b(Q)$ with a fixed tie-breaking rule and charges~\eqref{eq:payment} with $\hat X_j$ in place of $X_j$.
+
+\begin{proposition}[Audit-then-commit]\label{prop:learning}
+Let Assumptions~\ref{ass:cond-indep}, \ref{ass:value}, and~\ref{ass:cost} hold with quadratic costs, let $\mu$ be known, let the common states of different periods be independent draws from $F_\Lambda$, let $\bar g=\max_{x,j}g(x,j)$, and let $\varrho\in(0,1)$.
+\begin{enumerate}
+\item[(a)] $\hat q_j(c)$ is unbiased for $\bar q_j(c)$, with
+\[
+\Var\bigl(\hat q_j(c)\bigr)=\frac1h\Bigl\{\Var_\Lambda\bigl(q_j(c\mid\Lambda)\bigr)+\frac1{n_0}\E_\Lambda\bigl[q_j(c\mid\Lambda)\bigl(1-q_j(c\mid\Lambda)\bigr)\bigr]\Bigr\},
+\]
+and $\hat\Gamma(Q)$ and $\hat C_j(Q)$ are unbiased for every policy supported on $\mathcal S$.
+\item[(b)] With probability at least $1-3\varrho$, simultaneously for all bid profiles $b$, $\sup_{Q\in\mathcal Q_{\mathrm{fin}}}|\hat W_b(Q)-W_b(Q)|\le\varepsilon_h(b)$, where
+\[
+\varepsilon_h(b)=n\Bigl(\sum_jb_j+\sum_j\frac{\lambda_j}{2B_j}\Bigr)\epsilon_1+n\bar g\,\epsilon_g+n(n-1)\sum_j\frac{\lambda_j}{2B_j}\,\epsilon_2,
+\]
+with $\epsilon_1=\sqrt{\log(2N|\mathcal S|/\varrho)/(2h)}$, $\epsilon_g=\sqrt{\log(2|\mathcal S|/\varrho)/(2h)}$, and $\epsilon_2=\sqrt{2\log(2N|\mathcal Q_{\mathrm{fin}}|/\varrho)/h}$.
+\item[(c)] On that event, $\max_{Q\in\mathcal Q_{\mathrm{fin}}}W_b(Q)-W_b\bigl(\hat Q(b)\bigr)\le2\varepsilon_h(b)$.
+\item[(d)] On that event, for every advertiser $j$ and every $b_{-j}$, no report raises $j$'s expected utility by more than $2\theta_jn\epsilon_1$ above truthful reporting, and truthful reporting yields expected utility at least $-\theta_jn\epsilon_1$.
+\end{enumerate}
+\end{proposition}
+
+Part~(a) is the formal version of the observation in Section~\ref{sec:model-learning}: when the state matters, the variance of the estimate stays above $\Var_\Lambda(q_j)/h$ however many audit requests are taken within each period. Parts~(b)--(d) give an explicit price of learning. Capacity usually grows with traffic, so $n/B_j$ is bounded, and the per-request loss is of order $h^{-1/2}$ up to logarithmic factors in the catalog size, the number of audited cells, and the size of the menu. Within-period audit volume enters only through $n_0\ge2$, because a quadratic cost depends on the first two moments of the choice probability, and both have unbiased within-period estimators.
+
+\begin{corollary}[Cumulative loss]\label{cor:cumulative}
+Suppose that in each period $e=2,\ldots,h$ the platform runs the plug-in mechanism with estimates from periods $1,\ldots,e-1$ and failure probability $\varrho_e=\varrho/(e(e-1))$, and that bids are fixed at $b$. Then with probability at least $1-3\varrho$, the cumulative loss $\sum_{e=2}^h\bigl[\max_{Q\in\mathcal Q_{\mathrm{fin}}}W_b(Q)-W_b(\hat Q_e(b))\bigr]$, which excludes the value and cost of audit requests, is at most $c_0\,n\sqrt{h\log\bigl(hN|\mathcal S||\mathcal Q_{\mathrm{fin}}|/\varrho\bigr)}$ for a constant $c_0$ proportional to $\sum_jb_j+\bar g+\sum_j\lambda_jn/B_j$.
+\end{corollary}
+
+\subsection{Open problems}\label{sec:learning-open}
+
+Two extensions are needed before the learning results cover the full mechanism.
+
+\begin{conjecture}[General convex costs]\label{conj:convex}
+For operating costs with bounded second differences that are not quadratic, the conclusions of Proposition~\ref{prop:learning}(b)--(d) hold with $\varepsilon_h(b)$ replaced by a term of order $h^{-1/2}$ plus a bias that vanishes as $n_0\to\infty$.
+\end{conjecture}
+
+The obstacle is that the expected cost is a polynomial of degree $n$ in the choice probability, and unbiased within-period estimation of such a polynomial needs at least $n$ audit requests per cell. A route is to approximate $C_j$ by a low-degree Bernstein polynomial in $D/n$, estimate it without bias by $U$-statistics of degree at most $n_0$, and balance the approximation error against the variance.
+
+\begin{conjecture}[Advertiser-funded exploration]\label{conj:funded}
+Replacing audit traffic with randomized sponsored inclusions of challengers, priced by~\eqref{eq:payment}, attains cumulative loss of order $\sqrt h$ while keeping the per-period incentive loss of order $h^{-1/2}$.
+\end{conjecture}
+
+The obstacle is dynamic. A challenger's current bid would change the data and therefore its future allocations, so per-period incentive compatibility no longer implies incentive compatibility over periods, and deterministic truthful learning mechanisms must separate exploration from exploitation \citep{babaioff2014characterizing}. A next step is to make inclusion lotteries independent of bids conditional on eligibility and to check whether the resulting dynamic incentive loss can be bounded as in Proposition~\ref{prop:learning}(d).
+
+% ---------------------------------------------------------------------
+\section{Experimental Design}\label{sec:experiments}
+
+The analysis makes three kinds of claims: behavioral premises (near-deterministic choice, set dependence, label penalties, shared states), predictions about mechanisms (Propositions~\ref{prop:rents}--\ref{prop:setblind} and Lemma~\ref{lem:click}), and predictions about operations and learning (Propositions~\ref{prop:separation}--\ref{prop:learning}). The experiments are designed so that each claim can fail. Where a result is an exact consequence of the model, as in Propositions~\ref{prop:separation}, \ref{prop:threshold}, and~\ref{prop:learning}(a), simulation only checks the implementation. The evidence comes from whether the premises hold for actual agents (E1), whether the predicted comparisons survive finite noise and calibrated heterogeneity (E2--E4), and whether the advertising unit has the property posited in Assumption~\ref{ass:value} (E5). Table~\ref{tab:exp-overview} summarizes the design. No experiment has been run; all results are \TBD{to be reported}.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Experiments, the results they test, and their comparisons}\label{tab:exp-overview}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{0.06\textwidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}p{0.17\textwidth}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule
+& Question & Tests & Main manipulations & Comparisons and metrics \\
+\midrule
+E1 & Do agents behave as Sections~\ref{sec:model} and~\ref{sec:mechanism} assume? & Lemma~\ref{lem:small-noise}; Assumption~\ref{ass:deterministic}; which of Propositions~\ref{prop:separation} and~\ref{prop:threshold} applies & Set composition, labels, positions, interface, model version & Across models and versions: choice consistency, IIA violations, label effect, version shifts, page-request rates \\
+E2 & What does advertising sell to agent traffic? & Propositions~\ref{prop:rents}--\ref{prop:setblind}, Lemma~\ref{lem:click}, Conjecture~\ref{conj:gating} & Agent share, organic regime, organic variation, $\chi_m$, number of favorites & M1, M2, set-blind M3, M3, M4, profit rule: payments by traffic type, profit, match quality \\
+E3 & How should sets respond to shared states? & Lemma~\ref{lem:contested}, Propositions~\ref{prop:separation}--\ref{prop:threshold}, Corollary~\ref{cor:congestion} & Organic policy, capacity, cost curvature, state structure & Head-to-head, separated, composition-blind randomization, quotas; M3 vs.\ M4: variance decomposition, overflow, cost \\
+E4 & What must be explored, and for how long? & Proposition~\ref{prop:identify}, Corollary~\ref{cor:design}, Proposition~\ref{prop:learning}, Corollary~\ref{cor:cumulative} & Audit design, $h$, $n_0$, state variance & Leader-inclusive vs.\ competitor-varying designs: identification, estimation error, incentive loss \\
+E5 & Is value per effective choice policy invariant? & Assumption~\ref{ass:value} & Randomized strength of competing products & Purchases per effective choice by arm; predictive power vs.\ clicks \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{E1: Agent response audit}\label{sec:exp-audit}
+
+\paragraph{Hypotheses.} (H1a) The ratio of two products' choice frequencies changes when a product that agents prefer to both is added or removed, a violation of the independence of irrelevant alternatives. (H1b) Repeated presentations of the same set yield the same choice in most trials, and estimated score gaps are large relative to the noise scale. (H1c) The label effect $\delta_m/\sigma_m$ is negative and differs across models. (H1d) Version changes within a provider reorder favorites for a nonnegligible share of tasks; we also test whether these reorderings align with the ground-truth utility defined below. (H1e) Browser-based agents request pages of products they do not choose.
+
+\paragraph{Design and data.} Product information (title, price, rating, rating count, and description) comes from the Amazon Reviews 2023 item metadata \citep{hou2024bridging}, restricted to categories with many close substitutes. For each category, we define shopping tasks with explicit requirements, so that a ground-truth utility $u$ can be computed from product attributes, and eligible sets of 10 to 30 products. Candidate sets of size $K\in\{2,4,8\}$ are assigned by a balanced incomplete block design in which every pair of products appears together. Positions are randomly permuted, and sponsored labels are assigned independently with probability $0.3$. Each set is presented through three interfaces: a text listing, a rendered page for browser-based agents, and structured data. Agents are built on models from at least three providers, with at least two versions per provider, at default and zero temperature; each set is presented ten times. We record model identifiers, access dates, prompts, and raw outputs.
+
+\paragraph{Estimation.} For each model and version, we fit a conditional logit with product fixed effects, a label effect, and position effects. Scores and the noise scale are identified only up to scale, so we report $v_j^m/\sigma_m$, $\delta_m/\sigma_m$, and $\beta_{m,k}/\sigma_m$. H1a is tested by comparing choice odds of product pairs across sets with and without a third product \citep{hausman1984specification}; H1d by rank correlations of estimated scores across versions and by their correlation with $u$.
+
+\paragraph{Interpretation.} If H1a and H1b fail for a model or interface, separable approximations suffice for that traffic, and the gaps in Section~\ref{sec:mechanism} should shrink accordingly; E2 then reports results by interface. If version shifts align with $u$ (H1d), the state carries quality information and Proposition~\ref{prop:threshold}, rather than Proposition~\ref{prop:separation}, governs set design. The estimated parameters are released and used to calibrate E2--E4. Results: \TBD{Table of estimated parameters and test statistics}.
+
+\subsection{E2: Mechanism comparison}\label{sec:exp-mechanism}
+
+\paragraph{Hypotheses.} (H2a, Proposition~\ref{prop:rents}) Under agent-aware organic policies, payments attributable to agent traffic under M3 are zero up to simulation error, and total payments decline toward zero as $\alpha\to1$; under organic policies optimized for human traffic, agent-traffic payments increase with $|F(x)|-(K-K^s)$. (H2b, Proposition~\ref{prop:gating} and Conjecture~\ref{conj:gating}) In a monoculture, gating raises profit by $n\xi\E[\min\{\theta_f,\theta_r\}]$ and lowers match quality by the amount in Proposition~\ref{prop:gating}(b); with human traffic added, the profit gain from gating is nondecreasing in $\alpha$. (H2c, Lemma~\ref{lem:click} and Proposition~\ref{prop:setblind}) M2's revenue falls in proportion to $\E_\mu[1-\alpha(x)]$; M1's payment per effective choice rises with $\alpha\bar\chi$; the gap between M3 and its best set-blind version is zero when organic lists are fixed within a context and increases with within-context variation in organic lists.
+
+\paragraph{Design.} Simulated markets use agent parameters estimated in E1. Human position weights are calibrated to published estimates of position effects \citep{ursu2018power} where available and otherwise varied over a grid. Advertiser values are drawn from uniform and lognormal distributions. Advertisers bid truthfully under M3, M4, and the profit-maximizing rule of Proposition~\ref{prop:profit}. Under M1 and M2, we use two bidding rules: a value per click equal to $\theta_j$ times effective choices per charged click under the realized allocation, iterated to a fixed point; and a value per click fixed at the human conversion rate. Factors are $\alpha\in\{0,0.25,0.5,0.75,1\}$; the organic regime (optimized for humans, agent-aware, gated); within-context organic variation (none, randomized); $\chi_m\in\{0,0.5,1\}$; the number of models and versions, which controls $|F(x)|$; residual position effects $\beta_{m,k}$, set to their E1 estimates or to zero; $K\in\{4,8\}$; and $K^s\in\{1,2\}$.
+
+\paragraph{Comparisons and metrics.} The sequence M1 $\to$ M2 isolates detection, M2 $\to$ set-blind M3 the advertising unit, set-blind M3 $\to$ M3 set awareness, and M3 $\to$ M4 operating costs; the surplus rule is also compared with the profit-maximizing rule. We report payments by traffic type, contributions, operating cost, profit, match quality and guardrail slack, payment per effective choice for each advertiser, and, when $\bar q$ is estimated, the calibration error of $\tilde c$ (Lemma~\ref{lem:calibration}). Each configuration uses at least 200 simulated markets with 95\% bootstrap confidence intervals over markets.
+
+\paragraph{Interpretation.} H2a and H2b test whether inclusion rents, not position rents, drive revenue from agent traffic once noise is finite and agent types are heterogeneous. A positive set-awareness gap with deterministic organic lists would contradict Proposition~\ref{prop:setblind} and indicate an implementation or calibration error. A failure of H2c's M1 prediction under browser agents would point to page requests that track choices, which Assumption~\ref{ass:retrieval} rules out. Results: \TBD{Tables of payments, profit, and match quality by configuration}.
+
+\subsection{E3: Correlated demand}\label{sec:exp-correlated}
+
+\paragraph{Hypotheses.} (H3a, Lemma~\ref{lem:contested} and Proposition~\ref{prop:separation}) The separated policy matches the original policy's expected loads, contributions, and match quality and has no across-state variation in choice probabilities; composition-blind randomization, which randomizes as often but keeps the leader in every set, retains exposure close to the bound of Lemma~\ref{lem:contested}. (H3b, Proposition~\ref{prop:threshold}) When states carry quality information, the optimal head-to-head share follows the closed forms. (H3c, Corollary~\ref{cor:congestion}) With sponsorship enabled, leaders buy back sponsored inclusion and restore exposure under M3, and do so under M4 only when their bids exceed the congestion term.
+
+\paragraph{Design.} Part~A solves the two-leader environment numerically as a convex program and compares the solution with Proposition~\ref{prop:threshold}; this checks the implementation. Part~B uses states defined by model versions estimated in E1, in categories with several close leaders. We compare a deterministic organic policy that maximizes match quality, its separated version, composition-blind randomization, and a quota implementation of the separated version. Costs are quadratic and overflow, with capacity share $\omega\in\{0.3,0.5,0.6,0.8,1\}$ and a grid of $\lambda$. The state structure follows H1d: shifts aligned or not aligned with $u$. Sensitivity analyses vary state probabilities, capacities, the human share, the number of states, and correlation across models.
+
+\paragraph{Metrics and interpretation.} We report the variance of loads split into within-state and across-state parts, overflow probability, expected operating cost, match quality, and profit. If separated policies lower cost without lowering match quality in calibrated environments, Proposition~\ref{prop:separation} applies in practice; if they lower match quality, the calibrated states carry quality information and the relevant tradeoff is that of Proposition~\ref{prop:threshold}. Results: \TBD{Variance decompositions and cost comparisons}.
+
+\subsection{E4: Learning}\label{sec:exp-learning}
+
+\paragraph{Hypotheses.} (H4a, Proposition~\ref{prop:identify}) The share of target sets whose choice is identified is determined by reachability in $\mathcal G_{\mathcal A}$, not by inclusion frequency. (H4b, Proposition~\ref{prop:learning}(a)) Estimation error falls like $h^{-1/2}$ and does not fall with $n_0$ beyond small values when $\Var_\Lambda(q)>0$, but does when $\Var_\Lambda(q)=0$. (H4c, Proposition~\ref{prop:learning}(d)) The largest gain from misreporting, found by grid search over reports, is below $2\theta_jn\epsilon_1$ and declines with $h$. (H4d, Corollary~\ref{cor:cumulative}) Cumulative loss grows like $\sqrt h$.
+
+\paragraph{Design.} We compare leader-inclusive audit designs, competitor-varying designs constructed so that $\mathcal G_{\mathcal A}$ connects the relevant alternatives, and random designs matched on inclusion frequency. Factors are $h\in\{5,10,20,50,100\}$, $n_0\in\{2,10,100,1000\}$, the across-state variance (scaled from E1), and $N_x\in\{10,30\}$. As an exploratory analysis not covered by the theory, we record how many periods each design needs to recover after a version change.
+
+\paragraph{Interpretation.} A failure of H4b in the direction of errors that keep falling with $n_0$ when $\Var_\Lambda(q)>0$ would indicate that the calibrated states are less persistent than assumed. Results: \TBD{Identification rates, error curves, incentive gains, cumulative loss}.
+
+\subsection{E5: Validating the advertising unit}\label{sec:exp-unit}
+
+Assumption~\ref{ass:value} posits that the platform's policy affects advertiser value only through effective choices. Sandbox experiments cannot test this, because purchases there are not real. E5 is a field experiment with a partner that observes agent-initiated selections, for example through an agent checkout interface, together with purchases and returns.
+
+\paragraph{Hypotheses.} (H5a) Purchases net of returns per effective choice do not differ between requests randomized to candidate sets with strong and with weak competitors. (H5b) The qualifying event predicts purchases better than clicks, consistently across arms and, where identifiable, across traffic types.
+
+\paragraph{Design and analysis.} Randomization is at the request level for a subset of products. We record candidate qualifying events (confirmed selection, add-to-cart instruction), clicks, purchases, and returns, and test H5a by randomization inference on the difference in purchases per effective choice. Following the surrogate literature \citep{prentice1989surrogate,athey2026surrogate}, a failure of H5a means that effective choices are not a valid unit across policies; Assumption~\ref{ass:value} would then need context- or set-dependent values, and Proposition~\ref{prop:ic} would require multidimensional bids. The partner and sample size are \TBD{to be determined}.
+
+\subsection{Reproducibility}\label{sec:exp-repro}
+
+We will release code, configuration files, random seeds, model identifiers with access dates, prompts, and raw agent outputs. Allocation problems are convex by Lemma~\ref{lem:convexity} and are solved with a general-purpose convex solver, or a linear program when $C_j\equiv0$. Hypotheses H1--H5 will be registered before E1 and E5 are run. The computing and interface budget is \TBD{to be determined}.
+
+% ---------------------------------------------------------------------
+\section{Discussion}\label{sec:discussion}
+
+\paragraph{Implications.} Each implication below holds within the model and under the stated conditions; whether those conditions describe actual agents is the subject of E1 and E5.
+\begin{enumerate}
+\item \emph{Price effective choices conditional on the delivered set.} Click auctions either leave agent choices unpriced or charge per inclusion (Lemma~\ref{lem:click}), and pricing that ignores the organic composition of each list can lose most of the attainable surplus (Proposition~\ref{prop:setblind}). The threshold payment~\eqref{eq:payment} prices the effective choices a bid adds and makes truthful bidding dominant (Proposition~\ref{prop:ic}).
+\item \emph{Revenue from agent traffic depends on organic design.} With deterministic agents, sponsorship earns nothing from agent traffic when organic lists already contain agents' favorites (Proposition~\ref{prop:rents}). A platform that can design its organic policy has an incentive to omit favorites and sell their inclusion back, and neither bid-independence nor a guardrail relative to the best attainable match quality removes that incentive (Proposition~\ref{prop:gating}). Preventing it requires a rule on organic design, such as an inclusion floor, which in a monoculture also removes advertising revenue from agent traffic.
+\item \emph{Demand risk from shared models is a set-design problem.} Exposure comes only from sets whose winner changes with the shared state (Lemma~\ref{lem:contested}). When the state does not affect match quality, separating state-sensitive rivals removes the exposure at no expected cost (Proposition~\ref{prop:separation}); when it does, the head-to-head share follows Proposition~\ref{prop:threshold}. Payments under the full mechanism charge advertisers for the congestion their inclusion creates (Corollary~\ref{cor:congestion}).
+\item \emph{Learn by comparing, and budget periods.} With near-deterministic agents, what can be learned depends on which products are compared (Proposition~\ref{prop:identify}), and the precision of the estimates depends on the number of periods rather than requests (Proposition~\ref{prop:learning}).
+\end{enumerate}
+
+\paragraph{Limitations.} The sharpest results hold in the deterministic limit; their finite-noise counterparts are examined only numerically. Assumption~\ref{ass:value} has not been validated (E5). Human response is a separable reduced form. The model has a single platform, so agents' outside options are exogenous and platforms do not compete for agent traffic. Advertisers cannot change how agents evaluate their listings, although audits suggest they can \citep{allouah2026your}. The two-leader environment of Proposition~\ref{prop:threshold} is stylized. Finally, the legal treatment of agent access remains unsettled.
+
+\paragraph{Next steps.} The most important theoretical steps are bounds for Propositions~\ref{prop:rents}--\ref{prop:setblind} that degrade continuously in $\sigma_m$; a model in which agents query several platforms, which would make the outside option endogenous; and resolution of Conjectures~\ref{conj:gating}--\ref{conj:funded}. The most important empirical step is securing a partner for E5.
+
+
+% =====================================================================
+% Appendix: proofs (new in v2)
+% =====================================================================
+\begin{APPENDICES}
+
+\section{Proofs for Section~\ref{sec:model}}\label{app:model}
+
+Throughout, $Q=(Q^o,Q^s)$, and expectations are over contexts, organic lists, sponsored lists, types, the common state, and choices.
+
+\paragraph{Proof of Lemma~\ref{lem:small-noise}.}
+Write $s_i=s_i^m(x,a,\Lambda)$ for $i\in S(a)$, $s_0=v_0^m(x)$, and $s^\ast=s_{i^\ast}$. Dividing the numerator and denominator of~\eqref{eq:agent-logit} by $\exp(s^\ast/\sigma_m)$ gives
+$q_j^{A_m}(x,a\mid\Lambda)=\exp\bigl((s_j-s^\ast)/\sigma_m\bigr)\big/\sum_{i\in S(a)\cup\{0\}}\exp\bigl((s_i-s^\ast)/\sigma_m\bigr)$.
+The denominator contains the term for $i^\ast$, which equals one, and every other term tends to zero because $s_i<s^\ast$ for $i\ne i^\ast$. The numerator tends to one if $j=i^\ast$ and to zero otherwise. \hfill$\square$
+
+\paragraph{Proof of Lemma~\ref{lem:calibration}.}
+Because the policy is fixed within the period, $a_t$ depends only on $x_t$ and on randomization independent of $\Lambda$, and $\tau_t$ depends only on $x_t$ and independent randomization. Hence $\Lambda$ is independent of $(x_t,a_t)$, and $\tau_t$ is independent of $(a_t,\Lambda)$ given $x_t$. By Assumption~\ref{ass:cond-indep} and~\eqref{eq:mixed-q},
+\[
+\E[Z_{jt}\mid x_t=x,a_t=a]=\int\sum_{\tau\in\mathcal T}\Pr(\tau_t=\tau\mid x)\,q_j^\tau(x,a\mid\Lambda)\,dF_\Lambda=\bar q_j(x,a).
+\]
+Since $\bar q_j(x,a)=0$ for $j\notin S(a)$, $\E[Z_{jt}\mid x_t,a_t]=\tilde c_{jt}$. Taking expectations and summing over $t$ gives the first equality; averaging over $x_t\sim\mu$ and $a_t\sim Q(\cdot\mid x_t)$ gives the second. \hfill$\square$
+
+\paragraph{Proof of Lemma~\ref{lem:load}.}
+Conditional on $\Lambda$, Assumption~\ref{ass:cond-indep} implies that $Z_{j1},\ldots,Z_{jn}$ are independent, and averaging over $(x_t,\tau_t,a_t)$ as in the previous proof shows that each is Bernoulli with success probability $p_j^Q(\Lambda)$. Hence $D_j$ given $\Lambda$ is binomial with parameters $n$ and $p_j^Q(\Lambda)$. The mean follows by iterated expectations and the variance by the law of total variance. For $t\ne s$, $\E[Z_{jt}Z_{js}]=\E_\Lambda[p_j^Q(\Lambda)^2]$, so $\Cov(Z_{jt},Z_{js})=\Var_\Lambda(p_j^Q(\Lambda))$. \hfill$\square$
+
+\paragraph{Proof of Lemma~\ref{lem:convexity}.}
+Because $\mathcal X$, $\mathcal N$, and $K$ are finite, each context admits finitely many organic lists and sponsored lists, and $Q^s$ is a vector in a finite product of simplices, one for each pair $(x,R)$, restricted to lists satisfying eligibility, the size limits, and organic integrity.
+By~\eqref{eq:pQ} and $Q(a\mid x)=Q^o(R\mid x)Q^s(S^s\mid x,R)$, $p_j^Q(\Lambda)$ is linear in $Q^s$ for each $\Lambda$, and so is $X_j(Q)=n\E_\Lambda[p_j^Q(\Lambda)]$. By Lemma~\ref{lem:calibration}, $\E_Q[\sum_tg(x_t,J_t)]=n\sum_x\mu(x)\sum_aQ(a\mid x)\sum_j\bar q_j(x,a)g(x,j)$ is linear, and the same argument applies to $M(Q)$ with $u(x,0)=0$.
+For the cost, the proof of Lemma~\ref{lem:load} gives $\E_Q[C_j(D_j)]=\E_\Lambda[\mathcal B_j(p_j^Q(\Lambda))]$, where $\mathcal B_j(p)=\sum_{k=0}^nC_j(k)\binom nkp^k(1-p)^{n-k}$. If $n=1$, $\mathcal B_j$ is linear. If $n\ge2$, the derivative formula for Bernstein polynomials gives
+\[
+\mathcal B_j''(p)=n(n-1)\sum_{k=0}^{n-2}\Delta^2C_j(k)\binom{n-2}{k}p^k(1-p)^{n-2-k},\qquad\Delta^2C_j(k)=C_j(k+2)-2C_j(k+1)+C_j(k),
+\]
+which is nonnegative under Assumption~\ref{ass:cost}, and positive on $(0,1)$ if some $\Delta^2C_j(k)>0$. Thus $\mathcal B_j$ is convex, $\mathcal B_j(p_j^Q(\Lambda))$ is convex in $Q^s$, and convexity is preserved by expectation and summation, so $G$ is concave. The set of policies satisfying eligibility, size limits, and organic integrity is a product of simplices, and~\eqref{eq:mq-constraint} is a linear inequality; their intersection is compact and convex. \hfill$\square$
+
+\paragraph{Proof of Proposition~\ref{prop:ic}.}
+(a) Fix $b_{-j}$ and $b_j'>b_j$, and let $Q$ and $Q'$ be the policies selected at $(b_j,b_{-j})$ and $(b_j',b_{-j})$. Since $W_{-j}$ does not depend on $b_j$, optimality gives $b_jX_j(Q)+W_{-j}(Q)\ge b_jX_j(Q')+W_{-j}(Q')$ and $b_j'X_j(Q')+W_{-j}(Q')\ge b_j'X_j(Q)+W_{-j}(Q)$. Adding the two yields $(b_j'-b_j)(X_j(Q')-X_j(Q))\ge0$.
+
+(b) Write $X(z)=X_j(z,b_{-j})$, which is nondecreasing by (a). An advertiser with value $\theta_j$ who bids $b$ obtains $U(b)=(\theta_j-b)X(b)+\int_0^bX(z)\,dz$. Then $U(\theta_j)-U(b)=\int_b^{\theta_j}X(z)\,dz-(\theta_j-b)X(b)\ge0$ for $b<\theta_j$ and for $b>\theta_j$, by monotonicity. Monotonicity also gives $\int_0^bX(z)\,dz\le bX(b)$, so $P_j\ge0$, and $U(\theta_j)=\int_0^{\theta_j}X(z)\,dz\ge0$.
+
+(c) Let $\Phi(z)=\max_{Q^s\in\mathcal Q}\{zX_j(Q)+W_{-j}(Q)\}$. As a maximum of affine functions, $\Phi$ is convex and absolutely continuous, and wherever it is differentiable its derivative equals $X(z)$. Hence $\Phi(b_j)-\Phi(0)=\int_0^{b_j}X(z)\,dz$. Since $\Phi(0)=\max_{Q^s}W_{-j}(Q)$ and $\Phi(b_j)=b_jX(b_j)+W_{-j}(Q^o,Q^{s\ast}(b))$, rearranging gives (c). \hfill$\square$
+
+\paragraph{Proof of Proposition~\ref{prop:profit}.}
+Consider any Bayesian incentive-compatible, interim individually rational mechanism that selects, possibly at random, a sponsored policy in $\mathcal Q$ for each report profile. Let $\bar x_j(\theta_j)$ be the interim expectation of $X_j$ for type $\theta_j$ and $\bar U_j(\theta_j)$ its interim utility. Incentive compatibility implies that $\bar x_j$ is nondecreasing and $\bar U_j(\theta_j)=\bar U_j(0)+\int_0^{\theta_j}\bar x_j(z)\,dz$ \citep{myerson1981optimal}; integrating by parts, $j$'s expected payment equals $\E[\varphi_j(\theta_j)\bar x_j(\theta_j)]-\bar U_j(0)$. Expected profit is therefore at most $\E[\max_{Q^s\in\mathcal Q}\{\sum_j\varphi_j(\theta_j)X_j(Q^o,Q^s)+G(Q^o,Q^s)\}]$, using $\bar U_j(0)\ge0$ and the fact that a random policy cannot exceed the pointwise maximum. The rule $Q^{s,R}$ attains the maximum. With ties broken by a rule that depends on bids only through the weights $\varphi_j(b_j)$, the argument of Proposition~\ref{prop:ic}(a) shows that $X_j$ is nondecreasing in $\varphi_j(b_j)$, hence in $b_j$, and the argument of Proposition~\ref{prop:ic}(b) shows that~\eqref{eq:payment} makes truthful reporting dominant and gives type zero zero utility. \hfill$\square$
+
+\section{Proofs for Section~\ref{sec:mechanism}}\label{app:mechanism}
+
+Write $v_i=v_i^m(x,\Lambda)$, $v_0=v_0^m(x)$, and $\delta=\delta_m$ when the type is fixed.
+
+\paragraph{Proof of Proposition~\ref{prop:rents}.}
+(a) Let $R$ be in the support of $Q^o(\cdot\mid x)$. Since $f$ is among the first $K-K^s\le K$ products of $R$, it is displayed under $(R,\varnothing)$, and it is chosen because $v_f>v_i$ for every $i\in E(x)\setminus\{f\}$ and $v_f>v_0$. Now let $|S^s|=s\le K^s$ and $f\notin S^s$. The position of $f$ in $R\setminus S^s$ is at most its position in $R$, hence at most $K-K^s\le K-s$, so $f\in O(R,S^s)$ is displayed without a label. Every other displayed product $i$ has score $v_i+\delta\ell_i\le v_i<v_f$, and $v_0<v_f$, so $f$ is chosen. Hence an alternative other than $f$ can be chosen only if $f\in S^s$.
+
+(b) If $f\in S^s$, its score is $v_f+\delta$, which exceeds $v_0$ and $v_i\ge v_i+\delta\ell_i$ for every displayed $i\ne f$, so $f$ is chosen.
+
+(c) A type whose favorite is $0$ chooses $0$ under every action, because labeled scores are weakly lower than unlabeled ones. By (a)--(b), every other type chooses its favorite under every action in the support of every policy with organic policy $Q^o$. Therefore
+\[
+X_j^A(Q)=n\sum_x\mu(x)\alpha(x)\sum_m\pi_m(x)\Pr_\Lambda\bigl(f_{m,\Lambda}(x)=j\bigr)
+\]
+does not depend on $Q^s$. Since $X_j(b)=X_j^H(b)+X_j^A$ with $X_j^A$ constant, the constant cancels in~\eqref{eq:payment}, giving the stated formula; $X_j^H$ is nondecreasing in $b_j$ because $X_j$ is (Proposition~\ref{prop:ic}(a)). Hence $\int_0^{b_j}X_j^H(z,b_{-j})\,dz\ge b_jX_j^H(0,b_{-j})$ and $P_j(b)\le b_j[X_j^H(b)-X_j^H(0,b_{-j})]\le b_jn\E_\mu[1-\alpha(x)]$, because the human component of $X_j$ lies in $[0,n\E_\mu[1-\alpha(x)]]$.
+
+(d) Under Assumption~\ref{ass:human}, $q_j^H(x,(R,(j)))=\gamma_1^Hw_j(x,1)$, while $q_j^H(x,(R,\varnothing))$ equals $\gamma_k^Hw_j(x,0)$ if $j$ is displayed organically in position $k$ and zero otherwise. \hfill$\square$
+
+\paragraph{Proof of Corollary~\ref{cor:aware}.}
+If $|F(x)|\le K-K^s$, any organic list that places the products of $F(x)$ first is aware of all the types. Conversely, a list has only $K-K^s$ positions among its first $K-K^s$ products, so if $|F(x)|>K-K^s$, every list omits some favorite from those positions. \hfill$\square$
+
+\paragraph{Proof of Proposition~\ref{prop:gating}.}
+Because the outside option is scored below every product, every request ends with a product, so $G=ng_0$ under every policy, and every policy's match quality is at most $nu(f)$, which the policy in (a) attains. Hence $M^{\mathrm{ref}}=nu(f)$.
+
+(a) By Proposition~\ref{prop:rents}(b), applied with $K^s=1$ and the condition $v_f+\delta>v_r>v_i$, the agent chooses $f$ under every action. Hence $X_f=n$ and $X_j=0$ for $j\ne f$ under every sponsored policy, so every $X_j(\cdot,b_{-j})$ is constant and every payment~\eqref{eq:payment} is zero.
+
+(b) Let $R$ be in the support of the gating policy. Under $(R,\varnothing)$, $f$ is not displayed and $r$ is, so the agent chooses $r$. Under $(R,(f))$, $r\in O(R,(f))$ because $r$ is among the first $K-1$ products of $R$ and $f$ is not; since $v_f+\delta>v_r$ and $v_f+\delta>v_i$ for all other $i$, the agent chooses $f$. Under $(R,(j))$ with $j\notin\{f,r\}$, $r$ is still displayed and $v_j+\delta<v_r$, so the agent chooses $r$; under $(R,(r))$, the agent chooses $r$ because $v_r+\delta>v_i$ for every displayed $i$. Hence a sponsored policy is summarized by the probability $\pi$ that $f$ is sponsored, with $X_f=n\pi$, $X_r=n(1-\pi)$, $X_j=0$ otherwise, and $M=n[\pi u(f)+(1-\pi)u(r)]$. The guardrail $M\ge(1-\kappa)nu(f)$ holds if and only if $\pi\ge1-\xi$. The objective of~\eqref{eq:alloc} is $n[\pi b_f+(1-\pi)b_r]+ng_0$, with $b_r=0$ if $r\notin\mathcal N^{\mathrm{ad}}$, so the rule selects $\pi=1$ if $b_f>b_r$ and $\pi=1-\xi$ if $b_f<b_r$. If $b_f>b_r$, then $X_f(z)=n(1-\xi)$ for $z<b_r$ and $X_f(z)=n$ for $z>b_r$, so~\eqref{eq:payment} gives $P_f=n\xi b_r$, and $X_r(\cdot,b_f)$ equals $n\xi$ for bids above $b_f$ and zero below, which at $b_r<b_f$ gives $P_r=0$. Symmetrically, if $b_r>b_f$, then $P_r=n\xi b_f$ and $P_f=0$. With truthful bids, revenue is $n\xi\min\{\theta_f,\theta_r\}$, and the match-quality expressions follow from $\pi$.
+
+(c) Both organic policies are fixed before bids, so organic integrity holds, and both mechanisms select from $\mathcal Q$, so the guardrail holds. Profit equals revenue plus $ng_0$ in both cases, and the expected revenue in (b) is positive under the stated conditions. \hfill$\square$
+
+\paragraph{Proof of Proposition~\ref{prop:setblind}.}
+(a) With $C_j\equiv0$, Lemma~\ref{lem:calibration} gives
+\[
+\sum_jb_jX_j(Q)+G(Q)=n\sum_x\mu(x)\sum_RQ^o(R\mid x)\sum_{S^s}Q^s(S^s\mid x,R)\,U_b(x,R,S^s).
+\] Without a binding guardrail, the feasible set is a product of simplices over $(x,R)$, and the linear objective is maximized by placing all mass on a maximizer of $U_b(x,R,\cdot)$ for each $(x,R)$, which gives $V^{\mathrm{aw}}$. A set-blind policy uses one distribution for all $R$ given $x$, and the objective $\sum_{S^s}Q^s(S^s\mid x)\E_R[U_b(x,R,S^s)]$ is maximized at a vertex, which gives $V^{\mathrm{bl}}$. The inequality is $\E_R[\max_{S^s}U]\ge\max_{S^s}\E_R[U]$. If one list $S^\ast$ maximizes $U_b(x,R,\cdot)$ for every $R$ in the support, the two sides coincide. Conversely, if they coincide and $S^\ast$ maximizes $\E_R[U_b(x,R,\cdot)]$, then $\E_R[\max_{S^s}U_b(x,R,S^s)-U_b(x,R,S^\ast)]=0$ with a nonnegative integrand, so $S^\ast$ maximizes $U_b(x,R,\cdot)$ for every $R$ in the (finite) support.
+
+(b) Take one context, $K\ge2$, $K^s=1$, advertisers $1,\ldots,N_a$, non-advertised products $o_1,\ldots,o_{N_a}$, and $K-1$ non-advertised filler products, with scores
+$v_1>v_{o_1}>v_2>v_{o_2}>\cdots>v_{N_a}>v_{o_{N_a}}>v_{\mathrm{filler}}>v_0$. The organic policy draws $i$ uniformly from $\{1,\ldots,N_a\}$ and uses a list $R_i$ that places $o_i$ first, then the fillers, then all other products; advertisers are never displayed organically. Under $(R_i,\varnothing)$ the agent chooses $o_i$. Under $(R_i,(j))$, the displayed unlabeled products are $o_i$ and $K-2$ fillers, so with $\delta=0$ the agent chooses $j$ if and only if $v_j>v_{o_i}$, that is, $j\le i$. Let $b_j=1/(N_a-j+1)$, which is increasing in $j$, and let $g$ be constant. Since organic winners are not advertisers, $U_b(x,R_i,(j))-U_b(x,R_i,\varnothing)=b_j\1\{j\le i\}$. The best response to $R_i$ sponsors $i$, so $(V^{\mathrm{aw}}-V^{\varnothing})/n=\frac1{N_a}\sum_ib_i=\mathsf H_{N_a}/N_a$. A set-blind policy that sponsors $j$ obtains $b_j\Pr(i\ge j)=b_j(N_a-j+1)/N_a=1/N_a$ for every $j$, so $(V^{\mathrm{bl}}-V^{\varnothing})/n=1/N_a$. \hfill$\square$
+
+\paragraph{Proof of Lemma~\ref{lem:click}.}
+Under M1 and M2, the score of a sponsored candidate in position $k$ depends on $x$, $k$, and the bid, so the sponsored list does not depend on $R$. Under M2, only human requests are charged and the ranking uses $\gamma_k^H\rho_j(x,1)$, which does not involve agent choices. Under M1, by Assumption~\ref{ass:retrieval}, an agent of model $m$ requests the page of each displayed product with probability $\chi_m$, independently of its choice; since types are independent of actions given $x$, the expected number of charged agent requests for $j$ is $\bar\chi(x)$ times its expected number of sponsored inclusions in agent requests. The pooled rate $(1-\alpha(x))\gamma_k^H\rho_j(x,1)+\alpha(x)\bar\chi(x)$ converges to $\bar\chi(x)$ for every $j$ as $\alpha(x)\to1$. \hfill$\square$
+
+\section{Proofs for Section~\ref{sec:correlated}}\label{app:correlated}
+
+\paragraph{Proof of Lemma~\ref{lem:contested}.}
+Under Assumption~\ref{ass:deterministic}, $p_j^Q(\Lambda)=\bar p_j^H+\sum_x\mu(x)\alpha(x)\sum_m\pi_m(x)\sum_aQ(a\mid x)\1\{w^m(x,a,\Lambda)=j\}$, where $\bar p_j^H$ collects the human terms, which do not depend on $\Lambda$. For $a\notin\mathcal C_j^m(x)$, the indicator is constant in $\Lambda$. Hence $p_j^Q(\Lambda)$ equals a constant plus a random variable taking values in $[0,\Theta_j(Q)]$, and Popoviciu's inequality gives $\Var_\Lambda(p_j^Q(\Lambda))\le\Theta_j(Q)^2/4$. \hfill$\square$
+
+\paragraph{Proof of Proposition~\ref{prop:separation}.}
+Fix $x$. For each feasible organic list $R$ and product $j$, let $\varpi_j(x,R)=\sum_m\pi_m(x)\Pr_\Lambda\bigl(w^m(x,(R,\varnothing),\Lambda)=j\bigr)$, the probability, over the model drawn for a request and the state, that $j$ is chosen. Because the outside option is never chosen, $\sum_j\varpi_j(x,R)=1$. Let $R_j^\dagger(x)$ be an anchor for $j$, and define $\tilde Q^o(\cdot\mid x)=\sum_RQ^o(R\mid x)\sum_j\varpi_j(x,R)\,\delta_{R_j^\dagger(x)}$, where $\delta_{R}$ is the point mass on list $R$. Under $\tilde Q^o$, a request with context $x$ ends with $j$ with probability $\sum_RQ^o(R\mid x)\varpi_j(x,R)$ in every state, because every type chooses $j$ from $R_j^\dagger(x)$. Under $Q^o$, the same probability, averaged over $\Lambda$, equals the same expression. Averaging over $x$ gives (a). Expected loads, contributions, and match quality depend only on the state-averaged choice probabilities, because $g$ and $u$ do not depend on $\Lambda$; this gives (b). By the proof of Lemma~\ref{lem:convexity}, $\E[C_j(D_j)]=\E_\Lambda[\mathcal B_j(p_j(\Lambda))]$ with $\mathcal B_j$ convex, so Jensen's inequality and (a) give $\mathcal B_j(\E_\Lambda p_j^Q)\le\E_\Lambda\mathcal B_j(p_j^Q)$, strictly when $\mathcal B_j$ is strictly convex, which holds when $C_j$ has a positive second difference, and $p_j^Q(\Lambda)$ is nondegenerate. This gives (c). Finally, $\tilde Q^o$ satisfies the guardrail whenever $Q^o$ does, by (b), so an optimal policy with positive exposure for a product with strictly convex cost could be strictly improved. \hfill$\square$
+
+\paragraph{Proof of Proposition~\ref{prop:threshold}.}
+A policy is a vector $(y_{12},y_{13},y_{23})$ in the simplex. Let $\varsigma$ swap the labels of products $1$ and $2$ and of states $\Lambda_1$ and $\Lambda_2$. By the symmetry of the environment, the objective $J$ satisfies $J(\varsigma Q)=J(Q)$, and $J$ is concave by Lemma~\ref{lem:convexity}, so $J((Q+\varsigma Q)/2)\ge J(Q)$, and $(Q+\varsigma Q)/2$ has $y_{13}=y_{23}$. For such a policy with $y_{12}=y$, product $3$ is never chosen, $p_1(\Lambda_1)=(1+y)/2$, and $p_1(\Lambda_2)=(1-y)/2$, symmetrically for product $2$; each leader's expected load is $n/2$. Writing $\nu_-$ for the net value of the leader the state does not favor, the expected net value per request is $\nu_-+\Delta[y+(1-y)/2]=\nu_-+\Delta(1+y)/2$.
+
+(a) For each leader, $\E_\Lambda[p(1-p)]=(1-y^2)/4$ and $\Var_\Lambda(p)=y^2/4$, so by~\eqref{eq:quad-cost} and Lemma~\ref{lem:load} the two leaders' expected costs sum to $(\lambda n/(4B))[n+1+(n-1)y^2]$. The objective $n\nu_-+n\Delta(1+y)/2-(\lambda n/(4B))[n+1+(n-1)y^2]$ is strictly concave in $y$ for $n\ge2$, and its derivative vanishes at $y=\Delta B/(\lambda(n-1))$. Truncating at one gives $y^\ast$.
+
+(b) Given $\Lambda$, $D_j$ is binomial, so $|n^{-1}\E[(D_j-\omega n)^+\mid\Lambda]-(p_j(\Lambda)-\omega)^+|\le\E|D_j/n-p_j(\Lambda)|\le1/(2\sqrt n)$, uniformly in $y$. The limit per-request objective is therefore $f(y)=\nu_-+\Delta(1+y)/2-\lambda\bigl[((1+y)/2-\omega)^++((1-y)/2-\omega)^+\bigr]$, where the bracket sums both leaders over the two equally likely states. If $\omega\ge1$, both terms vanish and $f$ increases in $y$. If $1/2\le\omega<1$, the second term vanishes, the first is positive if and only if $y>2\omega-1$, and $f$ has slope $\Delta/2$ below $2\omega-1$ and $(\Delta-\lambda)/2$ above. If $0\le\omega<1/2$, the bracket equals $1-2\omega$ for $y\le1-2\omega$ and $(1+y)/2-\omega$ above, so $f$ has slope $\Delta/2$ below $1-2\omega$ and $(\Delta-\lambda)/2$ above. In each case $y^\ast=1$ if $\Delta>\lambda$, and $y^\ast=|2\omega-1|$ if $\Delta<\lambda$; at that point the favored leader's load equals $\omega n$ when $\omega\ge1/2$ and the other leader's load equals $\omega n$ when $\omega<1/2$. \hfill$\square$
+
+\paragraph{Proof of Corollary~\ref{cor:congestion}.}
+With $b_j=0$, rule~\eqref{eq:alloc} maximizes $W_{-j}$, so $\max_{Q^s}W_{-j}=W_{-j}(Q^{-j})$. Substituting $W_{-j}=\sum_{i\ne j}b_iX_i+\Gamma-\sum_i\E[C_i(D_i)]$ into Proposition~\ref{prop:ic}(c) gives the expression. \hfill$\square$
+
+\section{Proofs for Section~\ref{sec:learning}}\label{app:learning}
+
+\paragraph{Proof of Proposition~\ref{prop:identify}.}
+A strict ranking reproduces the observed choices if and only if, for each $S\in\mathcal A$, $w(S)$ is ranked above every other alternative in $S\cup\{0\}$, that is, if and only if it extends every edge of $\mathcal G_{\mathcal A}$; the true ranking is one such extension, so $\mathcal G_{\mathcal A}$ is acyclic. If some $i^\ast\in S'\cup\{0\}$ reaches every other alternative of $S'\cup\{0\}$, transitivity places $i^\ast$ first among them in every consistent ranking, so the choice from $S'$ is identified. Conversely, suppose no alternative reaches all others, and let $w'$ be the choice from $S'$ under the true ranking. Some $i\in S'\cup\{0\}$ is not reachable from $w'$. Adding the edge $(i,w')$ to $\mathcal G_{\mathcal A}$ creates no cycle, since a cycle would require a path from $w'$ to $i$. Any linear extension of the enlarged graph is consistent with the observations and ranks $i$ above $w'$, so the choice from $S'$ differs from $w'$ under it. \hfill$\square$
+
+\paragraph{Proof of Corollary~\ref{cor:design}.}
+(a) Under the hypothesis, $j$ is never chosen from an audited set, so $j$ has no outgoing edge in $\mathcal G_{\mathcal A}$. Every edge points from an alternative to one ranked below it under the true ranking. If $j$ is the true choice from $S'$, every other alternative of $S'\cup\{0\}$ is ranked below $j$ and cannot reach $j$, and $j$ cannot reach $0$. Hence no alternative of $S'\cup\{0\}$ reaches all the others, and Proposition~\ref{prop:identify} implies that the choice from $S'$ is not identified.
+(b) Choices from all subsets with at most $K\ge2$ products include choices from all pairs $\{i,j\}$ and all singletons, which determine the full ranking of $E(x)\cup\{0\}$. An adaptive design is a decision tree in which each audited set has at most $K+1$ outcomes, and it must have at least $(N_x+1)!$ leaves, so its depth is at least $\log((N_x+1)!)/\log(K+1)$. \hfill$\square$
+
+\paragraph{Proof of Proposition~\ref{prop:learning}.}
+(a) Given $\Lambda_e$, the $n_0$ audit requests at cell $c$ are independent and each ends with $j$ with probability $q_j(c\mid\Lambda_e)$, by Assumption~\ref{ass:cond-indep} and because audit requests are selected independently of outcomes. Hence $\E[Y_{e,c,j}\mid\Lambda_e]=q_j(c\mid\Lambda_e)$ and $\Var(Y_{e,c,j}\mid\Lambda_e)=q_j(1-q_j)/n_0$. Periods are independent, so $\hat q_j(c)$ is unbiased for $\bar q_j(c)$ and its variance follows from the law of total variance. Similarly, $\E[Y^g_{e,c}\mid\Lambda_e]=\sum_jq_j(c\mid\Lambda_e)g(x,j)$. For the cost, audit requests at different cells are disjoint, so $\E[Y_{e,c,j}Y_{e,c',j}\mid\Lambda_e]=q_j(c\mid\Lambda_e)q_j(c'\mid\Lambda_e)$ for $c\ne c'$, and $\E[Y_{e,c,j}(n_0Y_{e,c,j}-1)\mid\Lambda_e]=(n_0-1)q_j(c\mid\Lambda_e)^2$. Thus $\sum_{c,c'}\iota_c\iota_{c'}V_{e,c,c',j}$ is conditionally unbiased for $p_j^Q(\Lambda_e)^2$, and $\hat C_j(Q)$ is unbiased.
+
+(b) The variables $Y_{e,c,j}\in[0,1]$ are independent across $e$. By Hoeffding's inequality and a union bound over $(j,c)$, with probability at least $1-\varrho$, $|\hat q_j(c)-\bar q_j(c)|\le\epsilon_1$ for all $j$ and $c$; since $\sum_c\iota_c(Q)=1$, $|\hat X_j(Q)-X_j(Q)|\le n\epsilon_1$ for every $Q$ supported on $\mathcal S$. Likewise, $Y^g_{e,c}\in[0,\bar g]$ gives $|\hat\Gamma(Q)-\Gamma(Q)|\le n\bar g\epsilon_g$ for all such $Q$ with probability at least $1-\varrho$. For fixed $(Q,j)$, the period estimates $\sum_{c,c'}\iota_c\iota_{c'}V_{e,c,c',j}$ lie in $[-1,1]$ and are independent across $e$, so Hoeffding's inequality and a union bound over $\mathcal Q_{\mathrm{fin}}\times\mathcal N$ give deviations at most $\epsilon_2$ from $\E_\Lambda[(p_j^Q)^2]$ with probability at least $1-\varrho$. On the intersection of the three events, $|\hat C_j(Q)-\E_Q[C_j(D_j)]|\le(\lambda_j/2B_j)(n\epsilon_1+n(n-1)\epsilon_2)$, and summing the errors gives the bound. None of the three events depends on $b$.
+
+(c) Let $Q^\dagger$ maximize $W_b$ over $\mathcal Q_{\mathrm{fin}}$. Then $W_b(Q^\dagger)-W_b(\hat Q)\le[\hat W_b(Q^\dagger)+\varepsilon_h]-[\hat W_b(\hat Q)-\varepsilon_h]\le2\varepsilon_h$, because $\hat Q$ maximizes $\hat W_b$.
+
+(d) The plug-in rule maximizes $\sum_jb_j\hat X_j(Q)+\hat G(Q)$ over a finite menu, where $\hat G$ does not depend on bids, and charges~\eqref{eq:payment} with $\hat X_j$. The arguments of Proposition~\ref{prop:ic}(a)--(b) apply verbatim, so truthful reporting maximizes the \emph{model} utility $\hat U(b)=\theta_j\hat X_j(\hat Q(b))-\hat P_j(b)$ and $\hat U(\theta_j)\ge0$. The true expected utility is $U(b)=\theta_jX_j(\hat Q(b))-\hat P_j(b)$, and on the event in (b), $|U(b)-\hat U(b)|\le\theta_jn\epsilon_1$ for all $b$. Hence $U(b)-U(\theta_j)\le\hat U(b)-\hat U(\theta_j)+2\theta_jn\epsilon_1\le2\theta_jn\epsilon_1$, and $U(\theta_j)\ge-\theta_jn\epsilon_1$. \hfill$\square$
+
+\paragraph{Proof of Corollary~\ref{cor:cumulative}.}
+Apply Proposition~\ref{prop:learning}(b)--(c) in period $e$ with $h=e-1$ and failure probability $\varrho_e$. Since $\sum_{e\ge2}\varrho_e=\varrho$, a union bound over periods for each of the three events gives probability at least $1-3\varrho$ that the per-period loss is at most $2\varepsilon_{e-1}$ for all $e$. Each of $\epsilon_1,\epsilon_g,\epsilon_2$ evaluated at $(e-1,\varrho_e)$ is at most $\sqrt{2\log(2e^2N|\mathcal S||\mathcal Q_{\mathrm{fin}}|/\varrho)/(e-1)}$, so $\varepsilon_{e-1}\le c_1n\sqrt{\log(2h^2N|\mathcal S||\mathcal Q_{\mathrm{fin}}|/\varrho)/(e-1)}$ with $c_1$ proportional to $\sum_jb_j+\bar g+\sum_j\lambda_jn/B_j$. Summing and using $\sum_{k=1}^{h-1}k^{-1/2}\le2\sqrt h$ gives the bound. \hfill$\square$
+
+\end{APPENDICES}
+
+
+% References here (outcomment the appropriate case)
+
+% CASE 1: BiBTeX used to constantly update the references
+%   (while the paper is being written).
+% \bibliographystyle{informs2014} % outcomment this and next line in Case 1
+%\bibliography{<your bib file(s)>} % if more than one, comma separated
+
+\bibliographystyle{informs2014} % outcomment this and next line in Case 1
+\bibliography{reference} % if more than one, comma separated
+
+
+
+
+%%%%%%%%%%%%%%%%%
+\end{document}
+%%%%%%%%%%%%%%%%%
+
+
+

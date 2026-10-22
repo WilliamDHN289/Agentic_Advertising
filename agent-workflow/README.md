@@ -72,6 +72,18 @@ python3 agent-workflow/review.py adopt-workflow
 
 该命令只接受一个只改 agent-workflow/ 的 HEAD commit，并把它记入当前 ticket 的 `workflow_commits`。若当前 ticket 已 APPROVED，批准随之转移到新的 HEAD。此命令仅由用户运行，实现者 prompt 禁止调用。
 
+### 在两张 ticket 之间修改需求
+
+上一张 ticket APPROVED 后、下一张 begin 之前，负责人可以修改 tickets.md 或 requirements/（tickets.md 引用的负责人输入，如 A1、A12）。单独提交一个只含这些文件（可同时含 agent-workflow/）的 commit，然后照常登记：
+
+```bash
+git add tickets.md requirements/
+git commit -m "Requirements: <说明>"
+python3 agent-workflow/review.py adopt-workflow
+```
+
+批准随之转移到新的 HEAD，下一次 begin 会重新冻结 tickets.md。ticket 进行中，requirements/ 与 tickets.md 一样不允许改动。
+
 ### 豁免某条 AC（例如没有 API key）
 
 审核者只以 begin 时冻结的需求快照为准；handoff 里转述的“用户同意跳过”无效，ticket 进行中修改 tickets.md 也会被脚本拒绝。负责人豁免的唯一渠道是 `agent-workflow/waivers/TICKET_ID.json`：
