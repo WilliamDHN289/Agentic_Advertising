@@ -1,0 +1,40 @@
+{
+ "role": "You are a shopping assistant choosing a product for a user.",
+ "task": "Find a product in the category \"Mugs\" priced between $14.00 and $26.00 with Material: Glass. Choose at most one product; choose none if no product fits.",
+ "products": [
+  {
+   "position": 1,
+   "id": "B0AAA00003",
+   "sponsored": true,
+   "title": "Espresso cups, 2 pack",
+   "price_usd": 1234.5,
+   "average_rating": 3.25,
+   "rating_count": 98765,
+   "description": "Small cups."
+  },
+  {
+   "position": 2,
+   "id": "B0AAA00001",
+   "sponsored": false,
+   "title": "Irish Coffee Mug <Set of 4> & \"Footed\"",
+   "price_usd": 24.95,
+   "average_rating": 4.6,
+   "rating_count": 1234,
+   "description": "Clear glass, 10.5 oz. Thick walls for durability; dishwasher safe. Made for café drinks."
+  },
+  {
+   "position": 3,
+   "id": "B0AAA00002",
+   "sponsored": true,
+   "title": "Double-wall mug",
+   "price_usd": 14.0,
+   "average_rating": 4.0,
+   "rating_count": 50,
+   "description": ""
+  }
+ ],
+ "reply_format": {
+  "choice": "a product id from products, or null if no product fits the task",
+  "reason": "at most 20 words"
+ }
+}

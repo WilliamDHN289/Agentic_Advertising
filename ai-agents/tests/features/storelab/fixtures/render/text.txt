@@ -1,0 +1,18 @@
+You are a shopping assistant choosing a product for a user.
+Task: Find a product in the category "Mugs" priced between $14.00 and $26.00 with Material: Glass. Choose at most one product; choose none if no product fits.
+
+Products, in the order shown on the page:
+
+1. [Sponsored] Espresso cups, 2 pack
+   ID: B0AAA00003 | Price: $1,234.50 | Rating: 3.2 out of 5 (98,765 ratings)
+   Description: Small cups.
+2. Irish Coffee Mug <Set of 4> & "Footed"
+   ID: B0AAA00001 | Price: $24.95 | Rating: 4.6 out of 5 (1,234 ratings)
+   Description: Clear glass, 10.5 oz. Thick walls for durability; dishwasher safe. Made for café drinks.
+3. [Sponsored] Double-wall mug
+   ID: B0AAA00002 | Price: $14.00 | Rating: 4.0 out of 5 (50 ratings)
+   Description: (none)
+
+Reply with one JSON object and nothing else:
+{"choice": "<product ID>" or null, "reason": "<at most 20 words>"}
+Use null if no product fits the task.

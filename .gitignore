@@ -1,3 +1,8 @@
 
 .DS_Store
 __pycache__/
+# SL-05: Amazon Reviews 2023 snapshot data stays local (A7: redistribute ids and derived
+# fields only); its MANIFEST.json is committed. Fetch staging and E1 build outputs too.
+artifacts/datasets/amazon_reviews_2023/*/items/
+artifacts/datasets/amazon_reviews_2023/.staging-*/
+artifacts/stimuli/

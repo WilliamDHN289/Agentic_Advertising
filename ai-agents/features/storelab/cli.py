@@ -1,12 +1,15 @@
-"""StoreLab command line. SL-02 provides ``validate`` and ``schemas``; SL-07 adds plan,
-run, status, resume, cancel and export.
+"""StoreLab command line. SL-02 provides ``validate`` and ``schemas``, SL-05
+``e1-stimuli``; SL-07 adds plan, run, status, resume, cancel and export.
 
     python -m features.storelab.cli validate CONFIG [--set KEY=VALUE ...] [--format yaml|json]
     python -m features.storelab.cli schemas [--check]
+    python -m features.storelab.cli e1-stimuli CONFIG --snapshot DIR --out DIR [--set KEY=VALUE ...]
 
 ``validate`` prints the resolved config (every default written out) on stdout and
 its config_hash on stderr; it exits 2 on an invalid config. ``schemas`` regenerates
 the JSON Schemas in contracts/storelab/, or with ``--check`` fails if they are stale.
+``e1-stimuli`` builds the E1 tasks, designs and design report (e1_stimuli.py); it
+exits 2 on bad input and 1 if the label rate is outside its 99% bound.
 """
 from __future__ import annotations
 
@@ -57,7 +60,33 @@ def main(argv: list[str] | None = None) -> int:
     validate.add_argument("--format", choices=("yaml", "json"), default="yaml")
     schemas = sub.add_parser("schemas", help="write the JSON Schemas to contracts/storelab/")
     schemas.add_argument("--check", action="store_true", help="fail if a committed schema is stale")
+    stimuli = sub.add_parser("e1-stimuli", help="build E1 tasks, designs and the design report from a snapshot")
+    stimuli.add_argument("config", type=Path)
+    stimuli.add_argument("--snapshot", type=Path, required=True, help="dataset snapshot directory")
+    stimuli.add_argument("--out", type=Path, required=True, help="output directory")
+    stimuli.add_argument("--set", action="append", default=[], metavar="KEY=VALUE")
     args = parser.parse_args(argv)
+
+    if args.command == "e1-stimuli":
+        from . import e1_stimuli
+
+        try:
+            config = load_config(args.config, parse_set(args.set))
+        except ValidationError as error:
+            print("\n".join(format_errors(error)), file=sys.stderr)
+            return 2
+        except (OSError, ValueError, yaml.YAMLError) as error:
+            print("error: %s" % error, file=sys.stderr)
+            return 2
+        try:
+            built = e1_stimuli.build(config, args.snapshot)
+        except (OSError, ValueError, KeyError) as error:
+            print("error: %s" % error, file=sys.stderr)
+            return 2
+        manifest = e1_stimuli.write(built, args.out)
+        print(json.dumps({k: manifest[k] for k in ("designs_hash", "observations_sha256",
+                                                   "label_rate_within_bound")}))
+        return 0 if manifest["label_rate_within_bound"] else 1
 
     if args.command == "validate":
         try:
