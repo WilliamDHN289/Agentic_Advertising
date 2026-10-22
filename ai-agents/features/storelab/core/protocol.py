@@ -281,8 +281,9 @@ def _parse(text: str | None, allowed_ids: Collection[str]) -> Select | Leave | I
         if len({canonical_json(c) for c in choice}) > 1:
             return _invalid("multiple_choices", "'choice' lists %d values" % len(choice))
         return _invalid("schema_violation", "'choice' must be a string or null, not a list")
-    if reply.repeated:
-        return _invalid("schema_violation", "repeated keys %s" % sorted(reply.repeated))
+    repeated = sorted({key for r in replies for key in r.repeated})  # in every restated copy, not just the first
+    if repeated:
+        return _invalid("schema_violation", "repeated keys %s" % repeated)
     extra = sorted(set(reply) - {"choice", "reason"})
     if extra:
         return _invalid("schema_violation", "unexpected keys %s" % extra)

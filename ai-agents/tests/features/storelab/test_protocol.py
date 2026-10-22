@@ -154,6 +154,9 @@ class NoForeignSelectPropertyTest(unittest.TestCase):
             lambda r, a, b: '%s\n{"choice": "%s", "choice": "%s", "reason": "x"}' % (r, b, a),  # conflicting copy
             lambda r, a, b: '{"choice": "%s", "choice": "%s", "reason": "x"}\n%s' % (b, a, r),
             lambda r, a, b: r[:-1] + ', "score": %se999}' % rng.choice(["", "-"]),  # overflow
+            lambda r, a, b: '%s\n{"choice": "%s", "reason": null, "reason": "x"}' % (r, a),  # repeated key in a copy
+            lambda r, a, b: '{"choice": "%s", "choice": "%s", "reason": "x"}\n%s' % (a, a, r),
+            lambda r, a, b: '%s\n{"choice": "%s", "choice": "%s", "reason": "x"}' % (r, a, a),
             lambda r, a, b: '{"choice": "%s"}' % a,  # no reason
             lambda r, a, b: '{"choice": "%s", "reason": null}' % a,
             lambda r, a, b: r[:rng.randrange(1, len(r))],  # truncated reply

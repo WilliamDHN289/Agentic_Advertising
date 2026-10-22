@@ -641,6 +641,46 @@
    "expected": {
     "action": "leave"
    }
+  },
+  {
+   "id": "repeated_reason_in_later_copy",
+   "shape": "a restated reply whose second copy repeats reason",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B07ZPKBL9V\", \"reason\": \"cheapest\"}\n{\"choice\": \"B07ZPKBL9V\", \"reason\": null, \"reason\": \"cheapest\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "schema_violation"
+   }
+  },
+  {
+   "id": "repeated_reason_in_first_copy",
+   "shape": "the same, with the repeated-key copy first",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B07ZPKBL9V\", \"reason\": null, \"reason\": \"cheapest\"}\n{\"choice\": \"B07ZPKBL9V\", \"reason\": \"cheapest\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "schema_violation"
+   }
+  },
+  {
+   "id": "repeated_choice_in_later_copy",
+   "shape": "a restated reply whose second copy repeats choice with the same value",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B07ZPKBL9V\", \"reason\": \"cheapest\"}\n{\"choice\": \"B07ZPKBL9V\", \"choice\": \"B07ZPKBL9V\", \"reason\": \"cheapest\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "schema_violation"
+   }
+  },
+  {
+   "id": "repeated_choice_in_first_copy",
+   "shape": "the same, with the repeated-key copy first",
+   "candidates": "asin",
+   "output": "{\"choice\": \"B07ZPKBL9V\", \"choice\": \"B07ZPKBL9V\", \"reason\": \"cheapest\"}\n{\"choice\": \"B07ZPKBL9V\", \"reason\": \"cheapest\"}",
+   "expected": {
+    "action": "invalid",
+    "reason": "schema_violation"
+   }
   }
  ]
 }

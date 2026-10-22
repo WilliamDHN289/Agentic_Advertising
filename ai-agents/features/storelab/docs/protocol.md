@@ -66,7 +66,7 @@ order; the first that fires decides.
    different values; more than one distinct object has a `choice` key; `choice` is a
    list of more than one distinct value. Restating the identical object is tolerated.
 5. Any of these → `Invalid(schema_violation)`: `choice` is a one-item list, or neither
-   a string nor null; a key is repeated; a key other than `choice` and `reason` is
+   a string nor null; a key is repeated in any copy of the reply; a key other than `choice` and `reason` is
    present (the 2026-08 `extras` list included); `reason` is missing, null, or not a
    string of at most 20 whitespace-separated words.
 6. `choice` null → `Leave`.
@@ -78,7 +78,7 @@ order; the first that fires decides.
 
 The parser never raises: any unexpected decoding failure is `Invalid(schema_violation)`.
 There is no re-ask and no substitution. `max_turns` is the sixth invalid reason; the
-browser tool loop (SL-10) sets it. The 63 golden fixtures are in
+browser tool loop (SL-10) sets it. The 67 golden fixtures are in
 `tests/features/storelab/fixtures/parser_cases.json`. The original raw replies were not
 saved (SL-00 D-07), so each fixture names the reply shape it models.
 
