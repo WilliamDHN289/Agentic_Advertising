@@ -1,0 +1,14 @@
+{
+  "ticket_id": "SL-01",
+  "decided_by": "project owner",
+  "date": "2026-10-22",
+  "waivers": [
+    {
+      "criterion_id": "AC-4",
+      "requirement": "The E1 registration timestamp is earlier than the first SL-18 trial timestamp (checked from manifests).",
+      "scope": "Waived: comparing the actual E1 registration timestamp with the first actual SL-18 trial. Neither exists yet: E1 is registered after SL-17 freezes the sample sizes, and SL-18 needs live provider APIs. Still required and reviewed as usual: the registration receipts file, its schema, and the check-e1 timing check from run manifests (`analysis/registration.py` and its CLI), all verified offline with synthetic manifests.",
+      "reason": "The E1 registration and the SL-18 runs come after SL-17, and SL-17 needs API keys that do not exist yet. Owner decision: SL-01 AC-4 waits until after SL-17.",
+      "follow_up": "SL-18 must not start before E1 is registered. After SL-17: file E1 on OSF Registries, record url and registered_utc in features/storelab/docs/registrations.yaml, and before analysing E1 run `python -m features.storelab.analysis.registration check-e1 <SL-18 run dirs>`; it must exit 0. This is also SL-18 AC-1."
+    }
+  ]
+}
