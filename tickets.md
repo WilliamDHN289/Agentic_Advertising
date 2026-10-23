@@ -299,6 +299,12 @@ flowchart TD
   SL16 --> SL19
   SL16 --> SL20
   SL16 --> SL21
+  SL16 --> SL19S["SL-19S E2 dry run (A17)"]
+  SL16 --> SL20S["SL-20S E3 Part A + stipulated Part B"]
+  SL16 --> SL21S["SL-21S E4 dry run (A17)"]
+  SL19S -.->|"code reused"| SL19
+  SL20S -.->|"Part A carried over"| SL20
+  SL21S -.->|"code reused"| SL21
   SL01 --> SL22["SL-22 E5 protocol"]
   SL03 --> SL22
   SL14 --> SL23["SL-23 README and release"]
@@ -314,6 +320,7 @@ flowchart TD
 | 2 Sandbox | SL-09 → {SL-10, SL-11} | Phase 3 | **G2**: live smoke run; no-substitution audit = 0 |
 | 3 Control plane | SL-12 → SL-13 → SL-14 | Phase 2 | container-boot checks green; chaos tests pass |
 | 4 Analysis code | SL-15, SL-16 | Phases 2–3 | recovery and solver checks pass |
+| 4S Pre-E1 simulations | SL-19S, SL-20S, SL-21S (stipulated parameters, A17) | Phases 2–3 | implementation gates pass; outputs labelled exploratory |
 | 5 Experiments | SL-17 → (prereg frozen) → SL-18 → {SL-19, SL-20, SL-21}; SL-22 separately | none | **G3**: pilot estimator error ≤25%, power design chosen; **G4**: prereg timestamp before the first E1 main trial |
 | 6 Delivery | SL-23 | none | quickstart reproduces the golden hash in a clean environment |
 
@@ -341,6 +348,7 @@ flowchart TD
 | A14 | PR size convention (≤400 added lines) vs the vendored legacy snapshot (~1,700 lines) | one vendored PR exempted and labelled, or the snapshot archived outside the repo with hashes | SL-00 |
 | A15 | Presentation randomisation for H1b | positions and labels drawn once per set and repeated identically r=10 times (`per_set`), so repeats measure pure choice noise; label and position effects are identified across sets | SL-05, SL-01 |
 | A16 | Regularity for the profit rule | lognormal values can violate monotone virtual values; use ironing or restrict parameters (registered) | SL-16 |
+| A17 | Stipulated parameters for the pre-E1 simulations | **Fixed 2026-10-23** in `requirements/A17_stipulated_parameters.md`: σ = 0.3, δ = (−0.3, −0.7), β = 0, χ = 0.5, v₀ = −1, ρ_v = 0.8, γ_k = 0.30 k^−0.6, κ = 0.05, quadratic λ = 0.5, ω = 0.5, n = 1000, with sensitivity levels. Exploratory only; replaced by E1 estimates in SL-19–21 | SL-19S, SL-20S, SL-21S |
 
 ---
 
@@ -1224,6 +1232,144 @@ flowchart TD
 - [ ] Reachability and identification code passes unit tests on at least 5 hand-built graphs.
 - [ ] Every cell has R completed replications; a seeded rerun is identical.
 - [ ] Decision labels follow the register; the exploratory recovery analysis is labelled exploratory.
+
+---
+
+### SL-19S · E2 dry run on stipulated parameters (pre-E1, exploratory)
+**Size** M · **Repo** ai-agents · **Depends on** SL-16, SL-01, A1, A12, A17 · **Kind** experiment (simulation; exploratory)
+
+**Objective & Validation**
+- Run the E2 mechanism comparison before E1 exists, on the stipulated parameters of A17. This produces the paper's illustrative E2 tables and figures and exercises the SL-19 pipeline end to end.
+- Validates the E2 pipeline and its implementation gates: the exact part of H2b, and a zero set-awareness gap under deterministic organic lists. H2a–H2c and Conj gating are computed with the registered statistics but labelled exploratory. SL-19 stays the confirmatory run on E1 parameters and reuses this code.
+
+**Scope**
+- Market generator: draws E2 markets from A17 §1–§2 with `stream(seed, "sl19s-market", config_id, index)`, so the market inputs are identical across mechanisms.
+  - The organic regimes (human-optimised, agent-aware, gated) and organic variation (none, randomised) follow A17 §2.
+  - Aware-infeasible markets (`cor:aware`) and markets that fail the H2a screen (A1 §E5) are classified and reported separately.
+- `configs/e2_stipulated.yaml` and a stipulated `agent_params.json` (`source: stipulated`). They replace the placeholder values in `e2_core.yaml`.
+- Design:
+  - core factorial: α × organic regime × organic variation × mechanism, at the A17 baselines;
+  - one-factor-at-a-time sensitivity over every A17 §1–§2 level that E2 uses;
+  - the `prop:gating` instance (H2b, exact part) and the `conj:gating` α grid.
+- Metrics as in SL-19, with payments split by traffic type (A1 §E5).
+- Statistics:
+  - means with 95% bootstrap intervals over markets (B = 2,000);
+  - paired differences between adjacent mechanisms;
+  - the claims register's H2 rules, applied as written and labelled exploratory.
+- Figures (matplotlib, PDF and PNG) in `artifacts/figures/sl19s/`, each with a CSV of the plotted data:
+  1. payments by traffic type against α, by regime and mechanism;
+  2. profit and match quality against α;
+  3. the decomposition M1 → M2 → set-blind M3 → M3 → M4;
+  4. the set-awareness gap against organic variation;
+  5. the gating gain against α (`conj:gating`);
+  6. agent payments against |F(x)| − (K − K^s).
+- Out: E1-calibrated parameters (SL-19); extracting A11.
+
+**Inputs & Dependencies**
+- A17; SL-16 solvers and runtime profile; the claims register; matplotlib, a new dependency that is pinned and installed by the owner.
+
+**Procedure**
+1. Generator and config, with tests that the generated markets meet A17.
+2. Dry run on a small grid; compute estimate from the SL-16 profile.
+3. Core factorial and sensitivity runs.
+4. Analysis, figures and `docs/e2_stipulated_results.md`.
+
+**Deliverables**
+- Generator, config, stipulated parameters, result files, figures and report.
+
+**Acceptance Criteria**
+- [ ] Every configuration has ≥200 valid markets. Solver exclusions are <1% per configuration, or are investigated before reporting. The hashes of market inputs are identical across mechanisms.
+- [ ] A test checks that generated markets match A17: parameter values, regime constraints (agent-aware lists hold every favourite in the first K − K^s organic positions; gated lists show no favourite organically) and the screen classification.
+- [ ] Implementation gates (a failure blocks the report):
+  - the per-market `prop:gating` gain equals nξ·min{θ_f, θ_r} within the A12 tolerance;
+  - with deterministic organic lists, |V^aw − V^bl| ≤ 1e-6 relative.
+- [ ] One command regenerates every table and figure from the committed result files, and a seeded rerun reproduces the result files byte for byte. Every table and figure is labelled "Stipulated parameters (A17), pre-E1, exploratory".
+- [ ] H2a–H2c and Conj gating are reported with the registered statistics and labelled exploratory. No confirmatory label is recorded.
+
+---
+
+### SL-20S · E3: Part A implementation check and Part B on stipulated states
+**Size** M · **Repo** ai-agents · **Depends on** SL-16, A1, A12, A17 · **Kind** experiment (A: implementation check; B: simulation, exploratory)
+
+**Objective & Validation**
+- Complete E3 Part A, which needs no E1 data, and run Part B on the stipulated states of A17 §3.2. This produces the paper's illustrative E3 figures.
+- Part A is the implementation check of `prop:threshold` (H3b) and is final; SL-20 carries it over unchanged. Part B is exploratory; SL-20 reruns it on E1 states.
+
+**Scope**
+- Part A:
+  - the two-leader environment, solved as a convex program over the A17 §3.1 grid and compared with the closed forms and finite-n bounds of A1 §2.3;
+  - Example `ex:diversify` and the `lem:contested` bound through the same code path.
+- Part B:
+  - the A17 §3.2 states (aligned and not aligned with u), policies, costs and sensitivity;
+  - metrics as in SL-20: within-state E[Var(D|Λ)] and across-state Var(E[D|Λ]); overflow probability; expected cost; match quality; profit; the exposure ratio against the `lem:contested` bound;
+  - H3c with sponsorship on, M3 against M4.
+- Figures (PDF and PNG, each with its data CSV) in `artifacts/figures/sl20s/`:
+  1. numeric against closed-form y* (scatter on the 45° line);
+  2. y* against Δ for the quadratic and overflow costs at several ω;
+  3. the variance decomposition by policy;
+  4. the cost and match-quality tradeoff by ω;
+  5. H3c buy-back under M3 and M4.
+- Out: E1 states (SL-20).
+
+**Inputs & Dependencies**
+- A1 §2; A12 §4 tolerances; A17 §3; SL-16 solvers; matplotlib.
+
+**Procedure**
+1. Part A over the grid; stop if any point fails.
+2. Part B runs.
+3. Analysis, figures and `docs/e3_stipulated_results.md`.
+
+**Deliverables**
+- Part A check, Part B results, figures and report.
+
+**Acceptance Criteria**
+- [ ] Part A: the numeric optimum and the closed form agree within the A12 §4 tolerances at 100% of the A17 §3.1 grid points, including the finite-n overflow bound. Otherwise Part B is blocked.
+- [ ] Example `ex:diversify` is reproduced exactly through the E3 code path: Var(D_A) = 250,000, 250 and 62,625.
+- [ ] Part B, not-aligned states:
+  - the within- and across-state components sum to the total variance within 1e-9;
+  - the separated policy matches the original's expected loads, contributions and match quality within 1e-9 relative, with across-state variance ≤ 1e-12 (H3a, exact part).
+- [ ] One command regenerates every table and figure from the committed result files, and a seeded rerun reproduces the result files byte for byte. Part B tables and figures are labelled "Stipulated parameters (A17), pre-E1, exploratory".
+- [ ] H3a–H3c are reported with the registered statistics. Part B labels are exploratory.
+
+---
+
+### SL-21S · E4: learning on stipulated state variance (pre-E1, exploratory)
+**Size** M · **Repo** ai-agents · **Depends on** SL-16, A1, A2, A12, A17 · **Kind** experiment (simulation; exploratory)
+
+**Objective & Validation**
+- Run E4 on the stipulated across-state variance of A17 §4, and produce the paper's illustrative E4 figures.
+- Validates the E4 pipeline and its implementation checks: reachability, the corrected `cor:design`(b) bound, and the `prop:learning`(a) variance formula. H4a–H4d are labelled exploratory. SL-21 reruns the analysis with the variance scaled from E1.
+
+**Scope**
+- Comparison-graph construction and reachability; identification share by design at matched inclusion frequency; the corrected lower bound of A1 §3.2(b).
+- The pooled q̂ estimator with known propensities; RMSE against h and n₀, compared with the closed form of A1 §3.3.
+- The plug-in mechanism over the A17 §4 menu: misreport gain by grid search over reports, against 2θ_j n ε₁; cumulative loss against h.
+- The exploratory recovery after a version change (A17 §4).
+- Figures (PDF and PNG, each with its data CSV) in `artifacts/figures/sl21s/`:
+  1. identification share by design against inclusion frequency;
+  2. RMSE against h (log–log, with a −½ reference) and against n₀ (with the closed form);
+  3. misreport gain against the bound, by h;
+  4. cumulative loss against h.
+- Out: variance scaled from E1 (SL-21).
+
+**Inputs & Dependencies**
+- A1 §3 and §E1–§E3; A2 as corrected in A1 §E7; A12 §4; A17 §4; matplotlib.
+
+**Procedure**
+1. Unit tests on hand-built graphs; the enumeration check of the bound.
+2. The H4b implementation check.
+3. Main grid, R = 200 per cell.
+4. Analysis, figures and `docs/e4_stipulated_results.md`.
+
+**Deliverables**
+- Modules, results, figures and report.
+
+**Acceptance Criteria**
+- [ ] The reachability and identification code passes unit tests on at least 5 hand-built graphs. The corrected bound ⌈log⌊e·N_x!⌋ / log(K+1)⌉ is implemented, and its count is checked by enumeration for N_x ≤ 7.
+- [ ] The H4b implementation check of A12 §4 passes in every checked cell: 10,000 replications, bias ≤ 3 Monte Carlo SE, and the variance within ±5% of the closed form.
+- [ ] Every cell has R = 200 completed replications, and a seeded rerun is identical.
+- [ ] One command regenerates every table and figure from the committed result files. Every table and figure is labelled "Stipulated parameters (A17), pre-E1, exploratory".
+- [ ] H4a–H4d are reported with the registered statistics (H4b and H4d as corrected in A1 §E2–§E3) and labelled exploratory. The recovery analysis is labelled exploratory.
 
 ---
 
