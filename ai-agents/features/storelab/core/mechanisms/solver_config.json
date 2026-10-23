@@ -1,0 +1,30 @@
+{
+ "about": "Pinned solvers of the SL-16 mechanism programs (core/mechanisms/solver.py), one per program class, through cvxpy. A status other than accepted_status excludes the market (it is counted, never used).",
+ "programs": {
+  "lp": {"solver": "SCIPY", "package": "scipy", "method": "HiGHS dual simplex",
+         "options": {"scipy_options": {"method": "highs-ds", "primal_feasibility_tolerance": 1e-10, "dual_feasibility_tolerance": 1e-10},
+                     "warm_start": false}},
+  "qp": {"solver": "CLARABEL", "package": "clarabel", "method": "interior point, then an exact active-set polish (allocation.polish)",
+         "options": {"tol_gap_abs": 1e-10, "tol_gap_rel": 1e-10, "tol_feas": 1e-10, "tol_ktratio": 1e-08, "max_iter": 400}}
+ },
+ "packages": {"cvxpy": "1.7.5", "scipy": "1.17.1", "clarabel": "0.11.1", "osqp": "1.1.3", "scs": "3.3.1"},
+ "accepted_status": ["optimal"],
+ "platform_check": {
+  "rule": "DEPENDENCIES.md (ai-agents): production Linux x86_64, development macOS arm64; a package that is unavailable or different on either needs a platform marker.",
+  "checked": "2026-10-23",
+  "method": "PyPI file listings of the pinned releases (pip's index cache from the 2026-10-23 install; no network access from the check) and the installed wheel tags in .venv-storelab (macOS arm64, Python 3.11.1).",
+  "result": "Binary wheels for CPython 3.11 exist on both platforms for every pinned package, so no platform marker is needed. On Linux, cvxpy, osqp and scs wheels require glibc >= 2.28 (manylinux_2_28); clarabel requires glibc >= 2.17. numpy 1.26.4 and scipy 1.17.1 are unchanged.",
+  "linux_x86_64": {
+   "cvxpy": {"wheel": "cvxpy-1.7.5-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", "sha256": "9f9d93892f0805a9fa1b0702ca4c6d3b8deb056ab0140a58f41b933fe8f28aae"},
+   "clarabel": {"wheel": "clarabel-0.11.1-cp39-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", "sha256": "c8c41aaa6f3f8c0f3bd9d86c3e568dcaee079562c075bd2ec9fb3a80287380ef"},
+   "osqp": {"wheel": "osqp-1.1.3-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", "sha256": "f6e6b384c356681b93c8698304b8910bd4a198e95664ab533cf5a422c126cd40"},
+   "scs": {"wheel": "scs-3.3.1-cp311-cp311-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", "sha256": "681437635f89563a9c8d4bb19beccd29e90c1f719846ff1b5ada04c1fccb122f"}
+  },
+  "macos_arm64": {
+   "cvxpy": {"wheel": "cvxpy-1.7.5-cp311-cp311-macosx_10_9_universal2.whl", "sha256": "0df3bc1aee0431ee6419cfc77fb7543ad7588150b9bb5d8ef44da7a76770ba1d", "installed": true},
+   "clarabel": {"wheel": "clarabel-0.11.1-cp39-abi3-macosx_11_0_arm64.whl", "sha256": "8963687ee250d27310d139eea5a6816f9c3ae31f33691b56579ca4f0f0b64b63", "installed": true},
+   "osqp": {"wheel": "osqp-1.1.3-cp311-cp311-macosx_11_0_arm64.whl", "sha256": "3fefecf59a4d84a63ff6fb34e24987f12d61c740e78cf7fb7864f427a3d1c74e", "installed": true},
+   "scs": {"wheel": "scs-3.3.1-cp311-cp311-macosx_11_0_arm64.whl", "sha256": "91347cb1f3b5236e391672e2870fd567dd62ed0490bc0374b4c80bb06185cd1b", "installed": true}
+  }
+ }
+}

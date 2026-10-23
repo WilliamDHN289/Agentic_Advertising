@@ -1,0 +1,587 @@
+{
+ "code_fingerprint": "f4dd28317cb2eb5065bc63c363a362f448361a06360637d8f536eb2cce6d2cb2",
+ "counts": {
+  "identity": 100,
+  "incentives": 100,
+  "runtime_repeats": 3
+ },
+ "exclusions": {
+  "excluded": [
+   {
+    "market_id": "impossible-guardrail",
+    "mechanism": "M3_set_blind",
+    "status": "infeasible",
+    "where": "impossible-guardrail M3_set_blind"
+   }
+  ],
+  "excluded_count": 1,
+  "markets": 3,
+  "outcome_markets": [
+   "random-2000",
+   "random-2001"
+  ],
+  "outcomes": 12,
+  "passed": true
+ },
+ "hand_solved": [
+  {
+   "computed": 0.0,
+   "error_per_request": 0.0,
+   "expected": 0.0,
+   "market": "inclusion {A,B}",
+   "passed": true,
+   "quantity": "X_B"
+  },
+  {
+   "computed": 1.0,
+   "error_per_request": 0.0,
+   "expected": 1.0,
+   "market": "inclusion {A,B}",
+   "passed": true,
+   "quantity": "inclusions of B per request"
+  },
+  {
+   "computed": 1000.0,
+   "error_per_request": 0.0,
+   "expected": 1000.0,
+   "market": "inclusion {B,C}",
+   "passed": true,
+   "quantity": "X_B"
+  },
+  {
+   "computed": 1.0,
+   "error_per_request": 0.0,
+   "expected": 1.0,
+   "market": "inclusion {B,C}",
+   "passed": true,
+   "quantity": "inclusions of B per request"
+  },
+  {
+   "computed": 5.551115123125783e-14,
+   "error_per_request": 5.551115123125783e-17,
+   "expected": 0.0,
+   "market": "gating aware \u03b8f=1 \u03b8r=0.6",
+   "passed": true,
+   "quantity": "revenue"
+  },
+  {
+   "computed": 1000.0,
+   "error_per_request": 0.0,
+   "expected": 1000.0,
+   "market": "gating aware \u03b8f=1 \u03b8r=0.6",
+   "passed": true,
+   "quantity": "match quality M"
+  },
+  {
+   "computed": 1000.0,
+   "error_per_request": 0.0,
+   "expected": 1000,
+   "market": "gating aware \u03b8f=1 \u03b8r=0.6",
+   "passed": true,
+   "quantity": "X_f"
+  },
+  {
+   "computed": 1000.0,
+   "error_per_request": 0.0,
+   "expected": 1000.0,
+   "market": "gating aware \u03b8f=1 \u03b8r=0.6",
+   "passed": true,
+   "quantity": "M^ref"
+  },
+  {
+   "computed": 299.99999979999996,
+   "error_per_request": 2.0000004496978364e-10,
+   "expected": 300.0,
+   "market": "gating gated \u03b8f=1 \u03b8r=0.6",
+   "passed": true,
+   "quantity": "revenue"
+  },
+  {
+   "computed": 1000.0,
+   "error_per_request": 0.0,
+   "expected": 1000.0,
+   "market": "gating gated \u03b8f=1 \u03b8r=0.6",
+   "passed": true,
+   "quantity": "match quality M"
+  },
+  {
+   "computed": 1000.0,
+   "error_per_request": 0.0,
+   "expected": 1000,
+   "market": "gating gated \u03b8f=1 \u03b8r=0.6",
+   "passed": true,
+   "quantity": "X_f"
+  },
+  {
+   "computed": 1000.0,
+   "error_per_request": 0.0,
+   "expected": 1000.0,
+   "market": "gating gated \u03b8f=1 \u03b8r=0.6",
+   "passed": true,
+   "quantity": "M^ref"
+  },
+  {
+   "computed": 300.00000019999993,
+   "error_per_request": 1.9999993128294592e-10,
+   "expected": 300.0,
+   "market": "gating gated \u03b8f=0.6 \u03b8r=1",
+   "passed": true,
+   "quantity": "revenue"
+  },
+  {
+   "computed": 800.0,
+   "error_per_request": 0.0,
+   "expected": 800.0,
+   "market": "gating gated \u03b8f=0.6 \u03b8r=1",
+   "passed": true,
+   "quantity": "match quality M"
+  },
+  {
+   "computed": 500.0000000000001,
+   "error_per_request": 1.1368683772161603e-16,
+   "expected": 500.0,
+   "market": "gating gated \u03b8f=0.6 \u03b8r=1",
+   "passed": true,
+   "quantity": "X_f"
+  },
+  {
+   "computed": 1000.0,
+   "error_per_request": 0.0,
+   "expected": 1000.0,
+   "market": "gating gated \u03b8f=0.6 \u03b8r=1",
+   "passed": true,
+   "quantity": "M^ref"
+  },
+  {
+   "computed": 611.1111111111111,
+   "error_per_request": 0.0,
+   "expected": 611.1111111111111,
+   "market": "setblind N_a=3",
+   "passed": true,
+   "quantity": "V^aw \u2212 V^\u2205"
+  },
+  {
+   "computed": 333.3333333333333,
+   "error_per_request": 0.0,
+   "expected": 333.3333333333333,
+   "market": "setblind N_a=3",
+   "passed": true,
+   "quantity": "V^bl \u2212 V^\u2205"
+  },
+  {
+   "computed": 545.4545454545455,
+   "error_per_request": 0.0,
+   "expected": 545.4545454545455,
+   "market": "setblind N_a=3",
+   "passed": true,
+   "quantity": "(V^bl \u2212 V^\u2205) / (V^aw \u2212 V^\u2205) \u00d7 n"
+  },
+  {
+   "computed": 545.0450450450451,
+   "error_per_request": 0.0,
+   "expected": 545.0450450450451,
+   "market": "quadratic two-advertiser",
+   "passed": true,
+   "quantity": "X_B"
+  },
+  {
+   "computed": 75.07507507507493,
+   "error_per_request": 1.1368683772161603e-16,
+   "expected": 75.07507507507505,
+   "market": "quadratic two-advertiser",
+   "passed": true,
+   "quantity": "P_A (externality)"
+  },
+  {
+   "computed": 126.87687687687699,
+   "error_per_request": 0.0,
+   "expected": 126.87687687687699,
+   "market": "quadratic two-advertiser",
+   "passed": true,
+   "quantity": "P_B (externality)"
+  },
+  {
+   "computed": 126.87687687687685,
+   "error_per_request": 1.4210854715202004e-16,
+   "expected": 126.87687687687699,
+   "market": "quadratic two-advertiser",
+   "passed": true,
+   "quantity": "P_B (eq. payment)"
+  },
+  {
+   "computed": 840.9234234234234,
+   "error_per_request": 1.1368683772161603e-16,
+   "expected": 840.9234234234235,
+   "market": "quadratic two-advertiser",
+   "passed": true,
+   "quantity": "E C_A + E C_B"
+  },
+  {
+   "computed": 1000.0,
+   "error_per_request": 0.0,
+   "expected": 1000,
+   "market": "reserve uniform b=0.8",
+   "passed": true,
+   "quantity": "X_A"
+  },
+  {
+   "computed": 499.99999999999994,
+   "error_per_request": 5.684341886080802e-17,
+   "expected": 500.0,
+   "market": "reserve uniform b=0.8",
+   "passed": true,
+   "quantity": "P_A"
+  },
+  {
+   "computed": 0.0,
+   "error_per_request": 0.0,
+   "expected": 0.0,
+   "market": "reserve uniform b=0.3",
+   "passed": true,
+   "quantity": "X_A"
+  },
+  {
+   "computed": 0.0,
+   "error_per_request": 0.0,
+   "expected": 0.0,
+   "market": "reserve uniform b=0.3",
+   "passed": true,
+   "quantity": "P_A"
+  },
+  {
+   "computed": 0.0,
+   "error_per_request": 0.0,
+   "expected": 0.0,
+   "market": "reserve uniform, surplus rule b=0.8",
+   "passed": true,
+   "quantity": "P_A (no competitor)"
+  },
+  {
+   "computed": 1000.0,
+   "error_per_request": 0.0,
+   "expected": 1000,
+   "market": "reserve lognormal s=2 b=2r",
+   "passed": true,
+   "quantity": "X_A"
+  },
+  {
+   "computed": 23189.866089424308,
+   "error_per_request": 3.137559132996292e-16,
+   "expected": 23189.866089424315,
+   "market": "reserve lognormal s=2 b=2r",
+   "passed": true,
+   "quantity": "P_A = n r"
+  },
+  {
+   "computed": 36.000000000000014,
+   "error_per_request": 1.4210854715202004e-17,
+   "expected": 36.0,
+   "market": "GSP M2",
+   "passed": true,
+   "quantity": "P_A"
+  },
+  {
+   "computed": 21.599999999999998,
+   "error_per_request": 0.0,
+   "expected": 21.599999999999998,
+   "market": "GSP M2",
+   "passed": true,
+   "quantity": "P_B"
+  },
+  {
+   "computed": 0.0,
+   "error_per_request": 0.0,
+   "expected": 0.0,
+   "market": "GSP M2",
+   "passed": true,
+   "quantity": "P_C"
+  },
+  {
+   "computed": [
+    "A",
+    "B"
+   ],
+   "error_per_request": 0.0,
+   "expected": [
+    "A",
+    "B"
+   ],
+   "market": "GSP M2",
+   "passed": true,
+   "quantity": "sponsored list"
+  },
+  {
+   "computed": 171.0,
+   "error_per_request": 0.0,
+   "expected": 171.0,
+   "market": "GSP M1",
+   "passed": true,
+   "quantity": "P_C"
+  },
+  {
+   "computed": 150.00000000000003,
+   "error_per_request": 2.842170943040401e-17,
+   "expected": 150.0,
+   "market": "GSP M1",
+   "passed": true,
+   "quantity": "P_B"
+  },
+  {
+   "computed": 0.0,
+   "error_per_request": 0.0,
+   "expected": 0.0,
+   "market": "GSP M1",
+   "passed": true,
+   "quantity": "P_A"
+  },
+  {
+   "computed": [
+    "C",
+    "B"
+   ],
+   "error_per_request": 0.0,
+   "expected": [
+    "C",
+    "B"
+   ],
+   "market": "GSP M1",
+   "passed": true,
+   "quantity": "sponsored list"
+  },
+  {
+   "computed": 165.83333333333303,
+   "error_per_request": 3.410605131648481e-16,
+   "expected": 165.83333333333337,
+   "market": "threshold quadratic \u0394=0",
+   "passed": true,
+   "quantity": "G = J(y*)"
+  },
+  {
+   "computed": 1.483277139506479e-14,
+   "error_per_request": 1.483277139506479e-17,
+   "expected": 0.0,
+   "market": "threshold quadratic \u0394=0",
+   "passed": true,
+   "quantity": "y* = Pr({1, 2})"
+  },
+  {
+   "computed": 500.0,
+   "error_per_request": 0.0,
+   "expected": 500.0,
+   "market": "threshold quadratic \u0394=0",
+   "passed": true,
+   "quantity": "X_1"
+  },
+  {
+   "computed": 500.0000000000002,
+   "error_per_request": 2.2737367544323206e-16,
+   "expected": 500.0,
+   "market": "threshold quadratic \u0394=0",
+   "passed": true,
+   "quantity": "X_2"
+  }
+ ],
+ "identity": {
+  "by_rule": {
+   "M3": {
+    "max_relative_error": 1.7763568394002505e-08,
+    "median_solves": 28.0,
+    "payments": 387,
+    "unresolved_intervals": 15,
+    "zero_payments": 164
+   },
+   "M3_set_blind": {
+    "max_relative_error": 1.927325091698432e-08,
+    "median_solves": 25.0,
+    "payments": 387,
+    "unresolved_intervals": 6,
+    "zero_payments": 218
+   },
+   "M4": {
+    "max_relative_error": 2.665645482125001e-07,
+    "median_solves": 137.0,
+    "payments": 387,
+    "unresolved_intervals": 1173,
+    "zero_payments": 121
+   }
+  },
+  "excluded": [],
+  "markets": 100,
+  "passed": true,
+  "seconds_per_market": 8.656691630858695,
+  "tolerance": 1e-06,
+  "valid_markets": 100,
+  "worst": {
+   "advertiser": "P2",
+   "externality": -2.6645352591003757e-12,
+   "integral": 1.1102230246251565e-15,
+   "relative_error": 2.665645482125001e-07,
+   "rule": "M4",
+   "solves": 25,
+   "unresolved": 0,
+   "zero": true
+  }
+ },
+ "incentives": {
+  "by_rule": {
+   "M3": {
+    "advertisers": 384,
+    "ironed": 91,
+    "max_floor_gap": 0.0,
+    "max_gain": 3.979039320256561e-13,
+    "min_increment_per_request": 0.0
+   },
+   "M4": {
+    "advertisers": 384,
+    "ironed": 91,
+    "max_floor_gap": 0.0,
+    "max_gain": 3.069544618483633e-12,
+    "min_increment_per_request": -4.121147867408581e-15
+   },
+   "profit_rule": {
+    "advertisers": 384,
+    "ironed": 91,
+    "max_floor_gap": 0.0014981364185312762,
+    "max_gain": 3.8191672047105385e-14,
+    "min_increment_per_request": -2.8244073746463984e-15
+   }
+  },
+  "excluded": [],
+  "gain_tolerance": 1e-06,
+  "grid_bids": 22,
+  "markets": 100,
+  "monotone_tolerance": 1e-09,
+  "passed": true,
+  "seconds_per_market": 73.60002216787892,
+  "valid_markets": 100
+ },
+ "master_seed": 2026102316,
+ "passed": {
+  "AC-1": true,
+  "AC-2": true,
+  "AC-3": true,
+  "AC-4": true,
+  "AC-5": true
+ },
+ "runtime": {
+  "repeats": 3,
+  "sizes": [
+   {
+    "actions": 5,
+    "contexts": 1,
+    "eligible": 6,
+    "k": 3,
+    "k_s": 1,
+    "label": "small",
+    "rankings": 1,
+    "seconds": {
+     "M1": 0.0014244303456507623,
+     "M2": 0.0002796253344664971,
+     "M3": 0.019992486321522545,
+     "M3_set_blind": 0.026356111008984346,
+     "M4": 0.012747624675588062,
+     "profit_rule": 0.47818919432271895
+    },
+    "setup": 0.0004658193599122266,
+    "states": 1,
+    "total": 0.5394552913688434
+   },
+   {
+    "actions": 18,
+    "contexts": 1,
+    "eligible": 10,
+    "k": 4,
+    "k_s": 1,
+    "label": "E2 baseline (K = 4, K^s = 1)",
+    "rankings": 2,
+    "seconds": {
+     "M1": 0.0027215829856383302,
+     "M2": 0.0004488613340072334,
+     "M3": 0.028216444654390216,
+     "M3_set_blind": 0.030771402991376817,
+     "M4": 0.01976704199720795,
+     "profit_rule": 3.1575781113351695
+    },
+    "setup": 0.005483250327718754,
+    "states": 2,
+    "total": 3.2449866956255087
+   },
+   {
+    "actions": 130,
+    "contexts": 1,
+    "eligible": 10,
+    "k": 4,
+    "k_s": 2,
+    "label": "E2 K^s = 2",
+    "rankings": 2,
+    "seconds": {
+     "M1": 0.0012583609786815941,
+     "M2": 0.010994277351225415,
+     "M3": 0.029502264340408146,
+     "M3_set_blind": 0.033244236023165286,
+     "M4": 0.0363836109948655,
+     "profit_rule": 9.228566111337082
+    },
+    "setup": 0.014142444687119374,
+    "states": 2,
+    "total": 9.354091305712549
+   },
+   {
+    "actions": 18,
+    "contexts": 1,
+    "eligible": 10,
+    "k": 8,
+    "k_s": 1,
+    "label": "E2 K = 8",
+    "rankings": 2,
+    "seconds": {
+     "M1": 0.001053180332140376,
+     "M2": 0.000298764343218257,
+     "M3": 0.033969083024809756,
+     "M3_set_blind": 0.0335153333338288,
+     "M4": 0.018874166649766266,
+     "profit_rule": 2.677415916657386
+    },
+    "setup": 2.5136584723368287,
+    "states": 2,
+    "total": 5.278784916677978
+   },
+   {
+    "actions": 62,
+    "contexts": 4,
+    "eligible": 10,
+    "k": 4,
+    "k_s": 1,
+    "label": "E2, 4 contexts",
+    "rankings": 2,
+    "seconds": {
+     "M1": 0.0014882080334549148,
+     "M2": 0.0007986943237483501,
+     "M3": 0.03485694467478121,
+     "M3_set_blind": 0.03870715299854055,
+     "M4": 0.028231888679632295,
+     "profit_rule": 7.932769957988057
+    },
+    "setup": 0.017891791668565322,
+    "states": 2,
+    "total": 8.05474463836678
+   }
+  ],
+  "sl19_core": {
+   "configurations": 30,
+   "cpu_hours": 5.408311159375848,
+   "markets_per_configuration": 200,
+   "seconds_per_market_all_mechanisms": 3.2449866956255087
+  },
+  "workers_used": 8
+ },
+ "seconds": 1102.3,
+ "study": "SL-16 mechanism validation",
+ "versions": {
+  "clarabel": "0.11.1",
+  "cvxpy": "1.7.5",
+  "osqp": "1.1.3",
+  "scipy": "1.17.1",
+  "scs": "3.3.1"
+ }
+}
