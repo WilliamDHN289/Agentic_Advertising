@@ -1,0 +1,112 @@
+{
+ "baseline": {
+  "agent_click": 0.5,
+  "choice_strong": 0.22,
+  "choice_weak": 0.3,
+  "human_other_click": 0.15,
+  "human_share": 0.6,
+  "pi": 0.5,
+  "purchase_per_choice": 0.55,
+  "return_rate": 0.1
+ },
+ "code_fingerprint": "849e46c06a94c4e55ef3e60aba866210fa218e5fb0a418d1fc60a4f38533b5d9",
+ "contract": {
+  "fixture_events": 35,
+  "fixture_excluded": {
+   "internal_test": 1
+  },
+  "fixture_requests": 11,
+  "parsed": 35,
+  "passed": true,
+  "pii_fixtures": [],
+  "pii_schema": [],
+  "planted_detected": [
+   "/comment",
+   "/properties/customer_email",
+   "/properties/full_name",
+   "/properties/shipping_address"
+  ],
+  "schema_errors": []
+ },
+ "counts": {
+  "bootstrap": 2000,
+  "datasets": 1000,
+  "draws": 10000,
+  "h5b_datasets": 1000
+ },
+ "h5a": {
+  "analytic_power": 0.800031167337838,
+  "checks": {
+   "fisher_size_sharp_null": 0.048,
+   "fisher_size_weak_null": 0.056,
+   "tost_size_lower_margin": 0.056,
+   "tost_size_upper_margin": 0.038
+  },
+  "conditions": {
+   "margin_lower": {
+    "ci95_coverage": 0.943,
+    "fisher_rejection_rate": 0.797,
+    "mean_estimate": -0.10007323705918597,
+    "not_supported_rate": 0.028,
+    "supported_rate": 0.056
+   },
+   "margin_upper": {
+    "ci95_coverage": 0.953,
+    "fisher_rejection_rate": 0.88,
+    "mean_estimate": 0.10087714497642117,
+    "not_supported_rate": 0.032,
+    "supported_rate": 0.038
+   },
+   "sharp_null": {
+    "ci95_coverage": 0.952,
+    "fisher_rejection_rate": 0.048,
+    "mean_estimate": -0.00032362282072769834,
+    "not_supported_rate": 0.0,
+    "supported_rate": 0.876
+   },
+   "weak_null": {
+    "ci95_coverage": 0.944,
+    "fisher_rejection_rate": 0.056,
+    "mean_estimate": -0.0010143516156440274,
+    "not_supported_rate": 0.0,
+    "supported_rate": 0.789
+   }
+  },
+  "datasets": 1000,
+  "draws": 10000,
+  "n": 13768,
+  "passed": true,
+  "rate_mc_se": 0.006892024376045111,
+  "simulated_power": 0.789
+ },
+ "h5b": {
+  "analytic_power": 0.9954098954176729,
+  "bootstrap": 2000,
+  "datasets": 1000,
+  "design": {
+   "choice": 0.3,
+   "click_accuracy_effect": 0.85,
+   "click_accuracy_null": 0.9,
+   "event_accuracy": 0.9,
+   "n": 6000,
+   "purchase_given_choice": 0.55
+  },
+  "effect": {
+   "cell_supported_rate": 0.995,
+   "cells": 2
+  },
+  "null": {
+   "cell_supported_rate": 0.0125,
+   "cells": 2
+  },
+  "null_size_bound": 0.0125
+ },
+ "master_seed": 2026102322,
+ "passed": {
+  "AC-1": true,
+  "AC-2": true
+ },
+ "protocol_version": "e5_protocol@1",
+ "seconds": 105.7,
+ "study": "SL-22 E5 analysis validation"
+}

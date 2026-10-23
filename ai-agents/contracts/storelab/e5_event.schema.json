@@ -1,0 +1,377 @@
+{
+  "$defs": {
+    "AssignmentEvent": {
+      "additionalProperties": false,
+      "description": "Logged before the candidate set is rendered; product_id is the focal product.",
+      "properties": {
+        "arm": {
+          "enum": [
+            "strong",
+            "weak"
+          ],
+          "title": "Arm",
+          "type": "string"
+        },
+        "assignment_probability": {
+          "exclusiveMaximum": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Assignment Probability",
+          "type": "number"
+        },
+        "candidate_product_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9._:-]{1,64}$",
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Candidate Product Ids",
+          "type": "array"
+        },
+        "candidate_set_id": {
+          "pattern": "^[A-Za-z0-9._:-]{1,64}$",
+          "title": "Candidate Set Id",
+          "type": "string"
+        },
+        "event_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "event_time_utc": {
+          "format": "date-time",
+          "title": "Event Time Utc",
+          "type": "string"
+        },
+        "event_type": {
+          "const": "assignment",
+          "title": "Event Type",
+          "type": "string"
+        },
+        "exclusion": {
+          "default": "none",
+          "enum": [
+            "none",
+            "partner_traffic_filter",
+            "internal_test",
+            "focal_unavailable"
+          ],
+          "title": "Exclusion",
+          "type": "string"
+        },
+        "product_id": {
+          "pattern": "^[A-Za-z0-9._:-]{1,64}$",
+          "title": "Product Id",
+          "type": "string"
+        },
+        "protocol_version": {
+          "const": "e5_protocol@1",
+          "default": "e5_protocol@1",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "request_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "traffic_type": {
+          "enum": [
+            "human",
+            "agent",
+            "unknown"
+          ],
+          "title": "Traffic Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_id",
+        "request_id",
+        "event_time_utc",
+        "product_id",
+        "event_type",
+        "arm",
+        "assignment_probability",
+        "candidate_set_id",
+        "candidate_product_ids",
+        "traffic_type"
+      ],
+      "title": "AssignmentEvent",
+      "type": "object"
+    },
+    "ClickEvent": {
+      "additionalProperties": false,
+      "description": "A page request of a displayed product (human or agent).",
+      "properties": {
+        "event_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "event_time_utc": {
+          "format": "date-time",
+          "title": "Event Time Utc",
+          "type": "string"
+        },
+        "event_type": {
+          "const": "click",
+          "title": "Event Type",
+          "type": "string"
+        },
+        "product_id": {
+          "pattern": "^[A-Za-z0-9._:-]{1,64}$",
+          "title": "Product Id",
+          "type": "string"
+        },
+        "protocol_version": {
+          "const": "e5_protocol@1",
+          "default": "e5_protocol@1",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "request_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "event_id",
+        "request_id",
+        "event_time_utc",
+        "product_id",
+        "event_type"
+      ],
+      "title": "ClickEvent",
+      "type": "object"
+    },
+    "PurchaseEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "event_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "event_time_utc": {
+          "format": "date-time",
+          "title": "Event Time Utc",
+          "type": "string"
+        },
+        "event_type": {
+          "const": "purchase",
+          "title": "Event Type",
+          "type": "string"
+        },
+        "order_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Order Id",
+          "type": "string"
+        },
+        "product_id": {
+          "pattern": "^[A-Za-z0-9._:-]{1,64}$",
+          "title": "Product Id",
+          "type": "string"
+        },
+        "protocol_version": {
+          "const": "e5_protocol@1",
+          "default": "e5_protocol@1",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "quantity": {
+          "exclusiveMinimum": 0,
+          "title": "Quantity",
+          "type": "integer"
+        },
+        "request_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "event_id",
+        "request_id",
+        "event_time_utc",
+        "product_id",
+        "event_type",
+        "order_id",
+        "quantity"
+      ],
+      "title": "PurchaseEvent",
+      "type": "object"
+    },
+    "QualifyingEvent": {
+      "additionalProperties": false,
+      "description": "The effective choice: a confirmed selection or an add-to-cart instruction.",
+      "properties": {
+        "event_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "event_time_utc": {
+          "format": "date-time",
+          "title": "Event Time Utc",
+          "type": "string"
+        },
+        "event_type": {
+          "const": "qualifying_event",
+          "title": "Event Type",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "confirmed_selection",
+            "add_to_cart"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "product_id": {
+          "pattern": "^[A-Za-z0-9._:-]{1,64}$",
+          "title": "Product Id",
+          "type": "string"
+        },
+        "protocol_version": {
+          "const": "e5_protocol@1",
+          "default": "e5_protocol@1",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "request_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "event_id",
+        "request_id",
+        "event_time_utc",
+        "product_id",
+        "event_type",
+        "kind"
+      ],
+      "title": "QualifyingEvent",
+      "type": "object"
+    },
+    "ReturnEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "event_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Event Id",
+          "type": "string"
+        },
+        "event_time_utc": {
+          "format": "date-time",
+          "title": "Event Time Utc",
+          "type": "string"
+        },
+        "event_type": {
+          "const": "return",
+          "title": "Event Type",
+          "type": "string"
+        },
+        "order_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Order Id",
+          "type": "string"
+        },
+        "product_id": {
+          "pattern": "^[A-Za-z0-9._:-]{1,64}$",
+          "title": "Product Id",
+          "type": "string"
+        },
+        "protocol_version": {
+          "const": "e5_protocol@1",
+          "default": "e5_protocol@1",
+          "title": "Protocol Version",
+          "type": "string"
+        },
+        "quantity": {
+          "exclusiveMinimum": 0,
+          "title": "Quantity",
+          "type": "integer"
+        },
+        "request_id": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Request Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "event_id",
+        "request_id",
+        "event_time_utc",
+        "product_id",
+        "event_type",
+        "order_id",
+        "quantity"
+      ],
+      "title": "ReturnEvent",
+      "type": "object"
+    }
+  },
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "discriminator": {
+    "mapping": {
+      "assignment": "#/$defs/AssignmentEvent",
+      "click": "#/$defs/ClickEvent",
+      "purchase": "#/$defs/PurchaseEvent",
+      "qualifying_event": "#/$defs/QualifyingEvent",
+      "return": "#/$defs/ReturnEvent"
+    },
+    "propertyName": "event_type"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/AssignmentEvent"
+    },
+    {
+      "$ref": "#/$defs/ClickEvent"
+    },
+    {
+      "$ref": "#/$defs/QualifyingEvent"
+    },
+    {
+      "$ref": "#/$defs/PurchaseEvent"
+    },
+    {
+      "$ref": "#/$defs/ReturnEvent"
+    }
+  ],
+  "title": "E5Event"
+}

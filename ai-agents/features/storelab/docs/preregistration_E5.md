@@ -3,9 +3,9 @@
 Draft for OSF Registries ("OSF Preregistration" template), SL-01. **Status: draft, not filed.**
 It is filed before any field data exists, and it cites the SL-22 protocol version.
 
-**Protocol version:** to be set by SL-22. The partner and the sample size (A10) are to be
-determined. The machine-readable form is `features/storelab/docs/claims_register.yaml`, which
-governs where the two differ.
+**Protocol version:** `e5_protocol@1`, the SL-22 protocol `features/storelab/docs/e5_protocol.md`
+(sha256 below). The partner and the sample size (A10) are to be determined. The machine-readable
+form is `features/storelab/docs/claims_register.yaml`, which governs where the two differ.
 
 ## Registered files
 
@@ -15,6 +15,7 @@ governs where the two differ.
 | `requirements/A1_formal_statements.md` | `be45dbfa81b0694693435f5cd2a32eedbf9370ccd24418c11250102b5dd278b5` |
 | `requirements/A12_thresholds.md` | `82217db6d087b78799db59aa680f0be70bfb26040d7acc06bbd533e9c3813f9d` |
 | `requirements/paper.tex` | `e4bcf05266b5c835d8dc827e829a86d1856f23bb3f295766aae899c154d63295` |
+| `features/storelab/docs/e5_protocol.md` (`e5_protocol@1`) | `5ae6bd185998f7f39a43dd448908e20534b1182a17a6ca441792bd425408b4f5` |
 
 ## 1. Study information
 
@@ -32,12 +33,15 @@ strong and with weak competitors. The experiment records:
 - clicks;
 - purchases and returns.
 
-The qualifying event is fixed in the SL-22 protocol. No PII enters the data.
+The qualifying event is fixed in the SL-22 protocol (§5: a confirmed selection or an add-to-cart
+instruction within 24 hours). No PII enters the data (protocol §7, schema
+`contracts/storelab/e5_event.schema.json`).
 
 ## 3. Sampling plan
 
-The sample size comes from the SL-22 power design at the registered margin and is written here
-before filing.
+The sample size comes from the SL-22 power design at the registered margin (protocol §9:
+`analysis/e5.py` `h5a_required_n`, 80% TOST power at τ = 0 from the partner's baseline rates) and
+is written here before filing.
 
 ## 5. Analysis plan
 

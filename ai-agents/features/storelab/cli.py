@@ -32,6 +32,7 @@ import yaml
 from pydantic import ValidationError
 
 from .analysis.decide import results_schema
+from .analysis.e5 import e5_event_schema
 from .analysis.register import register_schema
 from .analysis.registration import Receipts
 from .config_files import dump_config, load_config, parse_set
@@ -61,6 +62,7 @@ SCHEMAS = {
     "claims_register.schema.json": register_schema,  # SL-01
     "analysis_results.schema.json": results_schema,
     "registrations.schema.json": _model_schema(Receipts),
+    "e5_event.schema.json": e5_event_schema,  # SL-22
 }
 
 
