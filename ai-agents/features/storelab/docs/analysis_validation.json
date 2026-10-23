@@ -1,5 +1,22 @@
 {
- "code_fingerprint": "056f10a27f6021addb88f517c2b3d50279a17ad2ed9b0d09b5ba40d34510b34b",
+ "bias": {
+  "check_limit": 0.29334907112224407,
+  "checks": 16,
+  "each_check_passed": true,
+  "family_alpha": 0.05,
+  "max_abs_bias_over_se": 0.21607529383813986,
+  "max_at": {
+   "parameter": "beta_4",
+   "sigma": 0.3
+  },
+  "mean_abs_bias_over_se": 0.06967534327366548,
+  "mean_limit": 0.1,
+  "mean_passed": true,
+  "passed": true,
+  "point_condition_misses": 4,
+  "z": 2.734368786533177
+ },
+ "code_fingerprint": "2f69f90edcbb932bc1883da307fd28c74b7f67a35ed390688bc97c96d09ca0b8",
  "iia_power": {
   "condition": "mixture",
   "mc_replicates": 999,
@@ -29,14 +46,13 @@
  },
  "master_seed": 2026102215,
  "passed": {
-  "AC-1 bias": false,
+  "AC-1 bias": true,
   "AC-1 coverage": true,
   "AC-2": true,
   "AC-3": true
  },
  "recovery": [
   {
-   "bias_passed": false,
    "coverage_passed": true,
    "estimator": "firth",
    "parameters": [
@@ -137,14 +153,12 @@
      "wald_coverage": 0.965
     }
    ],
-   "passed": false,
    "replications": 200,
    "separated": 0,
    "sigma": 1.0,
    "trials": 2520
   },
   {
-   "bias_passed": false,
    "coverage_passed": true,
    "estimator": "firth",
    "parameters": [
@@ -245,7 +259,6 @@
      "wald_coverage": 0.965
     }
    ],
-   "passed": false,
    "replications": 200,
    "separated": 5,
    "sigma": 0.3,
@@ -259,7 +272,7 @@
   "recovery": 200,
   "separation": 200
  },
- "seconds": 1206.3,
+ "seconds": 1235.2,
  "separation": {
   "finite_firth_fits": 200,
   "fit_failures": 0,

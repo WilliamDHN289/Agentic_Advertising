@@ -4,6 +4,7 @@ of the estimators themselves; agent_params.json round trip into SL-06 (AC-4).
 """
 from __future__ import annotations
 
+import copy
 import json
 import math
 import shutil
@@ -47,11 +48,12 @@ class CommittedStudyTest(unittest.TestCase):
 # ----------------------------------------------------------------------- AC-1
 class RecoveryTest(unittest.TestCase):
     """AC-1: for sigma in {1, 0.3}, 95% CI coverage of delta/sigma and beta/sigma in
-    [0.92, 0.98] and |bias| < 0.1 SE over 200 replications."""
+    [0.92, 0.98] and |bias| < 0.1 SE over 200 replications. The point bias condition is
+    replaced by owner waiver (agent-workflow/waivers/SL-15.json) with (i) |bias/SE| <=
+    0.1 + z_{1-0.05/16} / sqrt(200) for each of the 16 checks and (ii) mean |bias/SE| <= 0.1."""
 
     def test_the_committed_recovery_study(self):
-        """Coverage is required; the bias half of AC-1 is waived by the owner
-        (agent-workflow/waivers/SL-15.json) and is reported with its Monte Carlo error."""
+        """Coverage in the band for every check; bias reported with its Monte Carlo error."""
         blocks = {b["sigma"]: b for b in report()["recovery"]}
         self.assertEqual(sorted(blocks), [0.3, 1.0])
         for sigma, block in blocks.items():
@@ -65,6 +67,37 @@ class RecoveryTest(unittest.TestCase):
                     self.assertTrue(math.isfinite(row["bias_over_se"]))
                     self.assertAlmostEqual(row["bias_mc_se_over_se"], 200 ** -0.5)
             self.assertTrue(block["coverage_passed"])
+
+    def test_the_committed_bias_criterion(self):
+        """(i) and (ii) of the waiver, recomputed here from the stored bias/SE values."""
+        data = report()
+        values = [abs(r["bias_over_se"]) for b in data["recovery"] for r in b["parameters"]]
+        self.assertEqual(len(values), 16)
+        limit = 0.1 + 2.734 / math.sqrt(200)
+        self.assertAlmostEqual(data["bias"]["check_limit"], limit, places=3)
+        self.assertLessEqual(max(values), limit)  # (i)
+        self.assertLessEqual(sum(values) / len(values), 0.1)  # (ii)
+        self.assertEqual(data["bias"], validation.bias_criterion(data["recovery"]))
+        self.assertEqual(data["passed"], validation.assess(copy.deepcopy(data))["passed"])  # flags are current
+        self.assertTrue(data["passed"]["AC-1 bias"])
+        self.assertEqual(data["bias"]["point_condition_misses"], sum(v >= 0.1 for v in values))
+
+    def test_the_bias_criterion_rejects_a_large_or_a_systematic_bias(self):
+        def blocks(values, replications=200):
+            return [{"sigma": 1.0, "replications": replications,
+                     "parameters": [{"parameter": "p%d" % n, "bias_over_se": v} for n, v in enumerate(values)]}]
+
+        base = [0.05] * 15
+        self.assertTrue(validation.bias_criterion(blocks(base + [0.29]))["passed"])
+        one = validation.bias_criterion(blocks(base + [-0.30]))  # (i): one check significantly above 0.1 SE
+        self.assertEqual((one["each_check_passed"], one["mean_passed"], one["passed"]), (False, True, False))
+        self.assertEqual(one["max_at"], {"sigma": 1.0, "parameter": "p15"})
+        drift = validation.bias_criterion(blocks([0.15] * 16))  # (ii): each within (i), the mean is not
+        self.assertEqual((drift["each_check_passed"], drift["mean_passed"], drift["passed"]), (True, False, False))
+        self.assertEqual(drift["point_condition_misses"], 16)
+        self.assertAlmostEqual(validation.bias_criterion(blocks([0.0] * 4))["z"], 2.2414, places=3)  # m = 4
+        with self.assertRaises(ValueError):
+            validation.bias_criterion(blocks(base) + blocks([0.0], replications=100))
 
     def test_score_and_information_are_the_derivatives_of_the_log_likelihood(self):
         data = simulate(DESIGNS, Truth(sigma=1.0), 1, 0)
@@ -241,6 +274,11 @@ class IIATest(unittest.TestCase):
         result = validation.run(counts)
         self.assertEqual(set(result["passed"]), {"AC-1 coverage", "AC-1 bias", "AC-2", "AC-3"})
         self.assertIn("## IIA tests", validation.markdown(result))
+        self.assertIn("**Bias**", validation.markdown(result))
+        validation._write(result, out)
+        written = (out / "analysis_validation.json").read_text(encoding="utf-8")
+        self.assertEqual(validation.main(["--rescore", "--out", str(out)]), 0)  # no study run
+        self.assertEqual((out / "analysis_validation.json").read_text(encoding="utf-8"), written)
 
 
 # ------------------------------------------------------- other statistics

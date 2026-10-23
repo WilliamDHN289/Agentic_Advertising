@@ -9,8 +9,14 @@ e1_pilot shape: 4 tasks, v = 10, K in {2, 4, 8}, r = 10, labels 0.3, per_set).
    (Firth in every cell): for δ/σ and β_k/σ (k = 2..8), the coverage of the 95%
    profile penalised-likelihood interval (and of the Wald interval) and the bias
    relative to the estimator's standard error, SE = the standard deviation of the
-   estimates over the replications (AC-1: coverage in [0.92, 0.98]; |bias| < 0.1 SE,
-   whose Monte Carlo error at 200 replications is 0.071 SE).
+   estimates over the replications (AC-1: coverage in [0.92, 0.98]). The ticket's
+   point condition |bias| < 0.1 SE has a Monte Carlo error of 0.071 SE at 200
+   replications; by owner waiver (agent-workflow/waivers/SL-15.json) it is replaced by
+   (i) no check's bias significantly exceeds 0.1 SE at familywise 5%: |bias/SE| <=
+   0.1 + z_{1-0.05/16} / sqrt(200) = 0.293 for each of the 16 (σ, parameter) checks
+   (one-sided, Bonferroni), and (ii) the mean |bias/SE| over the 16 checks is <= 0.1.
+   ``assess`` computes both from the stored estimates (``--rescore`` re-applies it to a
+   written report without rerunning the study).
 2. **Separation** at σ = 0.05, 200 replications: separation *occurs* when one of its
    simple sufficient patterns holds (a product never chosen, or always chosen, when
    displayed; the outside option never, or always, chosen in a task), checked from the
@@ -40,6 +46,7 @@ import time
 from pathlib import Path
 
 import numpy as np
+from scipy import stats
 
 from . import clogit, iia
 from .data import ChoiceData
@@ -48,6 +55,7 @@ from .simulate import Truth, simulate, synthetic_design
 MASTER_SEED = 2026102215
 ALPHA = 0.05
 COVERAGE_RANGE, BIAS_LIMIT, SIZE_RANGE, FLAG_SHARE = (0.92, 0.98), 0.1, (0.03, 0.07), 0.95
+BIAS_FAMILY_ALPHA, BIAS_MEAN_LIMIT = 0.05, 0.1  # waiver SL-15 AC-1: (i) familywise level, (ii) mean |bias/SE|
 FULL = {"recovery": 200, "separation": 200, "iia": 1000, "mc": 999, "permutation": 199}
 QUICK = {"recovery": 6, "separation": 4, "iia": 6, "mc": 49, "permutation": 19}
 REPORT = Path(__file__).resolve().parents[1] / "docs"
@@ -119,11 +127,28 @@ def recovery(sigma: float, replications: int) -> dict:
                      "sd": sd, "bias_over_se": bias / sd if sd > 0 else float("nan"),
                      "bias_mc_se_over_se": 1 / math.sqrt(replications), "mean_wald_se": float(se[:, k].mean()),
                      "profile_coverage": float(prof[:, k].mean()), "wald_coverage": float(wald[:, k].mean())})
-    coverage = all(COVERAGE_RANGE[0] <= r["profile_coverage"] <= COVERAGE_RANGE[1] for r in rows)
-    bias = all(abs(r["bias_over_se"]) < BIAS_LIMIT for r in rows)
     return {"sigma": sigma, "replications": replications, "trials": reps[0][5],
-            "separated": sum(rep[4] for rep in reps), "estimator": "firth", "parameters": rows,
-            "coverage_passed": coverage, "bias_passed": bias, "passed": coverage and bias}
+            "separated": sum(rep[4] for rep in reps), "estimator": "firth", "parameters": rows}
+
+
+def bias_criterion(blocks: list[dict]) -> dict:
+    """The waiver's bias test over every (σ, parameter) check of the recovery blocks:
+    (i) |bias/SE| <= 0.1 + z_{1 - α/m} / sqrt(R) for each of the m checks, (ii) mean
+    |bias/SE| <= 0.1. Uses only the stored bias_over_se."""
+    replications = {b["replications"] for b in blocks}
+    if len(replications) != 1:
+        raise ValueError("recovery blocks with different replication counts")
+    values = [(b["sigma"], r["parameter"], abs(r["bias_over_se"])) for b in blocks for r in b["parameters"]]
+    z = float(stats.norm.ppf(1 - BIAS_FAMILY_ALPHA / len(values)))
+    limit = BIAS_LIMIT + z / math.sqrt(replications.pop())
+    worst = max(values, key=lambda v: v[2])
+    mean = float(np.mean([v[2] for v in values]))
+    each = all(v[2] <= limit for v in values)
+    return {"checks": len(values), "family_alpha": BIAS_FAMILY_ALPHA, "z": z, "check_limit": limit,
+            "max_abs_bias_over_se": worst[2], "max_at": {"sigma": worst[0], "parameter": worst[1]},
+            "each_check_passed": each, "mean_abs_bias_over_se": mean, "mean_limit": BIAS_MEAN_LIMIT,
+            "mean_passed": mean <= BIAS_MEAN_LIMIT, "passed": each and mean <= BIAS_MEAN_LIMIT,
+            "point_condition_misses": sum(v[2] >= BIAS_LIMIT for v in values)}
 
 
 # ---------------------------------------------------------------- separation
@@ -209,13 +234,24 @@ def run(counts: dict) -> dict:
     size = iia_rates("null", Truth(sigma=1.0), counts["iia"], counts["mc"], counts["permutation"])
     power = iia_rates("mixture", Truth(sigma=1.0, second_state_shift=1.5), counts["iia"], counts["mc"],
                       counts["permutation"])
-    registered = ("triple_odds_monte_carlo", "hausman_mcfadden_1df")
-    size["passed"] = all(SIZE_RANGE[0] <= size["rejection_rate"][t] <= SIZE_RANGE[1] for t in registered)
     out.update(iia_size=size, iia_power=power, seconds=round(time.time() - start, 1))
-    out["passed"] = {"AC-1 coverage": all(r["coverage_passed"] for r in out["recovery"]),
-                     "AC-1 bias": all(r["bias_passed"] for r in out["recovery"]),
-                     "AC-2": out["separation"]["passed"], "AC-3": size["passed"]}
-    return out
+    return assess(out)
+
+
+def assess(report: dict) -> dict:
+    """Set the pass/fail fields of a report from its stored estimates and rates."""
+    for block in report["recovery"]:
+        for stale in ("bias_passed", "passed"):  # the ticket's point condition, replaced by bias_criterion
+            block.pop(stale, None)
+        block["coverage_passed"] = all(COVERAGE_RANGE[0] <= r["profile_coverage"] <= COVERAGE_RANGE[1]
+                                       for r in block["parameters"])
+    report["bias"] = bias_criterion(report["recovery"])
+    size, registered = report["iia_size"], ("triple_odds_monte_carlo", "hausman_mcfadden_1df")
+    size["passed"] = all(SIZE_RANGE[0] <= size["rejection_rate"][t] <= SIZE_RANGE[1] for t in registered)
+    report["passed"] = {"AC-1 coverage": all(r["coverage_passed"] for r in report["recovery"]),
+                        "AC-1 bias": report["bias"]["passed"], "AC-2": report["separation"]["passed"],
+                        "AC-3": size["passed"]}
+    return report
 
 
 def markdown(report: dict) -> str:
@@ -234,9 +270,9 @@ def markdown(report: dict) -> str:
                  report["recovery"][0]["parameters"][0]["bias_mc_se_over_se"],
                  math.sqrt(0.95 * 0.05 / report["recovery"][0]["replications"])), ""]
     for block in report["recovery"]:
-        lines += ["**sigma = %g** (%d replications; estimator Firth; separation in %d): coverage %s, bias %s." % (
+        lines += ["**sigma = %g** (%d replications; estimator Firth; separation in %d): coverage %s." % (
             block["sigma"], block["replications"], block["separated"],
-            "passed" if block["coverage_passed"] else "FAILED", "passed" if block["bias_passed"] else "FAILED"), "",
+            "passed" if block["coverage_passed"] else "FAILED"), "",
             "| Parameter | Truth | Mean | Bias / SE | Profile coverage | Wald coverage | SE (sd) | Mean Wald SE |",
             "|---|---:|---:|---:|---:|---:|---:|---:|"]
         for r in block["parameters"]:
@@ -244,6 +280,16 @@ def markdown(report: dict) -> str:
                 r["parameter"], r["truth"], r["mean"], r["bias_over_se"], r["profile_coverage"], r["wald_coverage"],
                 r["sd"], r["mean_wald_se"]))
         lines.append("")
+    b = report["bias"]
+    lines += ["**Bias** (owner waiver, agent-workflow/waivers/SL-15.json, in place of the point condition |bias| < 0.1 "
+              "SE, which %d of the %d checks miss): (i) every check has |bias/SE| <= 0.1 + %.3f / sqrt(%d) = %.3f "
+              "(one-sided, Bonferroni over %d at familywise %g); largest %.3f (%s at sigma = %g): %s. (ii) Mean |bias/SE| "
+              "over the %d checks %.3f <= %.1f: %s. Bias %s." % (
+                  b["point_condition_misses"], b["checks"], b["z"], report["recovery"][0]["replications"],
+                  b["check_limit"], b["checks"], b["family_alpha"], b["max_abs_bias_over_se"], b["max_at"]["parameter"],
+                  b["max_at"]["sigma"], "passed" if b["each_check_passed"] else "FAILED", b["checks"],
+                  b["mean_abs_bias_over_se"], b["mean_limit"], "passed" if b["mean_passed"] else "FAILED",
+                  "passed" if b["passed"] else "FAILED"), ""]
     s = report["separation"]
     lines += ["## Separation (AC-2)", "",
               "sigma = 0.05, %d replications. Separation occurred (a simple pattern held) in %d; the LP flagged %d of "
@@ -274,19 +320,28 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--quick", action="store_true", help="a few replications (code check, not the study)")
     parser.add_argument("--out", type=Path, help="output directory (default: features/storelab/docs)")
     parser.add_argument("--workers", type=int, default=os.cpu_count() or 1, help="processes (default: all cores)")
+    parser.add_argument("--rescore", action="store_true",
+                        help="re-apply the criteria to the report in --out from its stored estimates (no study run)")
     args = parser.parse_args(argv)
+    out = args.out or REPORT
+    if args.rescore:
+        report = assess(json.loads((out / "analysis_validation.json").read_text(encoding="utf-8")))
+        _write(report, out)
+        return 0
     global WORKERS
     WORKERS = args.workers
     for name in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "VECLIB_MAXIMUM_THREADS"):
         os.environ[name] = "1"  # one BLAS thread per worker process (spawned workers read it at import)
-    report = run(QUICK if args.quick else FULL)
-    out = args.out or REPORT
+    _write(run(QUICK if args.quick else FULL), out)
+    return 0
+
+
+def _write(report: dict, out: Path) -> None:
     out.mkdir(parents=True, exist_ok=True)
     text = json.dumps(report, indent=1, sort_keys=True, default=lambda value: value.item())  # numpy scalars
     (out / "analysis_validation.json").write_text(text + "\n", encoding="utf-8")
     (out / "analysis_validation.md").write_text(markdown(report), encoding="utf-8")
     print(json.dumps(report["passed"], default=lambda value: value.item()))
-    return 0
 
 
 if __name__ == "__main__":
