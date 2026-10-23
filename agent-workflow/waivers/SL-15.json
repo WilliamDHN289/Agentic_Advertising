@@ -1,0 +1,14 @@
+{
+  "ticket_id": "SL-15",
+  "decided_by": "project owner",
+  "date": "2026-10-23",
+  "waivers": [
+    {
+      "criterion_id": "AC-1",
+      "requirement": "For σ ∈ {1, 0.3}, the 95% CI coverage of δ/σ and β/σ is in [0.92, 0.98] and |bias| < 0.1 SE over 200 replications.",
+      "scope": "Waived: only the literal point condition |bias| < 0.1 SE, which 200 replications cannot verify because the Monte Carlo error of bias/SE (1/sqrt(200) = 0.071) is of the same order as the tolerance. Replaced by the following, reviewed as part of AC-1 over the same 200 replications per sigma with the registered estimator (Firth, profile penalised-likelihood intervals): (i) no parameter's bias significantly exceeds 0.1 SE at familywise 5%, that is |bias/SE| <= 0.1 + 2.734/sqrt(200) = 0.293 for each of the 16 (sigma, parameter) checks (one-sided, Bonferroni over 16); (ii) the mean of |bias/SE| over the 16 checks is <= 0.1. Still required unchanged: coverage of the 95% intervals of delta/sigma and beta_k/sigma in [0.92, 0.98] at sigma = 1 and 0.3; every parameter's bias/SE reported with its Monte Carlo error. The validation module computes (i) and (ii) from the stored estimates and reports them in docs/analysis_validation.json and .md.",
+      "reason": "Each check misses the literal condition with probability 0.157 even for an unbiased estimator, so all 16 pass only 6.5% of the time (expected 2.5 misses; observed 4). The replacement keeps a 0.1 SE bias bound but tests it against Monte Carlo error. The largest observed bias, beta_4 at sigma = 0.3 (+0.216 SE, 0.026 on the logit scale), is about a tenth of the H1c minimum effect of interest (0.25). Owner decision: replace the point condition, do not drop the bias check.",
+      "follow_up": "The A12 amendment due before the E1 registration states simulation tolerances net of Monte Carlo error. The coverage band [0.92, 0.98] has the same issue (Monte Carlo SE 0.015, so a correct interval misses a single check with probability about 0.05); it passed here and is not waived."
+    }
+  ]
+}
