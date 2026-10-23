@@ -28,6 +28,7 @@ conventions:
   three_way_rule: "supported: the interval lies entirely on the claim's side of the threshold or inside the equivalence margin; not supported: entirely on the other side or entirely outside the margin; inconclusive: otherwise, or a floor (min_n) is not met, or the cell is excluded for missingness."
   multiplicity: "Holm-Bonferroni within each family: the confirmatory cell-level tests of one hypothesis ID and test. No correction across hypothesis IDs. Cells below a floor or excluded for missingness are not in the family."
   decision_mechanics: "For each test and cell decide.py uses p_support (the one-sided p-value whose rejection puts the claim-side bound beyond the threshold) and p_against (the same for the other side). Holm step-down adjusted p-values are computed within the family, separately for p_support and p_against; the cell is supported if adjusted p_support <= alpha_support (< for a strict threshold), not supported if adjusted p_against < alpha_against. For counts, decide.py computes the p-values itself: exact binomial for Clopper-Pearson rules, the score test for Wilson rules, so the decision equals the Holm-adjusted interval rule exactly."
+  separation: "Owner decisions 2026-10-22 and 2026-10-23 (SL-15): every E1 cell's conditional logit is estimated by Firth's penalised likelihood l(theta) + 1/2 log det I(theta), which removes the MLE's first-order small-sample bias and stays finite under separation, with profile penalised-likelihood intervals. Separation is detected exactly by a linear program (a direction along which the likelihood rises without bound, Konis 2007) and reported per cell. Hausman-McFadden compares MLEs."
   resampling: "Cluster bootstrap over candidate sets (E1) and over markets or replications (E2-E4); B = 2,000; percentile intervals; seeds derived from the registered master seed with stream(seed, 'bootstrap', analysis_id)."
   e1_primary_cells: "(model version x interface) at default temperature. Temperature-0 cells are secondary: reported, not in the claim-level label."
   aggregation: {two_thirds: "supported in at least 2/3 of the cells; not supported in more than 1/3; inconclusive otherwise", all: "supported if every cell is supported; not supported if any is not supported; inconclusive otherwise", single: "the label of the one cell"}
@@ -81,19 +82,19 @@ claims:
     kind: P
     sources: [premise]
     statement: "The odds of choosing i over j change when a product preferred to both is added or removed (an IIA violation)."
-    amendments: []
+    amendments: ["Owner decision 2026-10-22 under A12 §2 (a test that fails its size is replaced before registration): the set-level permutation version of the triple odds test is anti-conservative (rejection rate 0.102 in 400 null replications: sets with k have fewer i-or-j choices, and pairs share sets), so its p-value is a Monte Carlo test under the fitted logit; A12 §4 had named the permutation version", "Owner decision 2026-10-22: Hausman-McFadden compares delta/sigma only (1 df); the joint delta and beta version rejected 0.21-0.25 under the null because the design informs positions 5-8 only through K = 8 sets"]
     experiment: E1
     run_mode: sandbox
     unit_of_analysis: "informative triple (i, j, k) within an E1 primary cell: sets containing i and j with and without k, where k is chosen over both"
     metric: "log odds ratio of i over j with versus without k (Haldane-corrected)"
-    estimator: "pooled triple odds statistic over the cell's informative triples; Hausman-McFadden statistic from the cell's conditional logit with and without k"
-    test: "triple odds permutation test (primary, decides the label); Hausman-McFadden test (reported)"
+    estimator: "T = sum of squared Haldane-corrected log odds-ratio differences over the cell's informative triples, compared within one task and set size; Hausman-McFadden from the cell's conditional logit with and without each task's top-scored product"
+    test: "triple odds test with a Monte Carlo p-value under the fitted conditional logit, B = 999 (primary, decides the label); Hausman-McFadden test of delta/sigma, 1 df (reported)"
     alpha: 0.05
     ci_level: 0.95
     multiplicity_family: "H1a: the triple odds tests of all E1 primary cells (Holm)"
     tolerance_or_margin: "none: a rejection test (no equivalence margin is registered)"
     min_n: "20 informative triples per primary cell"
-    decision_rule: "Cell: supported if the Holm-adjusted p-value of the triple odds permutation test is <= 0.05 (IIA rejected); otherwise inconclusive, since a non-rejection without a registered margin is not evidence for IIA. Claim: two-thirds aggregation over primary cells."
+    decision_rule: "Cell: supported if the Holm-adjusted p-value of the triple odds Monte Carlo test is <= 0.05 (IIA rejected); otherwise inconclusive, since a non-rejection without a registered margin is not evidence for IIA. Claim: two-thirds aggregation over primary cells."
     decision:
       groups:
         - name: iia
@@ -118,7 +119,7 @@ claims:
     run_mode: sandbox
     unit_of_analysis: "candidate set presented r = 10 times identically (A15 per_set) within an E1 primary cell; a set needs >= 8 valid repeats"
     metric: "(i) mean over eligible sets of the modal share m_s = max_j n_sj / r_valid (j over displayed products and the outside option); (ii) median over sets of the gap G_s in sigma units between the highest and second-highest label-adjusted scores in S u {0}"
-    estimator: "(i) sample mean with a cluster bootstrap over sets; (ii) gaps from the cell's conditional-logit fit (penalised under separation, a lower bound), bootstrap median"
+    estimator: "(i) sample mean with a cluster bootstrap over sets; (ii) gaps from the cell's Firth-penalised conditional-logit fit (under separation the gap is a lower bound), bootstrap median"
     test: "one-sided comparisons of the 95% bootstrap interval bounds with 0.80 and ln 4"
     alpha: 0.05
     ci_level: 0.95
@@ -151,7 +152,7 @@ claims:
     run_mode: sandbox
     unit_of_analysis: "E1 primary cell (sign); model (heterogeneity)"
     metric: "delta_m / sigma_m from the conditional logit with product fixed effects, label and position effects"
-    estimator: "conditional-logit MLE (penalised under separation), cluster bootstrap over sets"
+    estimator: "Firth-penalised conditional logit (conventions.separation), cluster bootstrap over sets"
     test: "sign: one-sided Wald test of delta/sigma < 0 per primary cell; heterogeneity: Wald chi-square test of equal delta/sigma across models"
     alpha: 0.05
     ci_level: 0.95

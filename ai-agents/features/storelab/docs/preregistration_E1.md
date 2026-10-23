@@ -19,7 +19,7 @@ this text and the register differ, the register governs. The register follows
 
 | File | sha256 |
 |---|---|
-| `features/storelab/docs/claims_register.yaml` | `83c41b23565aaf68a40b58a9a9b38a4f1fb0b91b2eb8615418e215a51da85592` |
+| `features/storelab/docs/claims_register.yaml` | `5414e6ab5265041e7d5031b4320f98085c5666867c850a9d4da728fba2028571` |
 | `requirements/A1_formal_statements.md` | `be45dbfa81b0694693435f5cd2a32eedbf9370ccd24418c11250102b5dd278b5` |
 | `requirements/A12_thresholds.md` | `82217db6d087b78799db59aa680f0be70bfb26040d7acc06bbd533e9c3813f9d` |
 | `requirements/paper.tex` | `e4bcf05266b5c835d8dc827e829a86d1856f23bb3f295766aae899c154d63295` |
@@ -169,13 +169,15 @@ The odds of choosing i over j change when a product preferred to both is added o
 | Experiment and mode | E1, sandbox |
 | Unit of analysis | informative triple (i, j, k) within an E1 primary cell: sets containing i and j with and without k, where k is chosen over both |
 | Metric | log odds ratio of i over j with versus without k (Haldane-corrected) |
-| Estimator | pooled triple odds statistic over the cell's informative triples; Hausman-McFadden statistic from the cell's conditional logit with and without k |
-| Test | triple odds permutation test (primary, decides the label); Hausman-McFadden test (reported) |
+| Estimator | T = sum of squared Haldane-corrected log odds-ratio differences over the cell's informative triples, compared within one task and set size; Hausman-McFadden from the cell's conditional logit with and without each task's top-scored product |
+| Test | triple odds test with a Monte Carlo p-value under the fitted conditional logit, B = 999 (primary, decides the label); Hausman-McFadden test of delta/sigma, 1 df (reported) |
 | alpha / CI level | 0.05 / 0.95 |
 | Multiplicity family | H1a: the triple odds tests of all E1 primary cells (Holm) |
 | Tolerance or margin | none: a rejection test (no equivalence margin is registered) |
 | Minimum N | 20 informative triples per primary cell |
-| Decision rule | Cell: supported if the Holm-adjusted p-value of the triple odds permutation test is <= 0.05 (IIA rejected); otherwise inconclusive, since a non-rejection without a registered margin is not evidence for IIA. Claim: two-thirds aggregation over primary cells. |
+| Decision rule | Cell: supported if the Holm-adjusted p-value of the triple odds Monte Carlo test is <= 0.05 (IIA rejected); otherwise inconclusive, since a non-rejection without a registered margin is not evidence for IIA. Claim: two-thirds aggregation over primary cells. |
+| Amendment | Owner decision 2026-10-22 under A12 §2 (a test that fails its size is replaced before registration): the set-level permutation version of the triple odds test is anti-conservative (rejection rate 0.102 in 400 null replications: sets with k have fewer i-or-j choices, and pairs share sets), so its p-value is a Monte Carlo test under the fitted logit; A12 §4 had named the permutation version |
+| Amendment | Owner decision 2026-10-22: Hausman-McFadden compares delta/sigma only (1 df); the joint delta and beta version rejected 0.21-0.25 under the null because the design informs positions 5-8 only through K = 8 sets |
 | If supported | Agents are set-dependent as the model assumes: separable approximations do not suffice for this traffic, and the gaps of Section 4 apply. |
 | If not supported | Not reachable by this rule (no equivalence margin is registered); see inconclusive. |
 | If inconclusive | If H1a and H1b fail for a model or interface, separable approximations suffice for that traffic and the Section 4 gaps should shrink; E2 then reports results by interface (paper E1 Interpretation). |
@@ -191,7 +193,7 @@ Repeated identical presentations give the same choice in most trials (mean modal
 | Experiment and mode | E1, sandbox |
 | Unit of analysis | candidate set presented r = 10 times identically (A15 per_set) within an E1 primary cell; a set needs >= 8 valid repeats |
 | Metric | (i) mean over eligible sets of the modal share m_s = max_j n_sj / r_valid (j over displayed products and the outside option); (ii) median over sets of the gap G_s in sigma units between the highest and second-highest label-adjusted scores in S u {0} |
-| Estimator | (i) sample mean with a cluster bootstrap over sets; (ii) gaps from the cell's conditional-logit fit (penalised under separation, a lower bound), bootstrap median |
+| Estimator | (i) sample mean with a cluster bootstrap over sets; (ii) gaps from the cell's Firth-penalised conditional-logit fit (under separation the gap is a lower bound), bootstrap median |
 | Test | one-sided comparisons of the 95% bootstrap interval bounds with 0.80 and ln 4 |
 | alpha / CI level | 0.05 / 0.95 |
 | Multiplicity family | H1b part (i) across primary cells; H1b part (ii) across primary cells (Holm, separately) |
@@ -213,7 +215,7 @@ The label effect delta_m / sigma_m is negative, and it differs across models.
 | Experiment and mode | E1, sandbox |
 | Unit of analysis | E1 primary cell (sign); model (heterogeneity) |
 | Metric | delta_m / sigma_m from the conditional logit with product fixed effects, label and position effects |
-| Estimator | conditional-logit MLE (penalised under separation), cluster bootstrap over sets |
+| Estimator | Firth-penalised conditional logit (conventions.separation), cluster bootstrap over sets |
 | Test | sign: one-sided Wald test of delta/sigma < 0 per primary cell; heterogeneity: Wald chi-square test of equal delta/sigma across models |
 | alpha / CI level | 0.05 / 0.95 |
 | Multiplicity family | H1c sign: all primary cells (Holm); heterogeneity: one claim-level test |

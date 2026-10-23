@@ -11,7 +11,7 @@ governs where the two differ.
 
 | File | sha256 |
 |---|---|
-| `features/storelab/docs/claims_register.yaml` | `83c41b23565aaf68a40b58a9a9b38a4f1fb0b91b2eb8615418e215a51da85592` |
+| `features/storelab/docs/claims_register.yaml` | `5414e6ab5265041e7d5031b4320f98085c5666867c850a9d4da728fba2028571` |
 | `requirements/A1_formal_statements.md` | `be45dbfa81b0694693435f5cd2a32eedbf9370ccd24418c11250102b5dd278b5` |
 | `requirements/A12_thresholds.md` | `82217db6d087b78799db59aa680f0be70bfb26040d7acc06bbd533e9c3813f9d` |
 | `requirements/paper.tex` | `e4bcf05266b5c835d8dc827e829a86d1856f23bb3f295766aae899c154d63295` |

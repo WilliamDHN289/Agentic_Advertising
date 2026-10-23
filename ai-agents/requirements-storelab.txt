@@ -19,3 +19,6 @@ anthropic==1.17.0
 # Token counts of the cost estimate (SL-11): the ai-agents pin. Its o200k_base file is
 # read from artifacts/tokenizers/, never downloaded.
 tiktoken==0.14.0
+# E1 estimation (SL-15): MLE, LP separation check, distributions. The ai-agents pin
+# (poetry.lock); it runs with numpy 1.26.4.
+scipy==1.17.1
