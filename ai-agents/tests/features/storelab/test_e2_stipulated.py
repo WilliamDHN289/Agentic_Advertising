@@ -253,6 +253,12 @@ class ResultsTest(unittest.TestCase):
             self.assertIn(key, stats_)
             self.assertEqual(stats_[key]["label"], "exploratory")
         self.assertNotIn("decision", json.dumps(stats_))
+        # the floor rule (A12 §2, §5) is the one label recorded: inconclusive below 200 markets
+        for cid, cell in stats_["H2a"]["part1"].items():
+            self.assertEqual(cell.get("label_by_floor_rule") == "inconclusive", cell["n"] < 200, cid)
+        rate = stats_["H2a"]["screen_pass"]
+        self.assertAlmostEqual(rate["rate"], rate["passing"] / rate["valid"])
+        self.assertIn("inconclusive by rule", e2_report.REPORT.read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":
