@@ -32,20 +32,22 @@ def figure(rows: int = 1, cols: int = 1, width: float = 7.0, height: float = 3.2
     return fig, axes
 
 
-def save(fig, ticket: str, name: str, header: Sequence[str], rows: Iterable[Sequence], title: str) -> list[Path]:
-    """Stamp the label, write <name>.pdf, .png and .csv; return the paths."""
+def save(fig, ticket: str, name: str, header: Sequence[str], rows: Iterable[Sequence], title: str,
+         label: str = LABEL) -> list[Path]:
+    """Stamp the label, write <name>.pdf, .png and .csv; return the paths. Figures that do not
+    depend on the stipulated parameters (an implementation check) pass their own label."""
     out = FIGURES / ticket
     out.mkdir(parents=True, exist_ok=True)
     fig.suptitle(title, fontsize=10, y=0.995)
-    fig.text(0.5, 0.005, LABEL, ha="center", va="bottom", fontsize=7, style="italic", color="0.3")
+    fig.text(0.5, 0.005, label, ha="center", va="bottom", fontsize=7, style="italic", color="0.3")
     fig.tight_layout(rect=(0, 0.04, 1, 0.95))
     pdf, png, data = out / (name + ".pdf"), out / (name + ".png"), out / (name + ".csv")
-    fig.savefig(pdf, metadata={"CreationDate": None, "ModDate": None, "Producer": None, "Creator": LABEL})
-    fig.savefig(png, dpi=DPI, metadata={"Software": None, "Comment": LABEL})
+    fig.savefig(pdf, metadata={"CreationDate": None, "ModDate": None, "Producer": None, "Creator": label})
+    fig.savefig(png, dpi=DPI, metadata={"Software": None, "Comment": label})
     plt.close(fig)
     buffer = io.StringIO()
     writer = csv.writer(buffer, lineterminator="\n")
-    buffer.write("# " + LABEL + "\n")
+    buffer.write("# " + label + "\n")
     writer.writerow(list(header))
     for row in rows:
         writer.writerow([repr(v) if isinstance(v, float) else v for v in row])
