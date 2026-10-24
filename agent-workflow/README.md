@@ -115,6 +115,16 @@ python3 agent-workflow/review.py adopt-workflow
 
 审核者只对文件列出的 AC 使用 `WAIVED`，并照常验证 scope 之外的部分；脚本拒绝豁免文件以外的 `WAIVED`，豁免编号不在 handoff 中时直接拒绝且不消耗轮次。实现者不得创建豁免文件。
 
+### 负责人跳过审核（记录为未审核）
+
+审核暂时无法进行时（例如两个账号额度不足），负责人可以接受当前候选而不经独立审核，让下一张 ticket 开始：
+
+```bash
+python3 agent-workflow/review.py accept --reason "为什么跳过审核、何时补审"
+```
+
+脚本照常检查候选（工作区干净、已提交、需求与协作文件未改），把 ticket 记为 `OWNER_ACCEPTED`（不是 `APPROVED`），并写入 `runs/TICKET/owner-accept.json`（`independently_reviewed: false`）。此命令仅由用户运行，实现者 prompt 禁止调用。被 accept 的代码应在之后复用它的 ticket 中接受审核。
+
 ## 3. 启动实现者
 
 在项目根目录的终端运行（使用账号 A 的默认配置）：

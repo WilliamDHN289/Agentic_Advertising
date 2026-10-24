@@ -22,6 +22,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 RUNS = HERE / "runs"
 STATE = RUNS / "state.json"
+PASSED = ("APPROVED", "OWNER_ACCEPTED")  # decisions that let the next ticket begin
 WAIVERS = HERE / "waivers"
 REQUIREMENTS = "requirements"  # owner inputs that tickets.md refers to, frozen like the ticket document
 REVIEWER_CONFIG = os.path.expanduser(os.environ.get("REVIEWER_CLAUDE_CONFIG_DIR", "~/.claude-reviewer"))
@@ -120,7 +121,7 @@ def begin(args):
         if old["ticket_id"] == args.ticket:
             print(json.dumps(old, ensure_ascii=False, indent=2))
             return 0
-        require(old["decision"] == "APPROVED", "Current ticket has not passed; resume it instead of starting another")
+        require(old["decision"] in PASSED, "Current ticket has not passed; resume it instead of starting another")
         require(old["approved_head"] == head, "HEAD changed since approval; the old approval cannot authorize new work")
     directory = RUNS / args.ticket
     require(not directory.exists(), "This ticket already has a history; do not overwrite it")
@@ -146,7 +147,7 @@ def adopt_workflow(args):
     head = git("rev-parse", "HEAD")
     parent = git("rev-parse", "HEAD^")
     changed = git("diff", "--name-only", parent, head).splitlines()
-    if state["decision"] == "APPROVED":
+    if state["decision"] in PASSED:
         # Between tickets the owner may also change the requirement documents; begin snapshots them afresh.
         require(changed and all(path.startswith((HERE.name + "/", REQUIREMENTS + "/")) or path == state["tickets_path"]
                                 for path in changed),
@@ -154,7 +155,7 @@ def adopt_workflow(args):
     else:
         require(changed and all(path.startswith(HERE.name + "/") for path in changed),
                 "HEAD must be a commit that changes only " + HERE.name + "/ files")
-    if state["decision"] == "APPROVED":
+    if state["decision"] in PASSED:
         require(state["approved_head"] == parent, "HEAD^ is not the approved candidate")
         state["approved_head"] = head
     else:
@@ -249,11 +250,8 @@ def run_reviewer(command, prompt, directory, timeout):
     return result["structured_output"]
 
 
-def review(args):
-    require(STATE.exists(), "Run begin before review")
-    state = read_json(STATE)
-    require(state["round"] < state["max_rounds"], "Review round limit reached; human intervention required")
-    require(args.timeout > 0, "timeout must be positive")
+def candidate(state):
+    """The committed candidate at HEAD, checked the same way for review and for an owner accept."""
     clean()
     head = git("rev-parse", "HEAD")
     require(head != state["base_commit"], "No candidate commit exists after this ticket's baseline")
@@ -263,6 +261,35 @@ def review(args):
             "Workflow files changed during implementation; ask the user to handle configuration separately")
     require(not git("diff", "--name-only", state["base_commit"], head, "--", state["tickets_path"], REQUIREMENTS),
             "The ticket document or " + REQUIREMENTS + "/ changed during implementation; review against the original requirements")
+    return head
+
+
+def accept(args):
+    # Owner only: lets the next ticket begin without an independent review, and says so in the record.
+    require(STATE.exists(), "Run begin before accept")
+    state = read_json(STATE)
+    require(state["decision"] in ("IMPLEMENTING", "CHANGES_REQUESTED", "BLOCKED"),
+            "Only an unapproved ticket can be accepted; its decision is " + state["decision"])
+    require(len(args.reason.strip()) >= 20, "Give the reason for accepting without review (at least 20 characters)")
+    head = candidate(state)
+    record = {"ticket_id": state["ticket_id"], "base_commit": state["base_commit"], "head_commit": head,
+              "decision": "OWNER_ACCEPTED", "independently_reviewed": False, "reason": args.reason.strip(),
+              "review_rounds_used": state["round"]}
+    write_json(RUNS / state["ticket_id"] / "owner-accept.json", record)
+    state["decision"] = "OWNER_ACCEPTED"
+    state["approved_head"] = head
+    write_json(STATE, state)
+    write_json(RUNS / state["ticket_id"] / "ticket-state.json", state)
+    print(json.dumps(record, ensure_ascii=False, indent=2))
+    return 0
+
+
+def review(args):
+    require(STATE.exists(), "Run begin before review")
+    state = read_json(STATE)
+    require(state["round"] < state["max_rounds"], "Review round limit reached; human intervention required")
+    require(args.timeout > 0, "timeout must be positive")
+    head = candidate(state)
     handoff = read_json(Path(args.handoff).resolve())
     require(handoff.get("ticket_id") == state["ticket_id"], "Handoff ticket ID mismatch")
     criteria = handoff.get("acceptance_criteria")
@@ -327,6 +354,8 @@ def main():
     sub.add_parser("status")
     sub.add_parser("check-reviewer", help="Verify the reviewer account sign-in without starting a round")
     sub.add_parser("adopt-workflow", help="User only: accept HEAD as a commit that changes only workflow files")
+    owner = sub.add_parser("accept", help="User only: let the next ticket begin without an independent review (recorded as unreviewed)")
+    owner.add_argument("--reason", required=True)
     check = sub.add_parser("review")
     check.add_argument("--handoff", required=True)
     check.add_argument("--timeout", type=int, default=1800)
@@ -351,6 +380,8 @@ def main():
                 return 0
             if args.action == "adopt-workflow":
                 return adopt_workflow(args)
+            if args.action == "accept":
+                return accept(args)
             return review(args)
     except Exception as exc:
         print(json.dumps({"decision": "BLOCKED", "error": str(exc)}, ensure_ascii=False), file=sys.stderr)
