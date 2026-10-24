@@ -1,0 +1,13 @@
+{
+ "files": {
+  "bound.csv.gz": true,
+  "h4b_check.csv.gz": true,
+  "learning/N_x-10/f-1/n0-10.csv.gz": true,
+  "learning/N_x-10/f-1/n0-100.csv.gz": true,
+  "learning/N_x-10/f-1/n0-1000.csv.gz": true,
+  "learning/N_x-30/f-2/n0-1000.csv.gz": true,
+  "recovery/N_x-30/f-0.5/n0-2.csv.gz": true
+ },
+ "identical": true,
+ "workers": 8
+}
