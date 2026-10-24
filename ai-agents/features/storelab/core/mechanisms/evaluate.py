@@ -51,6 +51,7 @@ class Outcome:
     iterations: int = 0
     identity_gap: dict[str, float] = field(default_factory=dict)  # |externality − integral| (by_type)
     cost_model_error: float = 0.0  # overflow tangents: exact − modelled cost at the solution
+    payment_error_bound: float = 0.0  # eq. payment: bound on |error| from unresolved profile intervals
 
     @property
     def revenue(self) -> float:
@@ -94,7 +95,7 @@ class MarketRunner:
         theta = np.array([values[j] for j in market.advertisers], dtype=float)
         human = agent = None
         gaps: dict[str, float] = {}
-        converged, iterations, model_error = True, 0, 0.0
+        converged, iterations, model_error, bound = True, 0, 0.0, 0.0
         if mechanism in ("M1", "M2"):
             if bidding_rule == "human_conversion_rate":
                 bids = gsp.human_rate_bids(market, values)
@@ -117,6 +118,7 @@ class MarketRunner:
                 for k, j in enumerate(market.advertisers):
                     p = pay.integral_payment(prog, theta, k, pay.BidMap())
                     human[j], agent[j] = p.payment_human, p.payment_agent
+                    bound += p.error_bound
                     gaps[j] = abs(p.payment - paid[j])
         elif mechanism == "profit_rule":
             prog = self.program("profit_rule")
@@ -125,12 +127,15 @@ class MarketRunner:
             for k, j in enumerate(market.advertisers):
                 p = pay.integral_payment(prog, theta, k, pay.bid_map(prog, k))
                 paid[j], human[j], agent[j] = p.payment, p.payment_human, p.payment_agent
+                bound += p.error_bound
             bids = dict(zip(market.advertisers, map(float, theta)))
             model_error = allocation.cost_model_error
         else:
             raise ValueError("unknown mechanism %s" % mechanism)
-        return self._outcome(mechanism, bids, allocation, paid, human, agent, time.perf_counter() - start,
-                             converged, iterations, gaps, model_error)
+        outcome = self._outcome(mechanism, bids, allocation, paid, human, agent, time.perf_counter() - start,
+                                converged, iterations, gaps, model_error)
+        outcome.payment_error_bound = bound
+        return outcome
 
     def _outcome(self, mechanism, bids, allocation: Allocation, paid, human, agent, seconds, converged, iterations,
                  gaps, model_error) -> Outcome:

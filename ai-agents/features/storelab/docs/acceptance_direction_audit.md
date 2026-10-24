@@ -11,9 +11,11 @@ data with a known truth do not: they hold or fail whatever the experiments find.
 `tests/features/storelab/test_claims_register.py` checks that this table lists every criterion
 of `tickets.md` verbatim, once.
 
-**Result: 102 criteria, none requires a particular direction.** Four gate on exact identities or
+**Result: 117 criteria, none requires a particular direction.** Four gate on exact identities or
 worked examples (SL-19 AC-3, SL-20 AC-1 to AC-3); they are implementation checks (A1 index:
-I-type) and are listed with their reasons below.
+I-type) and are listed with their reasons below. The pre-E1 tickets SL-19S, SL-20S and SL-21S
+(15 criteria) gate only on implementation checks, completeness, reproducibility and exploratory
+labels.
 
 | Ticket | AC | Criterion | Direction required? | Reason |
 |---|---|---|---|---|
@@ -112,6 +114,21 @@ I-type) and are listed with their reasons below.
 | SL-21 | AC-1 | Reachability and identification code passes unit tests on at least 5 hand-built graphs. | No | Unit tests, replication counts and reproducibility; labels come from the register. |
 | SL-21 | AC-2 | Every cell has R completed replications; a seeded rerun is identical. | No | Unit tests, replication counts and reproducibility; labels come from the register. |
 | SL-21 | AC-3 | Decision labels follow the register; the exploratory recovery analysis is labelled exploratory. | No | Unit tests, replication counts and reproducibility; labels come from the register. |
+| SL-19S | AC-1 | Every configuration has ≥200 valid markets. Solver exclusions are <1% per configuration, or are investigated before reporting. The hashes of market inputs are identical across mechanisms. | No | Simulation completeness, exclusions and common random numbers on stipulated markets; independent of any result. |
+| SL-19S | AC-2 | A test checks that generated markets match A17: parameter values, regime constraints (agent-aware lists hold every favourite in the first K − K^s organic positions; gated lists show no favourite organically) and the screen classification. | No | Checks generated markets against the A17 specification; an implementation check. |
+| SL-19S | AC-3 | Implementation gates (a failure blocks the report): | No | Implementation gates on exact identities (prop:gating gain, set-blind equality with deterministic lists); I-type checks. |
+| SL-19S | AC-4 | One command regenerates every table and figure from the committed result files, and a seeded rerun reproduces the result files byte for byte. Every table and figure is labelled "Stipulated parameters (A17), pre-E1, exploratory". | No | Reproducibility and labelling of tables and figures. |
+| SL-19S | AC-5 | H2a–H2c and Conj gating are reported with the registered statistics and labelled exploratory. No confirmatory label is recorded. | No | Reporting with registered statistics and exploratory labels; no label depends on the outcome. |
+| SL-20S | AC-1 | Part A: the numeric optimum and the closed form agree within the A12 §4 tolerances at 100% of the A17 §3.1 grid points, including the finite-n overflow bound. Otherwise Part B is blocked. | No | Implementation check of an exact closed form (prop:threshold) on the A17 grid; I-type. |
+| SL-20S | AC-2 | Example `ex:diversify` is reproduced exactly through the E3 code path: Var(D_A) = 250,000, 250 and 62,625. | No | Reproducing a worked example of the paper through the code path; an implementation check. |
+| SL-20S | AC-3 | Part B, not-aligned states: | No | Variance decomposition and separation identities; implementation checks with exact tolerances. |
+| SL-20S | AC-4 | One command regenerates every table and figure from the committed result files, and a seeded rerun reproduces the result files byte for byte. Part B tables and figures are labelled "Stipulated parameters (A17), pre-E1, exploratory". | No | Reproducibility and labelling of tables and figures. |
+| SL-20S | AC-5 | H3a–H3c are reported with the registered statistics. Part B labels are exploratory. | No | Reporting with registered statistics and exploratory labels; no label depends on the outcome. |
+| SL-21S | AC-1 | The reachability and identification code passes unit tests on at least 5 hand-built graphs. The corrected bound ⌈log⌊e·N_x!⌋ / log(K+1)⌉ is implemented, and its count is checked by enumeration for N_x ≤ 7. | No | Unit tests of reachability and identification code and an enumeration check of a counting bound. |
+| SL-21S | AC-2 | The H4b implementation check of A12 §4 passes in every checked cell: 10,000 replications, bias ≤ 3 Monte Carlo SE, and the variance within ±5% of the closed form. | No | Implementation check of the H4b estimator against its own closed form on simulated data with known truth. |
+| SL-21S | AC-3 | Every cell has R = 200 completed replications, and a seeded rerun is identical. | No | Replication counts and seeded reproducibility. |
+| SL-21S | AC-4 | One command regenerates every table and figure from the committed result files. Every table and figure is labelled "Stipulated parameters (A17), pre-E1, exploratory". | No | Reproducibility and labelling of tables and figures. |
+| SL-21S | AC-5 | H4a–H4d are reported with the registered statistics (H4b and H4d as corrected in A1 §E2–§E3) and labelled exploratory. The recovery analysis is labelled exploratory. | No | Reporting with registered statistics and exploratory labels; no label depends on the outcome. |
 | SL-22 | AC-1 | Permutation-test size at α = 0.05 is in [0.03, 0.07] over 1,000 synthetic datasets; power at the designed effect is within ±5 percentage points of the analytic target. | No | Size and power of the E5 permutation test on synthetic data: operating characteristics, not a result about H5a/H5b. |
 | SL-22 | AC-2 | Schema fixtures validate; a PII field scan finds no email, name or address fields. | No | Operating characteristics of the E5 test on synthetic data, schema checks and a citation. |
 | SL-22 | AC-3 | The E5 pre-registration (SL-01) cites this protocol version. | No | Operating characteristics of the E5 test on synthetic data, schema checks and a citation. |

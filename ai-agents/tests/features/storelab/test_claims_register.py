@@ -352,7 +352,7 @@ class DirectionAuditTest(unittest.TestCase):
     def test_the_audit_covers_every_acceptance_criterion(self):
         criteria, ticket = [], None
         for line in (REPO_ROOT / "tickets.md").read_text(encoding="utf-8").splitlines():
-            heading = re.match(r"^### (SL-\d+[a-z]?) · ", line)
+            heading = re.match(r"^### (SL-\d+[a-zS]?) · ", line)
             if heading:
                 ticket, number = heading.group(1), 0
                 continue

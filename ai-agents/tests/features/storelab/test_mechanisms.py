@@ -324,11 +324,38 @@ class ExclusionTest(unittest.TestCase):
         self.assertNotIn(market.market_id, {o.market_id for o in batch.outcomes})
         self.assertEqual(len(batch.outcomes), len(MECHANISMS))
 
+    def test_a_failed_interior_point_qp_is_solved_by_the_fallbacks(self):
+        """Clarabel failing (any non-optimal status) does not exclude the market when a
+        fallback path finds the same exact optimum: the vertex-started active set, then ADMM."""
+        market, theta = mv.random_market(2, "quadratic")
+        bids = np.array([theta[j] for j in market.advertisers])
+        reference = MarketRunner(market).program("M4").solve(bids)
+        real = solver.solve
+
+        def broken(problem, kind, where=""):
+            if kind == "qp":
+                raise solver.SolverFailure("user_limit", where)
+            return real(problem, kind, where)
+
+        for disable_vertex in (False, True):
+            program = MarketRunner(market).program("M4")
+            with self.subTest(vertex_path=not disable_vertex), mock.patch.object(allocation, "solve", side_effect=broken):
+                if disable_vertex:
+                    with mock.patch.object(allocation, "FALLBACK_STEPS", 0):
+                        result = program.solve(bids)
+                else:
+                    result = program.solve(bids)
+            self.assertEqual(program.fallbacks, ["admm after user_limit" if disable_vertex else "vertex after user_limit"])
+            for j in market.products:
+                self.assertAlmostEqual(result.X[j], reference.X[j], delta=1e-9 * market.requests)
+            self.assertAlmostEqual(result.value, reference.value, places=10)
+
     def test_a_qp_that_cannot_be_polished_fails(self):
         market, theta = mv.random_market(2, "quadratic")
         program = MarketRunner(market).program("M4")
         self.assertEqual(program.kind, "qp")
-        with mock.patch.object(allocation, "POLISH_STEPS", 0):
+        with mock.patch.object(allocation, "POLISH_STEPS", 0), mock.patch.object(allocation, "FALLBACK_STEPS", 0), \
+                mock.patch.object(allocation, "polish", side_effect=solver.SolverFailure("unpolished", "test")):
             with self.assertRaises(solver.SolverFailure) as raised:
                 program.solve(np.array([theta[j] for j in market.advertisers]))
         self.assertEqual(raised.exception.status, "unpolished")
@@ -369,7 +396,7 @@ class SolverConfigTest(unittest.TestCase):
 
     def test_each_program_class_has_one_pinned_solver(self):
         programs = solver.config()["programs"]
-        self.assertEqual(sorted(programs), ["lp", "qp"])
+        self.assertEqual(sorted(programs), ["lp", "qp", "qp_fallback"])
         self.assertEqual(solver.config()["accepted_status"], ["optimal"])
         market, _ = mv.random_market(1, "quadratic")
         self.assertEqual(MarketRunner(market).program("M4").kind, "qp")

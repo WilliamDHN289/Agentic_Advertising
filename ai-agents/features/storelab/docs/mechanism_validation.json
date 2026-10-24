@@ -1,5 +1,5 @@
 {
- "code_fingerprint": "f4dd28317cb2eb5065bc63c363a362f448361a06360637d8f536eb2cce6d2cb2",
+ "code_fingerprint": "a33059e1877d5ee0f30575a3ae5f9f5e064e6a8ec439853b296ad1e91d35036a",
  "counts": {
   "identity": 100,
   "incentives": 100,
@@ -193,8 +193,8 @@
    "quantity": "P_A (externality)"
   },
   {
-   "computed": 126.87687687687699,
-   "error_per_request": 0.0,
+   "computed": 126.87687687687665,
+   "error_per_request": 3.410605131648481e-16,
    "expected": 126.87687687687699,
    "market": "quadratic two-advertiser",
    "passed": true,
@@ -209,7 +209,7 @@
    "quantity": "P_B (eq. payment)"
   },
   {
-   "computed": 840.9234234234234,
+   "computed": 840.9234234234236,
    "error_per_request": 1.1368683772161603e-16,
    "expected": 840.9234234234235,
    "market": "quadratic two-advertiser",
@@ -349,32 +349,32 @@
    "quantity": "sponsored list"
   },
   {
-   "computed": 165.83333333333303,
-   "error_per_request": 3.410605131648481e-16,
+   "computed": 165.83333333333337,
+   "error_per_request": 0.0,
    "expected": 165.83333333333337,
    "market": "threshold quadratic \u0394=0",
    "passed": true,
    "quantity": "G = J(y*)"
   },
   {
-   "computed": 1.483277139506479e-14,
-   "error_per_request": 1.483277139506479e-17,
+   "computed": 0.0,
+   "error_per_request": 0.0,
    "expected": 0.0,
    "market": "threshold quadratic \u0394=0",
    "passed": true,
    "quantity": "y* = Pr({1, 2})"
   },
   {
-   "computed": 500.0,
-   "error_per_request": 0.0,
+   "computed": 499.9999999999999,
+   "error_per_request": 1.1368683772161603e-16,
    "expected": 500.0,
    "market": "threshold quadratic \u0394=0",
    "passed": true,
    "quantity": "X_1"
   },
   {
-   "computed": 500.0000000000002,
-   "error_per_request": 2.2737367544323206e-16,
+   "computed": 499.9999999999999,
+   "error_per_request": 1.1368683772161603e-16,
    "expected": 500.0,
    "market": "threshold quadratic \u0394=0",
    "passed": true,
@@ -408,7 +408,7 @@
   "excluded": [],
   "markets": 100,
   "passed": true,
-  "seconds_per_market": 8.656691630858695,
+  "seconds_per_market": 9.72467587962048,
   "tolerance": 1e-06,
   "valid_markets": 100,
   "worst": {
@@ -452,7 +452,7 @@
   "markets": 100,
   "monotone_tolerance": 1e-09,
   "passed": true,
-  "seconds_per_market": 73.60002216787892,
+  "seconds_per_market": 85.82536654170718,
   "valid_markets": 100
  },
  "master_seed": 2026102316,
@@ -475,16 +475,16 @@
     "label": "small",
     "rankings": 1,
     "seconds": {
-     "M1": 0.0014244303456507623,
-     "M2": 0.0002796253344664971,
-     "M3": 0.019992486321522545,
-     "M3_set_blind": 0.026356111008984346,
-     "M4": 0.012747624675588062,
-     "profit_rule": 0.47818919432271895
+     "M1": 0.0012880000091778736,
+     "M2": 0.0001972913354014357,
+     "M3": 0.028753958642482758,
+     "M3_set_blind": 0.024512833314171683,
+     "M4": 0.016697666666004807,
+     "profit_rule": 0.589944222670359
     },
-    "setup": 0.0004658193599122266,
+    "setup": 0.0003240836667828262,
     "states": 1,
-    "total": 0.5394552913688434
+    "total": 0.6617180563043803
    },
    {
     "actions": 18,
@@ -495,16 +495,16 @@
     "label": "E2 baseline (K = 4, K^s = 1)",
     "rankings": 2,
     "seconds": {
-     "M1": 0.0027215829856383302,
-     "M2": 0.0004488613340072334,
-     "M3": 0.028216444654390216,
-     "M3_set_blind": 0.030771402991376817,
-     "M4": 0.01976704199720795,
-     "profit_rule": 3.1575781113351695
+     "M1": 0.0019694583412880697,
+     "M2": 0.0004316253277162711,
+     "M3": 0.032404680348311864,
+     "M3_set_blind": 0.048295569664333016,
+     "M4": 0.02612095830651621,
+     "profit_rule": 3.510619333324333
     },
-    "setup": 0.005483250327718754,
+    "setup": 0.00619944433371226,
     "states": 2,
-    "total": 3.2449866956255087
+    "total": 3.626041069646211
    },
    {
     "actions": 130,
@@ -515,16 +515,16 @@
     "label": "E2 K^s = 2",
     "rankings": 2,
     "seconds": {
-     "M1": 0.0012583609786815941,
-     "M2": 0.010994277351225415,
-     "M3": 0.029502264340408146,
-     "M3_set_blind": 0.033244236023165286,
-     "M4": 0.0363836109948655,
-     "profit_rule": 9.228566111337082
+     "M1": 0.005747638662190487,
+     "M2": 0.025030833688409377,
+     "M3": 0.028167569000894826,
+     "M3_set_blind": 0.04278175036112467,
+     "M4": 0.049337291663202144,
+     "profit_rule": 9.917155097646173
     },
-    "setup": 0.014142444687119374,
+    "setup": 0.0222761530118684,
     "states": 2,
-    "total": 9.354091305712549
+    "total": 10.090496334033864
    },
    {
     "actions": 18,
@@ -535,16 +535,16 @@
     "label": "E2 K = 8",
     "rankings": 2,
     "seconds": {
-     "M1": 0.001053180332140376,
-     "M2": 0.000298764343218257,
-     "M3": 0.033969083024809756,
-     "M3_set_blind": 0.0335153333338288,
-     "M4": 0.018874166649766266,
-     "profit_rule": 2.677415916657386
+     "M1": 0.0014640970039181411,
+     "M2": 0.0002987776533700526,
+     "M3": 0.03444574965396896,
+     "M3_set_blind": 0.030831180338282138,
+     "M4": 0.018836457980796695,
+     "profit_rule": 2.8001923746584603
     },
-    "setup": 2.5136584723368287,
+    "setup": 2.5317881390025527,
     "states": 2,
-    "total": 5.278784916677978
+    "total": 5.417856776291349
    },
    {
     "actions": 62,
@@ -555,27 +555,27 @@
     "label": "E2, 4 contexts",
     "rankings": 2,
     "seconds": {
-     "M1": 0.0014882080334549148,
-     "M2": 0.0007986943237483501,
-     "M3": 0.03485694467478121,
-     "M3_set_blind": 0.03870715299854055,
-     "M4": 0.028231888679632295,
-     "profit_rule": 7.932769957988057
+     "M1": 0.0018863333195137482,
+     "M2": 0.000787985996187975,
+     "M3": 0.033093277675410114,
+     "M3_set_blind": 0.03508052765391767,
+     "M4": 0.027737194672226906,
+     "profit_rule": 8.269642027968075
     },
-    "setup": 0.017891791668565322,
+    "setup": 0.019990027668730665,
     "states": 2,
-    "total": 8.05474463836678
+    "total": 8.388217374954062
    }
   ],
   "sl19_core": {
    "configurations": 30,
-   "cpu_hours": 5.408311159375848,
+   "cpu_hours": 6.043401782743684,
    "markets_per_configuration": 200,
-   "seconds_per_market_all_mechanisms": 3.2449866956255087
+   "seconds_per_market_all_mechanisms": 3.626041069646211
   },
   "workers_used": 8
  },
- "seconds": 1102.3,
+ "seconds": 1275.4,
  "study": "SL-16 mechanism validation",
  "versions": {
   "clarabel": "0.11.1",

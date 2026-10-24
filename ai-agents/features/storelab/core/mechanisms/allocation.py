@@ -34,8 +34,13 @@ computed from the same objective (the identity with eq. payment is exact). Its
 payments differ from those of the η → 0 limit by at most n η max_x,j u(x, j)
 (1e-9 per request for u ≤ 1). Between breakpoints X_j is unique whatever the rule
 (a face optimal for an interval of b_j has constant X_j); the rule fixes the rest of
-the outcome. LPs are solved by the dual simplex and QPs are polished on their
-active set (solver.py), so allocations are exact.
+the outcome. Actions of a group with identical outcome data are merged into one
+variable first (``_merge_duplicates``). LPs are solved by the dual simplex and QPs are polished on their
+active set (solver.py), so allocations are exact. A QP whose interior-point solve
+fails (any status other than optimal, or a failed polish) is solved instead by the
+same active-set method from an exactly feasible LP vertex, and failing that by the
+pinned ADMM solver followed by the polish (``Program._from_vertex``, recorded in
+``Program.fallbacks``); if every path fails, the solve fails.
 """
 from __future__ import annotations
 
@@ -112,6 +117,7 @@ class Program:
         else:
             expand = sparse.identity(rows, format="csr")
             groups, ngroups = list(t.row_group), len(t.groups)
+        expand, groups = _merge_duplicates(t, expand, groups)
         self._expand = expand
         nz = expand.shape[1]
         to_z = lambda per_row: np.asarray(expand.T @ per_row).ravel()  # noqa: E731  a row functional in z
@@ -174,6 +180,8 @@ class Program:
         if len(self.h):
             constraints.append(self.G @ self.x <= self.h)
         self.problem = cp.Problem(cp.Maximize(objective), constraints)
+        self._vertex = None
+        self.fallbacks: list[str] = []  # statuses of the QP solves that needed the active-set fallback
 
     @property
     def H(self) -> np.ndarray:
@@ -191,13 +199,43 @@ class Program:
         coefficients = np.asarray(coefficients, dtype=float)
         self.coef.value = coefficients
         where = "%s %s" % (self.market.market_id, self.rule_name)
-        value = solve(self.problem, self.kind, where)
-        x = np.asarray(self.x.value, dtype=float)
-        if self.kind == "qp":
-            x = polish(self, x, coefficients, where)
+        if self.kind == "lp":
+            value = solve(self.problem, "lp", where)
+            x = np.asarray(self.x.value, dtype=float)
+        else:
+            try:
+                solve(self.problem, "qp", where)
+                x = polish(self, np.asarray(self.x.value, dtype=float), coefficients, where)
+            except SolverFailure as failure:
+                x = self._from_vertex(coefficients, where, failure)
             value = self.value_of(x, coefficients)
         y = self._expand @ x[:self.nz]
         return self.allocation(y, value)
+
+    def _from_vertex(self, coefficients: np.ndarray, where: str, failure: SolverFailure) -> np.ndarray:
+        """The QP fallbacks (solver.py), in order:
+        1. the active-set method of ``polish`` started at an exactly feasible vertex (the
+           LP optimum of the objective's linear part, from the pinned LP solver);
+        2. the pinned ADMM solver (``qp_fallback``), then ``polish``.
+        Interior-point iterates can cycle on degenerate optimal faces, and an active-set
+        method can stall where actions are numerically identical. Every accepted point
+        passes the same exact KKT check."""
+        if self._vertex is None:
+            self._vertex = cp.Problem(cp.Maximize(self.q0 @ self.x + self.coef @ (self.Qc.T @ self.x)),
+                                      self.problem.constraints)
+        solve(self._vertex, "lp", where + " fallback vertex")
+        try:
+            x = polish(self, np.asarray(self.x.value, dtype=float), coefficients,
+                       where + " fallback (after %s)" % failure.status, steps=FALLBACK_STEPS * self.nx)
+            self.fallbacks.append("vertex after %s" % failure.status)
+            return x
+        except SolverFailure:
+            pass
+        solve(self.problem, "qp_fallback", where + " ADMM fallback")
+        x = polish(self, np.asarray(self.x.value, dtype=float), coefficients,
+                   where + " ADMM fallback (after %s)" % failure.status)
+        self.fallbacks.append("admm after %s" % failure.status)
+        return x
 
     def allocation(self, y: np.ndarray, value: float = math.nan) -> Allocation:
         t, n, market = self.table, self.market.requests, self.market
@@ -226,24 +264,59 @@ class Program:
                    for j, spec in self.modelled_costs.items() if spec[0] == "overflow")
 
 
+DUPLICATE_TOL = 1e-13  # actions whose outcome data agree to this (absolute) are merged
+
+
+def _merge_duplicates(t: ActionTable, expand: sparse.csr_matrix, groups: list) -> tuple[sparse.csr_matrix, list]:
+    """Merge decision variables of one group whose actions have the same outcome data:
+    every product's choice probability by state and its human and agent parts, the
+    contribution and the match quality (for set-blind variables, of every organic list
+    they cover). Such actions are interchangeable in every objective and constraint, so
+    the optimum is unchanged. The merged mass goes to the first of them, a fixed rule
+    that does not depend on the bids. Duplicates make the optimal face degenerate,
+    which stalls interior-point and active-set iterations (near-deterministic agents
+    choose the same product from many lists)."""
+    data = np.hstack([t.q_state.transpose(1, 0, 2).reshape(len(t.rows), -1), t.q_human, t.q_agent,
+                      t.contribution[:, None], t.match[:, None]])
+    keys = np.round(data / DUPLICATE_TOL).astype(np.int64)
+    columns = expand.tocsc()
+    seen: dict = {}
+    keep = []
+    for k in range(columns.shape[1]):
+        rows = columns.indices[columns.indptr[k]:columns.indptr[k + 1]]
+        signature = (groups[k], tuple(int(r) for r in t.row_group[rows]), keys[rows].tobytes())
+        if signature not in seen:
+            seen[signature] = k
+            keep.append(k)
+    return expand[:, keep].tocsr(), [groups[k] for k in keep]
+
+
 # ------------------------------------------------------------------- polish
-POLISH_ACTIVE = 1e-7  # initial working set: z at its bound, or G x ≤ h binding, within this
+POLISH_ACTIVE = 1e-7  # initial working set: z at its bound within this
+POLISH_ROW_ACTIVE = 1e-12  # ... and rows G x ≤ h binding within this (relative); others enter when they block
 POLISH_TOL = 1e-11  # per request, times max(1, max |q|): step size, multiplier signs, reduced costs, objective
 POLISH_STEPS = 200
+FALLBACK_STEPS = 20  # per variable, for the active-set method started at a vertex
 POLISH_SANITY = 1e-7  # relative: the polished objective may not fall further below the interior point's
 POLISH_RCOND = 1e-10  # singular values below this (relative) are ties: no correction along them
 
 
-def polish(program: Program, x0: np.ndarray, coefficients: np.ndarray, where: str = "") -> np.ndarray:
+def polish(program: Program, x0: np.ndarray, coefficients: np.ndarray, where: str = "",
+           steps: int = POLISH_STEPS) -> np.ndarray:
     """Exact solution of the QP by a primal active-set method started at the interior point x0.
 
     The working set W holds bounds z_i = 0 and rows G_r x = h_r. Each step solves the
     equality-constrained QP on W (q − H x = Eᵀν + G_Wᵀμ, E x = 1, G_W x = h_W; with
     ties the system is singular, and the solution nearest the current point is used,
-    with no correction along directions whose singular value is below ``POLISH_RCOND``)
+    with no correction along directions whose singular value is below ``POLISH_RCOND``;
+    if the system has no solution, the objective rises linearly along the null space
+    of H and the working constraints, and the step follows the gradient projected on
+    it to the next bound)
     and moves towards it as far as feasibility allows, adding the blocking bound or
     row to W. When the step is zero, a row with μ < 0 or a bound whose reduced cost
-    is positive leaves W; when neither exists the point satisfies the KKT conditions
+    is positive leaves W (a release that blocks the very next step with zero length
+    is rounding noise: that bound or row stays in W, and at the end its reduced cost or
+    multiplier must be within 1e-7 of scale); when neither exists the point satisfies the KKT conditions
     exactly and is the optimum (a KKT point of a convex QP); as a check against gross
     errors its objective must not fall more than 1e-7 (relative) below x0's.
     The interior point is accurate in objective but not always in x along flat
@@ -259,8 +332,10 @@ def polish(program: Program, x0: np.ndarray, coefficients: np.ndarray, where: st
     bound = np.zeros(nx, dtype=bool)
     bound[:nz] = x[:nz] <= POLISH_ACTIVE
     x[bound] = 0.0
-    rows = (h - G @ x <= POLISH_ACTIVE * np.maximum(1.0, np.abs(h))) if len(h) else np.zeros(0, dtype=bool)
-    for _ in range(POLISH_STEPS):
+    rows = (h - G @ x <= POLISH_ROW_ACTIVE * np.maximum(1.0, np.abs(h))) if len(h) else np.zeros(0, dtype=bool)
+    stuck_bounds, stuck_rows = np.zeros(nx, dtype=bool), np.zeros(len(h), dtype=bool)
+    released_last: tuple[str, int] | None = None
+    for _ in range(steps):
         free = ~bound
         A = np.vstack([E, G[rows]])
         b = np.r_[np.ones(len(E)), h[rows]]
@@ -271,6 +346,20 @@ def polish(program: Program, x0: np.ndarray, coefficients: np.ndarray, where: st
         target = np.zeros(nx)
         target[free] = solution[:free.sum()]
         step = target - x
+        unbounded = np.abs(kkt @ solution - rhs).max() > tol * max(1.0, float(np.abs(rhs).max()))
+        if unbounded:
+            # no optimum on W: the objective rises linearly along a direction with H d = 0 and
+            # A d = 0; move along the gradient projected on that null space to the next bound
+            stacked = np.vstack([H[np.ix_(free, free)], A[:, free]])
+            _, singular, vt = np.linalg.svd(stacked)
+            rank = int((singular > POLISH_RCOND * max(1.0, singular.max())).sum())
+            null = vt[rank:].T
+            ray = np.zeros(nx)
+            ray[free] = null @ (null.T @ (q - H @ x)[free])
+            if np.abs(ray).max() > tol:
+                step = ray * (1e6 / np.abs(ray).max())  # long enough to reach a bound of the bounded feasible set
+            else:
+                unbounded = False  # no rising direction: the residual is the truncation of a singular system
         if np.abs(step).max() > tol:
             alpha, block = 1.0, None
             down = np.where(free[:nz] & (step[:nz] < 0))[0]
@@ -287,26 +376,36 @@ def polish(program: Program, x0: np.ndarray, coefficients: np.ndarray, where: st
                     k = int(np.argmin(ratios))
                     if ratios[k] < alpha:
                         alpha, block = ratios[k], ("row", up[k])
+            if block is None and unbounded:
+                break  # cannot happen on a bounded feasible set
             if block is not None:  # move to the blocking bound or row and add it to W
+                if alpha <= tol and released_last == block:  # anti-cycling: a release undone at once stays in W
+                    (stuck_bounds if block[0] == "bound" else stuck_rows)[block[1]] = True
                 x = x + max(alpha, 0.0) * step
                 if block[0] == "bound":
                     bound[block[1]] = True
                     x[block[1]] = 0.0
                 else:
                     rows[block[1]] = True
+                released_last = None
                 continue
         x = target  # the optimum on W (a full step): check the multipliers
         multipliers = solution[free.sum():]
         mu = np.zeros(len(h))
         mu[rows] = multipliers[len(E):]
         reduced = q - H @ x - A.T @ multipliers
-        released = np.where(rows & (mu < -tol))[0] if len(h) else []
-        improving = np.where(bound & (reduced > tol))[0]
+        released = np.where(rows & ~stuck_rows & (mu < -tol))[0] if len(h) else []
+        improving = np.where(bound & ~stuck_bounds & (reduced > tol))[0]
         if len(released):
-            rows[released[np.argmin(mu[released])]] = False
+            k = int(released[np.argmin(mu[released])])
+            rows[k], released_last = False, ("row", k)
         elif len(improving):
-            bound[improving[np.argmax(reduced[improving])]] = False
+            k = int(improving[np.argmax(reduced[improving])])
+            bound[k], released_last = False, ("bound", k)
         else:
+            noise = POLISH_SANITY * max(1.0, float(np.abs(q).max()))
+            if (reduced[stuck_bounds & bound] > noise).any() or (len(h) and (mu[stuck_rows & rows] < -noise).any()):
+                break  # a bound or row held by the anti-cycling rule is not at noise level
             feasible = (x[:nz] >= -tol).all() and (not len(h) or (G @ x <= h + tol).all())
             # KKT points of a convex QP are optimal; the objective test only guards against a gross error
             # (x0 is feasible only to the solver's tolerance, so it can score slightly higher)

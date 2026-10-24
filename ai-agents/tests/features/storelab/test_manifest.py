@@ -33,6 +33,7 @@ NOW = datetime(2026, 10, 21, 12, 0, tzinfo=timezone.utc)
 TEMPLATES = {
     "e1_pilot": {"e1_text@1": "TEXT {items}", "e1_structured@1": "JSON {items}", "e1_browser_tool@1": "SERP {items}"},
     "e2_core": {},
+    "e2_stipulated": {},
     "legacy_2026_08": {"legacy_chatbot@1": "chat", "legacy_gui_agent@1": "gui", "legacy_api@1": "api"},
     "smoke_offline": {"e1_text@1": "TEXT {items}", "e1_structured@1": "JSON {items}"},
 }
@@ -69,7 +70,8 @@ class WrittenManifestTest(unittest.TestCase):
         for name in TEMPLATES:
             with self.subTest(config=name):
                 manifest = build(name)
-                record_model_access(manifest, manifest.models[0].key, "returned-model-id", NOW)
+                if manifest.models:  # e2_stipulated has stipulated agents only, no provider models
+                    record_model_access(manifest, manifest.models[0].key, "returned-model-id", NOW)
                 append_status(manifest, "QUEUED", NOW + timedelta(seconds=1))
                 VALIDATOR.validate(json.loads(manifest_json(manifest)))
 

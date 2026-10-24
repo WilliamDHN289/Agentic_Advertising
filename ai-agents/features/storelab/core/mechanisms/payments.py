@@ -22,7 +22,11 @@ is split (a breakpoint at an end of the interval, where the evaluated X is
 the tie-broken value, is accepted the same way). The integral then sums the pieces in bid space: ∫ over a piece is
 F_a Δz + slope (∫ φ̄ dz − c_a Δz), exact for constant and affine pieces (∫ φ̄ dz in
 closed form for the surplus rule and uniform values, by quadrature otherwise).
-Intervals narrower than ``MIN_WIDTH`` are accepted as they are and counted.
+Intervals narrower than ``MIN_WIDTH`` are accepted as they are and counted, and so are
+all remaining ones once a profile has used ``BUDGET`` solves (nearly singular QPs, where
+X̃ is a staircase of steep pieces). Since X̃ is monotone, each such trapezoid errs by at
+most width × |ΔX̃| / 2. ``Profile.error_bound`` sums these, and ``IntegralPayment``
+reports the bound in payment units.
 
 Payments by traffic type (A1 §E5) integrate X_j^H and X_j^A the same way.
 """
@@ -41,6 +45,7 @@ NOISE = {"lp": 1e-12, "qp": 1e-12}  # per request: accuracy of X / n and V (simp
 RELATIVE_TOL = 1e-9  # of the variation of X_j over the profile
 MIN_WIDTH = 1e-9  # relative to the coefficient range
 PROBE = 1e-6  # relative to the interval searched for a jump
+BUDGET = 4000  # solves per profile; beyond it the remaining intervals are integrated by trapezoid (error bounded)
 FLOOR_SCALE = 10.0  # profit-rule coefficients are clipped at −FLOOR_SCALE (1 + market scale), see coefficient_floor
 
 
@@ -77,7 +82,9 @@ class Profile:
     advertiser: str
     pieces: list[Piece]
     solves: int
-    unresolved: list[tuple[float, float]] = field(default_factory=list)  # accepted at MIN_WIDTH
+    unresolved: list[tuple[float, float]] = field(default_factory=list)  # accepted at MIN_WIDTH or the budget
+    error_bound: float = 0.0  # per request, on ∫ X̃ dc: Σ over unresolved intervals of width × |ΔX̃| / 2
+    budget_exhausted: bool = False
 
     def components_at(self, c: float) -> np.ndarray:
         for piece in self.pieces:
@@ -116,12 +123,13 @@ def profile(program: Program, coefficients: np.ndarray, k: int, low: float, high
     variation = abs(evaluated[-1][2][0] - evaluated[0][2][0])
     tol = max(NOISE[program.kind], RELATIVE_TOL * variation)
     stack = list(zip(evaluated[:-1], evaluated[1:]))[::-1]
-    pieces, unresolved = [], []
+    pieces, unresolved, bound = [], [], 0.0
     while stack:
         (ca, va, fa), (cb, vb, fb) = stack.pop()
-        if cb - ca <= min_width:
+        if cb - ca <= min_width or f.solves >= BUDGET:
             pieces.append(Piece(ca, cb, fa, fb))
             unresolved.append((ca, cb))
+            bound += (cb - ca) * abs(fb[0] - fa[0]) / 2  # X̃ is monotone, so the trapezoid errs by at most this
             continue
         t1, t2 = ca + (cb - ca) / 3, ca + 2 * (cb - ca) / 3
         p1, p2 = (t1, *f(t1)), (t2, *f(t2))
@@ -135,7 +143,7 @@ def profile(program: Program, coefficients: np.ndarray, k: int, low: float, high
             continue
         stack += [(p2, (cb, vb, fb)), (p1, p2), ((ca, va, fa), p1)]
     pieces.sort(key=lambda p: p.low)
-    return Profile(program.market.advertisers[k], pieces, f.solves, unresolved)
+    return Profile(program.market.advertisers[k], pieces, f.solves, unresolved, bound, f.solves >= BUDGET)
 
 
 def _single_jump(f, a, b, probe: float, tol: float, value_tol: float) -> float | None:
@@ -169,6 +177,7 @@ class IntegralPayment:
     X: float  # X_j(b), total
     integral: float  # ∫₀^b X_j(z) dz, total
     profile: Profile
+    error_bound: float = 0.0  # total units: |payment error| from intervals accepted unresolved
 
 
 def coefficient_floor(program: Program) -> float:
@@ -233,8 +242,16 @@ def integral_payment(program: Program, bids: np.ndarray, k: int, bid_map: BidMap
     x, xh = a.X[j], a.X_human[j]
     pay = bids[k] * x - n * integral[0]
     pay_h = bids[k] * xh - n * integral[1]
+    bound = 0.0
+    if prof is not None:
+        pieces = {(p.low, p.high): p for p in prof.pieces}
+        for low, high in prof.unresolved:
+            za, zb = bid_map.upper_inverse(low), min(bid_map.upper_inverse(high), bids[k])
+            if zb > za:
+                piece = pieces[(low, high)]
+                bound += (zb - za) * abs(piece.at_high[0] - piece.at_low[0]) / 2
     return IntegralPayment(j, float(bids[k]), float(pay), float(pay_h), float(pay - pay_h), float(x),
-                           float(n * integral[0]), prof)
+                           float(n * integral[0]), prof, float(n * bound))
 
 
 def floor_gap(program: Program, bids: np.ndarray, k: int) -> float:

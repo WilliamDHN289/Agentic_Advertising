@@ -1,0 +1,45 @@
+# SL-19S: the E2 dry run on the stipulated parameters of A17 (pre-E1, exploratory).
+# The grid and the A17 levels are in features/storelab/analysis/e2_markets.py, which a
+# test checks against requirements/A17_stipulated_parameters.md; this config records
+# the run's baseline in the common config language. Every table and figure of this run
+# is labelled "Stipulated parameters (A17), pre-E1, exploratory".
+# Sensitivity levels run over alpha in the agent-aware regime without organic variation,
+# and the model and version levels also in the human-optimised regime (owner decisions
+# 2026-10-23). Guardrail floor: owner decision 2026-10-23 (e2_markets.py docstring).
+schema_version: 1
+experiment: e2_stipulated
+mode: offline
+seed: 2026102319
+environment:
+  catalog: simulated_market
+design:
+  eligible_size: 10
+  set_sizes: [4, 8]
+  sponsored_slots: [1, 2]
+interfaces: [text]
+agents:
+  offline_backend: simulated
+  simulated:
+    parameters: stipulated
+    sigma: 0.3
+    label_effect: -0.5
+    position_effects: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    page_request_prob: 0.5
+    outside_value: -1.0
+humans:
+  model: position_weights
+  position_weights: [0.3, 0.197926, 0.155185, 0.130583, 0.114219, 0.102384, 0.093339, 0.086152]
+mechanism:
+  mechanisms: [M1, M2, M3_set_blind, M3, M4, profit_rule]
+  markets_per_configuration: 200
+  agent_shares: [0.0, 0.25, 0.5, 0.75, 1.0]
+  organic_regimes: [human_optimised, agent_aware, gated]
+  organic_variation: [none, randomised]
+  value_distributions: [uniform, lognormal]
+  bidding_rules: [fixed_point_value_per_click, human_conversion_rate]
+repetitions: 1
+cache:
+  policy: "off"
+  namespace: e2_stipulated
+outputs:
+  root: runs

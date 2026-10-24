@@ -31,3 +31,16 @@ cvxpy==1.7.5
 clarabel==0.11.1
 osqp==1.1.3
 scs==3.3.1
+# Figures (SL-19S to SL-21S): matplotlib and the packages it brought (installed by the
+# owner on 2026-10-23; packaging was already present). ai-agents pins pillow ^11.3.0
+# (Poetry: < 12); matplotlib accepts pillow >= 9, so moving StoreLab there needs pillow
+# 11.x or a wider ai-agents range.
+matplotlib==3.11.2
+contourpy==1.3.3
+cycler==0.12.1
+fonttools==4.67.0
+kiwisolver==1.5.1
+pillow==13.0.0
+pyparsing==3.3.3
+python-dateutil==3.0.0
+six==1.17.0

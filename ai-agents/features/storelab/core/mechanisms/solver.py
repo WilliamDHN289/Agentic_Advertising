@@ -6,8 +6,11 @@ quadratic costs) go to HiGHS's dual simplex (scipy's HiGHS, through cvxpy's SCIP
 interface), whose basic solutions are exact vertices, so X_j(b) is exact between
 breakpoints; the QPs (quadratic-cost M4 and profit rule) go to Clarabel, an
 interior-point solver, and are then polished on their active set
-(allocation.polish: the KKT system solved exactly and verified), a QP that cannot
-be polished being a failure (``unpolished``). No solve is warm-started, so a result
+(allocation.polish: the KKT system solved exactly and verified). If the
+interior-point solve or its polish fails, the QP is solved by the same verified
+active-set method started at a feasible vertex from the LP solver, and failing that
+by OSQP (``qp_fallback``) followed by the polish; only if every path fails is the
+solve a failure (``unpolished``) and the market excluded. No solve is warm-started, so a result
 never depends on earlier solves. The file also pins the exact
 versions of cvxpy, scipy and the solver packages and records the platform check
 against ai-agents DEPENDENCIES.md; ``check_versions`` refuses other installed

@@ -4,8 +4,10 @@
   "lp": {"solver": "SCIPY", "package": "scipy", "method": "HiGHS dual simplex",
          "options": {"scipy_options": {"method": "highs-ds", "primal_feasibility_tolerance": 1e-10, "dual_feasibility_tolerance": 1e-10},
                      "warm_start": false}},
-  "qp": {"solver": "CLARABEL", "package": "clarabel", "method": "interior point, then an exact active-set polish (allocation.polish)",
-         "options": {"tol_gap_abs": 1e-10, "tol_gap_rel": 1e-10, "tol_feas": 1e-10, "tol_ktratio": 1e-08, "max_iter": 400}}
+  "qp": {"solver": "CLARABEL", "package": "clarabel", "method": "interior point, then an exact active-set polish (allocation.polish); on failure, the active-set method from a feasible vertex of the lp solver (allocation.Program._from_vertex)",
+         "options": {"tol_gap_abs": 1e-10, "tol_gap_rel": 1e-10, "tol_feas": 1e-10, "tol_ktratio": 1e-08, "max_iter": 400}},
+  "qp_fallback": {"solver": "OSQP", "package": "osqp", "method": "ADMM, then the exact active-set polish (used only when the interior-point and vertex paths fail)",
+                  "options": {"eps_abs": 1e-09, "eps_rel": 1e-09, "max_iter": 200000, "polishing": true, "warm_start": false}}
  },
  "packages": {"cvxpy": "1.7.5", "scipy": "1.17.1", "clarabel": "0.11.1", "osqp": "1.1.3", "scs": "3.3.1"},
  "accepted_status": ["optimal"],

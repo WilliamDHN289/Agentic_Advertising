@@ -193,8 +193,9 @@ def excluded(path: str) -> bool:
 class RoundTripTest(unittest.TestCase):
     """AC-1: for every example config, load -> dump -> load gives the same config_hash."""
 
-    def test_the_four_example_configs_exist(self):
-        self.assertEqual([p.stem for p in EXAMPLES], ["e1_pilot", "e2_core", "legacy_2026_08", "smoke_offline"])
+    def test_the_example_configs_exist(self):
+        self.assertEqual([p.stem for p in EXAMPLES], ["e1_pilot", "e2_core", "e2_stipulated", "legacy_2026_08",
+                                                      "smoke_offline"])
 
     def test_load_dump_load_keeps_the_hash(self):
         for path in EXAMPLES:

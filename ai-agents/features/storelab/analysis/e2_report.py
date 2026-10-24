@@ -1,0 +1,551 @@
+"""SL-19S report: tables, figures and statistics from the committed E2 result files.
+
+    python -m features.storelab.analysis.e2_report
+
+One command regenerates everything from ``artifacts/results/sl19s/`` (written by
+``e2_run``):
+- ``docs/e2_stipulated_results.md`` and ``.json``;
+- the six figures in ``artifacts/figures/sl19s/`` (PDF, PNG and a CSV of the plotted data);
+- the full tables as CSVs in ``artifacts/results/sl19s/tables/``.
+
+Every table and figure is labelled "Stipulated parameters (A17), pre-E1, exploratory".
+
+**Implementation gates** (AC-3; a failure stops the report):
+- Prop gating: every market's relative error ≤ 1e-6, and the mean of gain / (n ξ) within
+  3 Monte Carlo SE of E min{θ_f, θ_r} = θ̄ / 3 (A12 §4), per κ;
+- with deterministic organic lists, |V^aw − V^bl| / V^aw ≤ 1e-6 in every market;
+  V = Σ_j θ_j X_j + Γ is the surplus objective of M3 and of set-blind M3.
+
+**Registered statistics** (claims register H2a–H2c and Conj gating) are computed as
+written:
+- means and slopes with 95% intervals from a market bootstrap stratified by
+  configuration (B = 2,000);
+- one-sided p-values for each bound and Holm across the registered families.
+
+They are recorded as "exploratory": no decision label is set, by the A17 rule.
+"""
+from __future__ import annotations
+
+import json
+import math
+from pathlib import Path
+
+import numpy as np
+
+from ..core.rng import stream
+from . import e2_markets as em
+from . import e2_run as er
+from .decide import holm
+from .figures import LABEL, REPO, figure, save
+
+DOCS = Path(__file__).resolve().parents[1] / "docs"
+REPORT, SUMMARY = DOCS / "e2_stipulated_results.md", DOCS / "e2_stipulated_results.json"
+TABLES = er.RESULTS / "tables"
+B = 2000
+MECHANISMS = ("M1", "M2", "M3_set_blind", "M3", "M4", "profit_rule")
+FIGURE_NAMES = ("1_payments_by_traffic_type", "2_profit_and_match_quality", "3_decomposition", "4_setblind_gap",
+                "5_gating_gain", "6_agent_payments_vs_excess")
+GAP_TOL, GATING_TOL, MC_SE = 1e-6, 1e-6, 3.0
+MARGIN = 0.01
+E_MIN_UNIFORM = 1.0 / 3.0  # E min{θ_f, θ_r} for i.i.d. U[0, 1] values (A1 §1.4)
+
+
+class GateFailure(RuntimeError):
+    pass
+
+
+# --------------------------------------------------------------------- data
+def _num(value: str):
+    if value in ("", None):
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        try:
+            return float(value)
+        except ValueError:
+            return value
+
+
+def load() -> tuple[dict, dict]:
+    markets: dict[str, list[dict]] = {}
+    for config in em.configurations():
+        rows = [{k: _num(v) for k, v in r.items()} for r in er.read_rows(er.result_path(er.RESULTS, config.config_id))]
+        markets[config.config_id] = rows
+    gating = {name: [{k: _num(v) for k, v in r.items()} for r in er.read_rows(er.result_path(er.RESULTS, name))]
+              for name in er.gating_tasks(1)}
+    return markets, gating
+
+
+def by_market(rows: list[dict]) -> dict[int, dict[str, dict]]:
+    out: dict[int, dict[str, dict]] = {}
+    for r in rows:
+        out.setdefault(r["index"], {})[r["mechanism"]] = r
+    return out
+
+
+# ---------------------------------------------------------------- bootstrap
+def _rng(*keys):
+    return stream(em.MASTER_SEED, "sl19s-bootstrap", *keys)
+
+
+def boot_mean(values: np.ndarray, key: str) -> np.ndarray:
+    values = np.asarray(values, dtype=float)
+    draws = _rng(key).integers(0, len(values), size=(B, len(values)))
+    return values[draws].mean(axis=1)
+
+
+def boot_slope(x: np.ndarray, y: np.ndarray, strata: np.ndarray, key: str) -> tuple[float, float, np.ndarray]:
+    """OLS slope and intercept; bootstrap slopes resampling markets within strata."""
+    x, y = np.asarray(x, dtype=float), np.asarray(y, dtype=float)
+    slope, intercept = np.polyfit(x, y, 1)
+    groups = [np.flatnonzero(strata == s) for s in np.unique(strata)]
+    rng = _rng(key)
+    out = np.empty((B, 2))
+    for b in range(B):
+        idx = np.concatenate([g[rng.integers(0, len(g), len(g))] for g in groups])
+        out[b] = np.polyfit(x[idx], y[idx], 1)
+    return float(slope), float(intercept), out
+
+
+def interval(draws: np.ndarray, level: float = 0.95) -> list[float]:
+    a = (1 - level) / 2
+    return [float(np.quantile(draws, a)), float(np.quantile(draws, 1 - a))]
+
+
+def tost(draws: np.ndarray, margin: float = MARGIN) -> dict:
+    """Bootstrap duals of the registered equivalence rule (A12 §2)."""
+    p_support = max(float(np.mean(draws <= -margin)), float(np.mean(draws >= margin)))
+    p_against = min(1.0, 2 * min(float(np.mean(draws <= margin)), float(np.mean(draws >= -margin))))
+    return {"ci90": interval(draws, 0.90), "ci95": interval(draws), "p_support": p_support, "p_against": p_against}
+
+
+def bound(draws: np.ndarray, threshold: float, side: str) -> dict:
+    """One-sided p-values: support = share beyond the threshold on the wrong side."""
+    below, above = float(np.mean(draws < threshold)), float(np.mean(draws > threshold))
+    p_support, p_against = (below, above) if side == "above" else (above, below)
+    return {"ci95": interval(draws), "p_support": p_support, "p_against": p_against}
+
+
+# ------------------------------------------------------------------ checks
+def counts(markets: dict) -> dict:
+    out = {}
+    for config_id, rows in markets.items():
+        idx = by_market(rows)
+        valid = [i for i, mech in idx.items() if not next(iter(mech.values()))["excluded"]]
+        hashes = all(len({r["market_hash"] for r in mech.values()}) == 1 and set(mech) == set(MECHANISMS)
+                     for mech in idx.values())
+        first = [next(iter(idx[i].values())) for i in valid]
+        out[config_id] = {"markets": len(idx), "valid": len(valid), "excluded": len(idx) - len(valid),
+                          "one_hash_per_market": hashes,
+                          "screen_pass": sum(r["screen"] for r in first), "feasible": sum(r["feasible"] for r in first),
+                          "floor_binds": sum(r["floor_binds"] for r in first),
+                          "qp_fallbacks": sum(r["qp_fallbacks"] or 0 for i in valid for r in idx[i].values()),
+                          "exclusion_statuses": sorted({next(iter(idx[i].values()))["status"] for i in idx
+                                                        if i not in valid})}
+    return out
+
+
+def gates(markets: dict, gating: dict) -> dict:
+    out = {"gating": {}, "setblind": {}}
+    errors, z_scores, per_kappa = [], [], {}
+    for kappa in em.GATING_KAPPAS:
+        rows = [r for r in gating["gating/i_part/kappa=%g" % kappa] if not r["excluded"]]
+        rel = np.array([r["relative_error"] for r in rows])
+        loss = np.array([abs(r["match_loss"] - r["expected_match_loss"]) / 1000 for r in rows])
+        ratio = np.array([r["gain"] / (1000 * r["xi"]) for r in rows])
+        se = ratio.std(ddof=1) / math.sqrt(len(ratio))
+        z = abs(ratio.mean() - E_MIN_UNIFORM) / se
+        per_kappa["%g" % kappa] = {"markets": len(rows), "max_relative_error": float(rel.max()),
+                                   "max_match_loss_error_per_request": float(loss.max()),
+                                   "mean_gain_over_n_xi": float(ratio.mean()), "closed_form": 1.0 / 3.0,
+                                   "mc_se": float(se), "mean_minus_formula_in_mc_se": float(z)}
+        errors.append(rel.max())
+        z_scores.append(z)
+    out["gating"] = {"by_kappa": per_kappa, "max_relative_error": float(max(errors)),
+                     "mean_minus_formula_in_mc_se": float(max(z_scores))}
+    gaps = []
+    for config_id, rows in markets.items():
+        if not config_id.endswith("/none") and not config_id.startswith(("sensitivity/", "part3/")):
+            continue
+        for mech in by_market(rows).values():
+            if mech["M3"]["excluded"]:
+                continue
+            gaps.append(abs(mech["M3"]["welfare"] - mech["M3_set_blind"]["welfare"]) / abs(mech["M3"]["welfare"]))
+    out["setblind"] = {"markets": len(gaps), "max_relative_gap": float(max(gaps))}
+    out["passed"] = bool(out["gating"]["max_relative_error"] <= GATING_TOL
+                         and out["gating"]["mean_minus_formula_in_mc_se"] <= MC_SE
+                         and out["setblind"]["max_relative_gap"] <= GAP_TOL)
+    return out
+
+
+# --------------------------------------------------------------- statistics
+def _valid(rows: list[dict], mechanism: str, screen: bool = False, feasible: bool = False) -> list[dict]:
+    return [r for r in rows if r["mechanism"] == mechanism and not r["excluded"]
+            and (not screen or r["screen"]) and (not feasible or r["feasible"])]
+
+
+def psi_a(r: dict) -> float:
+    """ψ_A = Σ_j P^A_j / (n E_μ[α] θ̄) (A12 §3.3)."""
+    return r["revenue_agent"] / (1000 * r["alpha"] * r["theta_bar"])
+
+
+def psi_tot(r: dict) -> float:
+    """ψ_tot = Σ_j P_j / (n θ̄)."""
+    return r["revenue"] / (1000 * r["theta_bar"])
+
+
+def statistics(markets: dict, gating: dict) -> dict:
+    core = {k: v for k, v in markets.items() if k.startswith("core/")}
+    h2a = {"label": "exploratory", "part1": {}, "part2": {}, "part3": {}}
+    # part 1: zero agent payments under agent-aware lists (screen-passing, aware-feasible markets), Holm
+    keys, p_support, p_against = [], [], []
+    for alpha in em.ALPHAS[1:]:
+        for variation in em.VARIATIONS:
+            cid = "core/alpha=%g/agent_aware/%s" % (alpha, variation)
+            rows = _valid(core[cid], "M3", screen=True, feasible=True)
+            if len(rows) < 2:  # too few screen-passing, aware-feasible markets for an interval
+                h2a["part1"][cid] = {"n": len(rows), "insufficient": True}
+                continue
+            values = np.array([psi_a(r) for r in rows])
+            t = tost(boot_mean(values, cid + "/psi_a"))
+            h2a["part1"][cid] = {"n": len(rows), "mean_psi_a": float(values.mean()), **t,
+                                 "below_registered_floor": len(rows) < 200}
+            keys.append(cid)
+            p_support.append(t["p_support"])
+            p_against.append(t["p_against"])
+    for cid, ps, pa in zip(keys, holm(p_support), holm(p_against)):
+        h2a["part1"][cid].update(p_support_holm=ps, p_against_holm=pa)
+    # part 2: total payments against alpha, agent-aware
+    rows = [r for cid, v in core.items() if "/agent_aware/" in cid for r in _valid(v, "M3", screen=True, feasible=True)]
+    x = np.array([r["alpha"] for r in rows])
+    y = np.array([psi_tot(r) for r in rows])
+    strata = np.array([r["config_id"] for r in rows])
+    slope, intercept, draws = boot_slope(x, y, strata, "h2a/part2")
+    at1 = np.array([psi_tot(r) for r in rows if r["alpha"] == 1.0])
+    h2a["part2"] = {"n": len(rows), "slope": slope, "slope_bound": bound(draws[:, 0], 0.0, "below"),
+                    "psi_tot_at_alpha_1": float(at1.mean()), "psi_tot_at_alpha_1_tost": tost(boot_mean(at1, "h2a/at1"))}
+    # part 3: agent payments against the excess, human-optimised (core none + part3 levels)
+    rows = [r for cid, v in markets.items() if ("/human_optimised/none" in cid or cid.startswith("part3/"))
+            for r in _valid(v, "M3") if r["alpha"] > 0]
+    x = np.array([r["excess"] for r in rows], dtype=float)
+    y = np.array([psi_a(r) for r in rows])
+    slope, intercept, draws = boot_slope(x, y, np.array([r["config_id"] for r in rows]), "h2a/part3")
+    h2a["part3"] = {"n": len(rows), "excess_values": sorted({int(v) for v in x}), "slope": slope,
+                    "slope_bound": bound(draws[:, 0], 0.0, "above")}
+    # H2b: Conj gating increments
+    conj = {alpha: {r["index"]: r for r in gating["gating/conj/alpha=%g" % alpha] if not r["excluded"]}
+            for alpha in em.ALPHAS}
+    common = sorted(set.intersection(*[set(v) for v in conj.values()]))
+    delta = {alpha: np.array([conj[alpha][i]["gain"] for i in common]) for alpha in em.ALPHAS}
+    tau = 0.01 * float(delta[1.0].mean())
+    increments, ps, pa = [], [], []
+    for a, b in zip(em.ALPHAS, em.ALPHAS[1:]):
+        diff = delta[b] - delta[a]
+        t = bound(boot_mean(diff, "h2b/%g-%g" % (a, b)), -tau, "above")
+        increments.append({"from": a, "to": b, "mean": float(diff.mean()), **t})
+        ps.append(t["p_support"])
+        pa.append(t["p_against"])
+    for inc, p1, p2 in zip(increments, holm(ps), holm(pa)):
+        inc.update(p_support_holm=p1, p_against_holm=p2)
+    h2b = {"label": "exploratory", "markets": len(common), "tau": tau,
+           "mean_gain": {"%g" % a: float(delta[a].mean()) for a in em.ALPHAS}, "increments": increments}
+    # H2c
+    rows = [r for v in core.values() for r in _valid(v, "M2")]
+    x = np.array([1 - r["alpha"] for r in rows])
+    y = np.array([psi_tot(r) for r in rows])
+    slope, intercept, draws = boot_slope(x, y, np.array([r["config_id"] for r in rows]), "h2c/m2")
+    m2 = {"n": len(rows), "slope": slope, "intercept": intercept, "slope_bound": bound(draws[:, 0], 0.0, "above"),
+          "intercept_tost": tost(draws[:, 1])}
+    chi_configs = {0.5: ["core/alpha=%g/agent_aware/none" % a for a in em.ALPHAS],
+                   0.0: ["sensitivity/chi=0/alpha=%g" % a for a in em.ALPHAS],
+                   1.0: ["sensitivity/chi=1/alpha=%g" % a for a in em.ALPHAS]}
+    rows = [(chi, r) for chi, cids in chi_configs.items() for cid in cids for r in _valid(markets[cid], "M1")
+            if r["payment_per_choice"] == r["payment_per_choice"]]
+    x = np.array([r["alpha"] * chi for chi, r in rows])
+    y = np.array([r["payment_per_choice"] / r["theta_bar"] for _, r in rows])
+    slope, intercept, draws = boot_slope(x, y, np.array([r["config_id"] for _, r in rows]), "h2c/m1")
+    m1 = {"n": len(rows), "slope": slope, "slope_bound": bound(draws[:, 0], 0.0, "above")}
+    rows = [r for v in core.values() for r in _valid(v, "M3")]
+    blind = {(r["config_id"], r["index"]): r for v in core.values() for r in _valid(v, "M3_set_blind")}
+    x = np.array([r["variation"] == "randomised" for r in rows], dtype=float)
+    y = np.array([(r["welfare"] - blind[(r["config_id"], r["index"])]["welfare"]) / r["welfare"] for r in rows])
+    slope, intercept, draws = boot_slope(x, y, np.array([r["config_id"] for r in rows]), "h2c/gap")
+    gap = {"n": len(rows), "slope_on_variation": slope, "slope_bound": bound(draws[:, 0], 0.0, "above")}
+    return {"H2a": h2a, "H2b": h2b, "H2c": {"label": "exploratory", "m2_proportional": m2,
+                                             "m1_rises_with_alpha_chi": m1, "setblind_gap_grows": gap}}
+
+
+# ------------------------------------------------------------- tables, figs
+def means_table(markets: dict) -> list[dict]:
+    out = []
+    for cid, rows in markets.items():
+        for mech in MECHANISMS:
+            v = _valid(rows, mech)
+            if not v:
+                continue
+            row = {"config_id": cid, "mechanism": mech, "markets": len(v)}
+            for metric in ("revenue", "revenue_human", "revenue_agent", "contribution", "cost", "match", "slack",
+                           "profit"):
+                values = np.array([r[metric] for r in v]) / 1000
+                draws = boot_mean(values, "%s/%s/%s" % (cid, mech, metric))
+                row[metric] = float(values.mean())
+                row[metric + "_ci"] = interval(draws)
+            out.append(row)
+    return out
+
+
+def paired_table(markets: dict) -> list[dict]:
+    out = []
+    chain = ("M1", "M2", "M3_set_blind", "M3", "M4")
+    for cid, rows in markets.items():
+        if not cid.startswith("core/"):
+            continue
+        idx = {i: m for i, m in by_market(rows).items() if not m["M1"]["excluded"]}
+        for a, b in zip(chain, chain[1:]):
+            for metric in ("profit", "revenue", "match"):
+                diff = np.array([m[b][metric] - m[a][metric] for m in idx.values()]) / 1000
+                out.append({"config_id": cid, "from": a, "to": b, "metric": metric, "mean": float(diff.mean()),
+                            "ci95": interval(boot_mean(diff, "%s/%s-%s/%s" % (cid, a, b, metric)))})
+    return out
+
+
+def figures(markets: dict, gating: dict, means: list[dict], stats: dict) -> list[str]:
+    paths = []
+    lookup = {(r["config_id"], r["mechanism"]): r for r in means}
+    styles = {"M1": "C0", "M2": "C1", "M3_set_blind": "C2", "M3": "C3", "M4": "C4", "profit_rule": "C5"}
+    # 1 payments by traffic type
+    fig, axes = figure(2, 3, 9.0, 5.0)
+    rows = []
+    for col, regime in enumerate(em.REGIMES):
+        for row_k, (metric, name) in enumerate((("revenue_agent", "agent"), ("revenue_human", "human"))):
+            ax = axes[row_k][col]
+            for mech in MECHANISMS:
+                ys = [lookup[("core/alpha=%g/%s/none" % (a, regime), mech)][metric] for a in em.ALPHAS]
+                ax.plot(em.ALPHAS, ys, marker="o", ms=3, color=styles[mech], label=mech,
+                        linestyle="--" if mech == "M3_set_blind" else "-")
+                rows += [(regime, name, mech, a, y) for a, y in zip(em.ALPHAS, ys)]
+            ax.set_title("%s, %s payments" % (regime.replace("_", "-"), name))
+            ax.set_xlabel("agent share α")
+            ax.set_ylabel("payments per request")
+    axes[0][0].legend(ncol=2)
+    paths += save(fig, "sl19s", FIGURE_NAMES[0], ["regime", "traffic", "mechanism", "alpha", "payment_per_request"],
+                  rows, "Payments by traffic type against α (no organic variation)")
+    # 2 profit and match quality
+    fig, axes = figure(2, 3, 9.0, 5.0)
+    rows = []
+    for col, regime in enumerate(em.REGIMES):
+        for row_k, metric in enumerate(("profit", "match")):
+            ax = axes[row_k][col]
+            for mech in MECHANISMS:
+                ys = [lookup[("core/alpha=%g/%s/none" % (a, regime), mech)][metric] for a in em.ALPHAS]
+                ax.plot(em.ALPHAS, ys, marker="o", ms=3, color=styles[mech], label=mech,
+                        linestyle="--" if mech == "M3_set_blind" else "-")
+                rows += [(regime, metric, mech, a, y) for a, y in zip(em.ALPHAS, ys)]
+            ax.set_title("%s: %s" % (regime.replace("_", "-"), "profit" if metric == "profit" else "match quality"))
+            ax.set_xlabel("agent share α")
+            ax.set_ylabel("per request")
+    axes[0][0].legend(ncol=2)
+    paths += save(fig, "sl19s", FIGURE_NAMES[1], ["regime", "metric", "mechanism", "alpha", "value_per_request"], rows,
+                  "Profit and match quality against α (no organic variation)")
+    # 3 decomposition
+    chain = ("M1", "M2", "M3_set_blind", "M3", "M4")
+    fig, axes = figure(1, 3, 9.0, 3.2)
+    rows = []
+    for col, regime in enumerate(em.REGIMES):
+        ax = axes[0][col]
+        for a in em.ALPHAS:
+            ys = [lookup[("core/alpha=%g/%s/none" % (a, regime), m)]["profit"] for m in chain]
+            ax.plot(range(len(chain)), ys, marker="o", ms=3, label="α = %g" % a)
+            rows += [(regime, a, m, y) for m, y in zip(chain, ys)]
+        ax.set_xticks(range(len(chain)), [m.replace("M3_set_blind", "set-blind M3") for m in chain], rotation=30)
+        ax.set_title(regime.replace("_", "-"))
+        ax.set_ylabel("profit per request")
+    axes[0][0].legend()
+    paths += save(fig, "sl19s", FIGURE_NAMES[2], ["regime", "alpha", "mechanism", "profit_per_request"], rows,
+                  "Decomposition M1 → M2 → set-blind M3 → M3 → M4 (profit, no organic variation)")
+    # 4 set-blind gap
+    fig, axes = figure(1, 1, 5.0, 3.2)
+    ax = axes[0][0]
+    rows = []
+    for k, regime in enumerate(em.REGIMES):
+        for v, variation in enumerate(em.VARIATIONS):
+            values = []
+            for a in em.ALPHAS:
+                cid = "core/alpha=%g/%s/%s" % (a, regime, variation)
+                idx = {i: m for i, m in by_market(markets[cid]).items() if not m["M3"]["excluded"]}
+                values += [(m["M3"]["welfare"] - m["M3_set_blind"]["welfare"]) / m["M3"]["welfare"] for m in idx.values()]
+            values = np.array(values)
+            ci = interval(boot_mean(values, "fig4/%s/%s" % (regime, variation)))
+            ax.errorbar(v + 0.1 * (k - 1), values.mean(), yerr=_yerr([values.mean()], [ci]),
+                        fmt="o", color="C%d" % k, label=regime.replace("_", "-") if v == 0 else None, capsize=3)
+            rows.append((regime, variation, float(values.mean()), ci[0], ci[1], len(values)))
+    ax.set_xticks([0, 1], ["none (deterministic)", "randomised"])
+    ax.set_xlabel("organic variation")
+    ax.set_ylabel("(V^aw − V^bl) / V^aw")
+    ax.legend()
+    paths += save(fig, "sl19s", FIGURE_NAMES[3], ["regime", "variation", "mean_relative_gap", "ci_low", "ci_high",
+                                                 "markets"], rows, "Set-awareness gap against organic variation")
+    # 5 gating gain against alpha
+    fig, axes = figure(1, 1, 5.0, 3.2)
+    ax = axes[0][0]
+    h2b = stats["H2b"]
+    means = [h2b["mean_gain"]["%g" % a] / 1000 for a in em.ALPHAS]
+    cis = []
+    for a in em.ALPHAS:
+        values = np.array([r["gain"] for r in gating["gating/conj/alpha=%g" % a] if not r["excluded"]]) / 1000
+        cis.append(interval(boot_mean(values, "fig5/%g" % a)))
+    ax.errorbar(em.ALPHAS, means, yerr=_yerr(means, cis), fmt="o-", capsize=3)
+    ax.set_xlabel("agent share α")
+    ax.set_ylabel("ΔΠ(α) = Π_gated − Π_aware, per request")
+    paths += save(fig, "sl19s", FIGURE_NAMES[4], ["alpha", "mean_gain_per_request", "ci_low", "ci_high"],
+                  [(a, m, c[0], c[1]) for a, m, c in zip(em.ALPHAS, means, cis)],
+                  "Gating gain against α (Conj gating, κ = %g)" % em.CONJ_KAPPA)
+    # 6 agent payments against excess
+    fig, axes = figure(1, 1, 5.0, 3.2)
+    ax = axes[0][0]
+    rows = [r for cid, v in markets.items() if ("/human_optimised/none" in cid or cid.startswith("part3/"))
+            for r in _valid(v, "M3") if r["alpha"] > 0]
+    table = []
+    for e in sorted({r["excess"] for r in rows}):
+        values = np.array([psi_a(r) for r in rows if r["excess"] == e])
+        ci = interval(boot_mean(values, "fig6/%d" % e))
+        ax.errorbar(e, values.mean(), yerr=_yerr([values.mean()], [ci]), fmt="o", capsize=3, color="C3")
+        table.append((int(e), float(values.mean()), ci[0], ci[1], len(values)))
+    ax.set_xlabel("e(x) = |F(x)| − (K − K^s)")
+    ax.set_ylabel("ψ_A under M3")
+    paths += save(fig, "sl19s", FIGURE_NAMES[5], ["excess", "mean_psi_a", "ci_low", "ci_high", "markets"], table,
+                  "Agent payments against excess favourites (human-optimised lists)")
+    return [str(p.relative_to(REPO)) for p in paths]
+
+
+def _yerr(means, intervals) -> list[list[float]]:
+    """Error-bar lengths from percentile intervals (0 where rounding puts a mean on its bound)."""
+    return [[max(0.0, m - c[0]) for m, c in zip(means, intervals)], [max(0.0, c[1] - m) for m, c in zip(means, intervals)]]
+
+
+def _write_csv(path: Path, rows: list[dict]) -> None:
+    import csv
+    import io
+    path.parent.mkdir(parents=True, exist_ok=True)
+    text = io.StringIO()
+    writer = csv.writer(text, lineterminator="\n")
+    text.write("# " + LABEL + "\n")
+    keys = list(rows[0])
+    writer.writerow(keys)
+    for row in rows:
+        writer.writerow([json.dumps(row[k]) if isinstance(row[k], list) else
+                         repr(row[k]) if isinstance(row[k], float) else row[k] for k in keys])
+    path.write_text(text.getvalue(), encoding="utf-8")
+
+
+def markdown(summary: dict, means: list[dict], paired: list[dict]) -> str:
+    c, g, s = summary["configurations"], summary["gates"], summary["statistics"]
+    total = sum(v["markets"] for v in c.values())
+    lines = ["# SL-19S E2 dry run on stipulated parameters", "", "**%s.** Results of "
+             "`python -m features.storelab.analysis.e2_run` (master seed %d), regenerated by "
+             "`python -m features.storelab.analysis.e2_report`. These are stand-ins (A17), not estimates of any "
+             "agent: no statistic below is a finding, and no decision label is recorded." % (LABEL, em.MASTER_SEED), "",
+             "## Design", "",
+             "- %d configurations, %d markets, six mechanisms each (SL-16 solvers). Core: α × organic regime × organic "
+             "variation at the A17 baseline (30). Sensitivity: the 24 A17 levels E2 uses, over α in the agent-aware regime "
+             "without organic variation (120). Part 3 of H2a: the model and version levels in the human-optimised regime "
+             "(15). Owner decisions 2026-10-23." % (len(c), total),
+             "- Guardrail floor (owner decision 2026-10-23): M(Q) ≥ min{(1 − κ) M^ref, M(Q^o, ∅) − 1e-8 n}; it binds in "
+             "%d of %d markets." % (sum(v["floor_binds"] for v in c.values()), sum(v["valid"] for v in c.values())),
+             "- Prop gating and Conj gating use the paper's guardrail: 200 markets per κ ∈ {0.05, 0.2}, and Conj "
+             "gating at κ = 0.05 over α on the %d markets whose gated design meets the paper's guardrail at every α "
+             "(drawn until at least 200; at α = 0 and 0.25 the gated list often cannot meet it)." % (
+                 s["H2b"]["markets"]),
+             "- A configuration with solver exclusions is topped up with further markets (index 200, 201, ...) "
+             "until 200 are valid; `e2_run` does this itself, so a seeded rerun reproduces it.", "",
+             "## Markets (AC-1)", "",
+             "Every configuration: %d–%d valid markets, at most %d excluded (solver failure) per configuration, one "
+             "input hash per market across the six mechanisms in every configuration: %s. Screen-failing (A1 §E5) "
+             "and aware-infeasible (`cor:aware`) markets are classified and left out of H2a part 1 (counts in "
+             "`e2_stipulated_results.json`). QP solves that needed SL-16's fallback path: %d." % (
+                 min(v["valid"] for v in c.values()), max(v["valid"] for v in c.values()),
+                 max(v["excluded"] for v in c.values()),
+                 "yes" if all(v["one_hash_per_market"] for v in c.values()) else "NO",
+                 sum(v["qp_fallbacks"] for v in c.values())), "",
+             "## Implementation gates (AC-3)", "",
+             "| Gate | Result | Tolerance |", "|---|---|---|"]
+    for kappa, v in g["gating"]["by_kappa"].items():
+        lines.append("| Prop gating, κ = %s: max relative error of Π_b − Π_a against n ξ min{θ_f, θ_r} (%d markets) "
+                     "| %.1e | 1e-6 |" % (kappa, v["markets"], v["max_relative_error"]))
+        lines.append("| Prop gating, κ = %s: mean gain / (n ξ) %.4f against E min = 1/3 | %.2f MC SE | 3 MC SE |" % (
+            kappa, v["mean_gain_over_n_xi"], v["mean_minus_formula_in_mc_se"]))
+    lines += ["| Set-blind gap with deterministic organic lists, max (V^aw − V^bl)/V^aw (%d markets) | %.1e | 1e-6 |" % (
+        g["setblind"]["markets"], g["setblind"]["max_relative_gap"]), "",
+        "Both gates pass." if g["passed"] else "**A GATE FAILED: the report is blocked.**", "",
+        "## Registered statistics (exploratory, no decision label)", "", "*%s.*" % LABEL, "",
+        "**H2a part 1** (agent-aware; ψ_A under M3; screen-passing, aware-feasible markets; Holm over the 8 "
+        "configurations):", "", "| Configuration | n | mean ψ_A | 90% interval | 95% interval | p (inside margin), Holm | "
+        "p (outside margin), Holm |", "|---|---:|---:|---|---|---:|---:|"]
+    for cid, v in s["H2a"]["part1"].items():
+        if v.get("insufficient"):
+            lines.append("| %s | %d | — | — | — | — | — |" % (cid, v["n"]))
+            continue
+        lines.append("| %s | %d | %.4f | [%.4f, %.4f] | [%.4f, %.4f] | %.3f | %.3f |" % (
+            cid, v["n"], v["mean_psi_a"], *v["ci90"], *v["ci95"], v["p_support_holm"], v["p_against_holm"]))
+    lines += ["", "The registered floor is 200 screen-passing markets per configuration; configurations below it are "
+              "listed with their n (A1 §E5 screen counts per configuration are in the JSON)."]
+    p2, p3 = s["H2a"]["part2"], s["H2a"]["part3"]
+    lines += ["", "**H2a part 2**: slope of ψ_tot on α %.4f, 95%% interval [%.4f, %.4f] (n = %d); ψ_tot(α = 1) = %.4f, "
+              "90%% interval [%.4f, %.4f]." % (p2["slope"], *p2["slope_bound"]["ci95"], p2["n"], p2["psi_tot_at_alpha_1"],
+                                              *p2["psi_tot_at_alpha_1_tost"]["ci90"]),
+              "", "**H2a part 3**: slope of ψ_A on e(x) %.4f, 95%% interval [%.4f, %.4f] (n = %d, e(x) ∈ %s)." % (
+                  p3["slope"], *p3["slope_bound"]["ci95"], p3["n"], p3["excess_values"]), ""]
+    h2b = s["H2b"]
+    lines += ["**H2b, Conj gating** (%d markets, τ = %.3f = 1%% of ΔΠ(1); Holm over the 4 increments):" % (
+        h2b["markets"], h2b["tau"]), "", "| α step | mean increment of ΔΠ | 95% interval | p (≥ −τ), Holm |",
+        "|---|---:|---|---:|"]
+    for inc in h2b["increments"]:
+        lines.append("| %g → %g | %.3f | [%.3f, %.3f] | %.3f |" % (inc["from"], inc["to"], inc["mean"], *inc["ci95"],
+                                                               inc["p_support_holm"]))
+    h2c = s["H2c"]
+    lines += ["", "**H2c**: M2 revenue (ψ units) on E[1 − α]: slope %.4f, 95%% interval [%.4f, %.4f]; intercept %.4f, "
+              "90%% interval [%.4f, %.4f]. M1 payment per effective choice (θ̄ units) on αχ̄: slope %.4f, 95%% interval "
+              "[%.4f, %.4f]. Set-awareness gap on organic variation: slope %.4f, 95%% interval [%.4f, %.4f]." % (
+                  h2c["m2_proportional"]["slope"], *h2c["m2_proportional"]["slope_bound"]["ci95"],
+                  h2c["m2_proportional"]["intercept"], *h2c["m2_proportional"]["intercept_tost"]["ci90"],
+                  h2c["m1_rises_with_alpha_chi"]["slope"], *h2c["m1_rises_with_alpha_chi"]["slope_bound"]["ci95"],
+                  h2c["setblind_gap_grows"]["slope_on_variation"], *h2c["setblind_gap_grows"]["slope_bound"]["ci95"]),
+              "", "## Core means by mechanism (per request, no organic variation)", "", "*%s.*" % LABEL, "",
+              "| α | Regime | Mechanism | Payments | Agent | Human | Profit | Match quality | Guardrail slack |",
+              "|---:|---|---|---:|---:|---:|---:|---:|---:|"]
+    for r in means:
+        if not (r["config_id"].startswith("core/") and r["config_id"].endswith("/none")):
+            continue
+        _, a, regime, _ = r["config_id"].split("/")
+        lines.append("| %s | %s | %s | %.4f | %.4f | %.4f | %.4f | %.4f | %.4f |" % (
+            a.split("=")[1], regime, r["mechanism"], r["revenue"], r["revenue_agent"], r["revenue_human"], r["profit"],
+            r["match"], r["slack"]))
+    lines += ["", "Full tables (every configuration, with 95% intervals; paired differences between adjacent mechanisms): "
+              "`artifacts/results/sl19s/tables/`.", "", "## Figures", "", "*%s.*" % LABEL, ""]
+    lines += ["- `%s`" % p for p in summary["figures"] if p.endswith(".pdf")]
+    return "\n".join(lines) + "\n"
+
+
+def main(argv: list[str] | None = None) -> int:
+    markets, gating = load()
+    summary = {"label": LABEL, "master_seed": em.MASTER_SEED, "configurations": counts(markets)}
+    summary["gates"] = gates(markets, gating)
+    if not summary["gates"]["passed"]:
+        print(json.dumps(summary["gates"], indent=1))
+        raise GateFailure("an implementation gate failed; no report is written (SL-19S AC-3)")
+    summary["statistics"] = statistics(markets, gating)
+    means, paired = means_table(markets), paired_table(markets)
+    _write_csv(TABLES / "means.csv", means)
+    _write_csv(TABLES / "paired_differences.csv", paired)
+    summary["figures"] = figures(markets, gating, means, summary["statistics"])
+    check = er.RESULTS / "rerun_check.json"
+    summary["rerun_identical"] = json.loads(check.read_text(encoding="utf-8"))["identical"] if check.exists() else None
+    SUMMARY.write_text(json.dumps(summary, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    REPORT.write_text(markdown(summary, means, paired), encoding="utf-8")
+    print("report written; gates passed")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
