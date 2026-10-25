@@ -302,6 +302,9 @@ flowchart TD
   SL16 --> SL19S["SL-19S E2 dry run (A17)"]
   SL16 --> SL20S["SL-20S E3 Part A + stipulated Part B"]
   SL16 --> SL21S["SL-21S E4 dry run (A17)"]
+  SL19S --> SL24["SL-24 audit, figure fixes, register amendment 1"]
+  SL20S --> SL24
+  SL21S --> SL24
   SL19S -.->|"code reused"| SL19
   SL20S -.->|"Part A carried over"| SL20
   SL21S -.->|"code reused"| SL21
@@ -320,7 +323,7 @@ flowchart TD
 | 2 Sandbox | SL-09 → {SL-10, SL-11} | Phase 3 | **G2**: live smoke run; no-substitution audit = 0 |
 | 3 Control plane | SL-12 → SL-13 → SL-14 | Phase 2 | container-boot checks green; chaos tests pass |
 | 4 Analysis code | SL-15, SL-16 | Phases 2–3 | recovery and solver checks pass |
-| 4S Pre-E1 simulations | SL-19S, SL-20S, SL-21S (stipulated parameters, A17) | Phases 2–3 | implementation gates pass; outputs labelled exploratory |
+| 4S Pre-E1 simulations | SL-19S, SL-20S, SL-21S (stipulated parameters, A17) → SL-24 (independent audit) | Phases 2–3 | implementation gates pass; outputs labelled exploratory; SL-24 approved before any figure enters the paper |
 | 5 Experiments | SL-17 → (prereg frozen) → SL-18 → {SL-19, SL-20, SL-21}; SL-22 separately | none | **G3**: pilot estimator error ≤25%, power design chosen; **G4**: prereg timestamp before the first E1 main trial |
 | 6 Delivery | SL-23 | none | quickstart reproduces the golden hash in a clean environment |
 
@@ -343,12 +346,12 @@ flowchart TD
 | A9 | API and compute budget ("TBD" in the paper) | set after SL-17; pilot cap to be agreed (placeholder $150) | SL-17, SL-18 |
 | A10 | E5 partner and sample size | TBD; SL-22 delivers protocol and analysis only | SL-22 |
 | A11 | Human position weights | taken from Ursu (2018) where reported, otherwise a grid; the numbers still need extracting | SL-06, SL-19 |
-| A12 | Pre-registration venue and thresholds ("most trials" in H1b, "non-negligible" in H1d, the H2a equivalence margin, per-cell missingness tolerance) | **Fixed 2026-10-22** in `requirements/A12_thresholds.md`: OSF Registries; H1b modal share ≥ 0.80 and gap ≥ ln 4; H1d favourite-change share ≥ 0.10; H2a margin 0.01 of mean value per agent request; missingness 10% / 25%; plus the other registered numbers and minimum N | SL-01 |
+| A12 | Pre-registration venue and thresholds ("most trials" in H1b, "non-negligible" in H1d, the H2a equivalence margin, per-cell missingness tolerance) | **Fixed 2026-10-22** in `requirements/A12_thresholds.md`: OSF Registries; H1b modal share ≥ 0.80 and gap ≥ ln 4; H1d favourite-change share ≥ 0.10; H2a margin 0.01 of mean value per agent request; missingness 10% / 25%; plus the other registered numbers and minimum N. **Amendment 1 (2026-10-25), §6**: H1a and H1c-heterogeneity margins of 0.25 logit, Monte Carlo-adjusted tolerances, the H4b rule, SL-15 test substitutions; implemented in SL-24 | SL-01 |
 | A13 | S3 bucket, retention, data classification | dedicated prefix; no customer or PII data is ever in prompts or records | SL-12, SL-13 |
 | A14 | PR size convention (≤400 added lines) vs the vendored legacy snapshot (~1,700 lines) | one vendored PR exempted and labelled, or the snapshot archived outside the repo with hashes | SL-00 |
 | A15 | Presentation randomisation for H1b | positions and labels drawn once per set and repeated identically r=10 times (`per_set`), so repeats measure pure choice noise; label and position effects are identified across sets | SL-05, SL-01 |
 | A16 | Regularity for the profit rule | lognormal values can violate monotone virtual values; use ironing or restrict parameters (registered) | SL-16 |
-| A17 | Stipulated parameters for the pre-E1 simulations | **Fixed 2026-10-23** in `requirements/A17_stipulated_parameters.md`: σ = 0.3, δ = (−0.3, −0.7), β = 0, χ = 0.5, v₀ = −1, ρ_v = 0.8, γ_k = 0.30 k^−0.6, κ = 0.05, quadratic λ = 0.5, ω = 0.5, n = 1000, with sensitivity levels. Exploratory only; replaced by E1 estimates in SL-19–21 | SL-19S, SL-20S, SL-21S |
+| A17 | Stipulated parameters for the pre-E1 simulations | **Fixed 2026-10-23** in `requirements/A17_stipulated_parameters.md`: σ = 0.3, δ = (−0.3, −0.7), β = 0, χ = 0.5, v₀ = −1, ρ_v = 0.8, γ_k = 0.30 k^−0.6, κ = 0.05, quadratic λ = 0.5, ω = 0.5, n = 1000, with sensitivity levels. Exploratory only; replaced by E1 estimates in SL-19–21. **Amendment 1 (2026-10-25), §5**: the guardrail floor (with paper-feasible-subset reporting) and the E2–E4 design decisions made during the dry runs | SL-19S, SL-20S, SL-21S |
 
 ---
 
@@ -1370,6 +1373,65 @@ flowchart TD
 - [ ] Every cell has R = 200 completed replications, and a seeded rerun is identical.
 - [ ] One command regenerates every table and figure from the committed result files. Every table and figure is labelled "Stipulated parameters (A17), pre-E1, exploratory".
 - [ ] H4a–H4d are reported with the registered statistics (H4b and H4d as corrected in A1 §E2–§E3) and labelled exploratory. The recovery analysis is labelled exploratory.
+
+---
+
+### SL-24 · Independent audit of SL-19S–SL-21S, figure fixes and register amendment 1
+**Size** M · **Repo** ai-agents · **Depends on** SL-19S, SL-20S, SL-21S, A12 (amendment 1, §6), A17 (amendment 1, §5) · **Kind** review and research engineering
+
+**Objective & Validation**
+- Give the three pre-E1 tickets, which the owner accepted without review (OWNER_ACCEPTED), the independent review they lack, before any of their figures enter the paper.
+- Fix the figure problems found on inspection.
+- Implement A12 amendment 1 in the claims register, so the register matches A12 before the E1 registration.
+- Validates: the reviewer checks every acceptance criterion of SL-19S, SL-20S and SL-21S at this ticket's head; the figures meet A17 §5; the register implements A12 §6.
+
+**Scope**
+- **Part A, audit.**
+  - The handoff restates every acceptance criterion of SL-19S, SL-20S and SL-21S, with evidence at this ticket's head.
+  - The seeded byte-for-byte rerun, which those tickets ran on a sample, is extended to a stratified sample with at least one result file from each group:
+    - E2: core, sensitivity, H2a part 3, the gating instance, `conj:gating`;
+    - E3: Part A, Part B aligned, Part B not aligned, H3c;
+    - E4: each audit design and each state-variance factor f.
+  - Defects found are fixed here, and the affected outputs are regenerated.
+- **Part B, figures and tables.**
+  - E2 agent payments under agent-aware policies: screen-pass and screen-fail markets (A1 §E5) are shown separately, with the δ = 0 level added (A17 §5.2).
+  - Every E2 and E3 output affected by the guardrail floor reports the paper-feasible subset next to all markets, or states which one it shows (A17 §5.1).
+  - The E3 overflow panel shows y* = 1 for Δ > λ at every ω.
+  - No legend covers plotted data. The first panel of E2 figure 1 is a known case.
+  - Every output keeps the label "Stipulated parameters (A17), pre-E1, exploratory".
+- **Part C, register amendment 1.**
+  - Implement A12 §6 in `claims_register.yaml`, `analysis/decide.py`, both pre-registration drafts and their tests:
+    - the H1a η rule and the H1c heterogeneity range rule (§6.1);
+    - Monte Carlo-adjusted tolerances (§6.2);
+    - the H4b rule (§6.3);
+    - the provenance of the SL-15 test substitutions (§6.4);
+    - the SL-17 H1a power requirement (§6.1).
+  - Update the register's sha256 pins of the requirement files. A12 and A17 changed in this amendment; the tests that compare the pins fail until this is done.
+  - Add rows for SL-24's criteria to `docs/acceptance_direction_audit.md`.
+- Out: new simulations beyond reruns needed for fixes; any E1 work.
+
+**Inputs & Dependencies**
+- SL-19S, SL-20S and SL-21S outputs and handoffs; A1; A12 §6; A17 §5; the second-account reviewer.
+
+**Procedure**
+1. Part C first. It is independent of the outputs.
+2. Part B figure and table changes, then regenerate the reports.
+3. Part A: the stratified rerun, and the evidence for every inherited criterion.
+4. Handoff, then review with `--timeout 3600`.
+
+**Deliverables**
+- Updated register, `decide.py`, pre-registration drafts and tests; regenerated figures, tables and reports; the audit section of the handoff.
+
+**Acceptance Criteria**
+- [ ] Every acceptance criterion of SL-19S, SL-20S and SL-21S holds at this ticket's head, with evidence. The implementation gates still pass:
+  - the E2 gating gain and the zero set-blind gap with deterministic organic lists;
+  - E3 Part A at 100% of grid points;
+  - the E4 H4b check;
+  - the corrected `cor:design`(b) bound against enumeration.
+- [ ] The stratified seeded rerun reproduces every sampled result file byte for byte, with at least one file from each group listed in Scope.
+- [ ] The figures meet Part B. The reviewer confirms this from the PNGs: E2 screen split and δ = 0 level; paper-feasible subset reported or stated; E3 overflow panel; no legend covering data. One command per experiment regenerates every output, and every output keeps the A17 label.
+- [ ] The claims register, `decide.py` and the pre-registration drafts implement A12 §6. `decide.py` tests cover supported, not supported and inconclusive for the H1a η rule, the H1c heterogeneity rule and the H4b rule. The register pins the current sha256 of A1, A12, A17 and `paper.tex`.
+- [ ] The full storelab test suite passes, including the acceptance-direction audit with SL-24's rows.
 
 ---
 

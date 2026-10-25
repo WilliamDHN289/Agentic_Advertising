@@ -112,3 +112,56 @@ The net value of the unfavoured leader is $\nu_-=0$.
 | Grids | $h\in\{5,10,20,50,100\}$, $n_0\in\{2,10,100,1000\}$, $N_x\in\{10,30\}$, R = 200 replications per cell |
 | Mechanism (H4c, H4d) | $n=1000$ mechanism requests; 4 advertisers; $\theta\sim U[0,1]$; $g=0.1$; quadratic cost with λ = 0.5 and ω = 0.5; a menu $\mathcal Q_{\mathrm{fin}}$ of 16 seeded policies, each a uniform mixture over 4 audited cells; ϱ = 0.05 (A12 §4) |
 | Recovery after a version change | Exploratory (SL-21). The state distribution switches after period h/2. |
+
+---
+
+## 5. Amendment 1 (owner, 2026-10-25): decisions made during SL-19S to SL-21S
+
+These decisions were taken while SL-19S to SL-21S ran, to fill points that §1–§4 left open. They are recorded here so the dry runs and their audit (SL-24) have one source.
+
+### 5.1 Guardrail floor (E2 and E3 H3c)
+
+**The problem.** Under κ = 0.05, many gated markets and markets with randomised organic lists miss $(1-\kappa)M^{\mathrm{ref}}$ before any sponsorship. That leaves eq. `mq-constraint` with no feasible policy, while the paper assumes some sponsored policy is feasible:
+
+- E2: the floor binds in 10,912 of 33,000 markets.
+- E3 H3c: the paper's guardrail is infeasible in 122 of 200 markets.
+
+**The floor.** The feasible set is $M(Q)\ge T$ with
+$$T=\min\{(1-\kappa)M^{\mathrm{ref}},\ M(Q^o,\varnothing)-10^{-8}n\}.$$
+Sponsorship may not push match quality below the paper's level, nor below the organic design's own level when that is already lower. No sponsorship is always feasible.
+
+**Consequence.** Where the floor binds, the platform may not trade any match quality for revenue. That is stricter than the paper's guardrail, which would instead force sponsorship to restore match quality. Gated-regime results in those markets therefore describe the floor, not the paper's mechanism.
+
+**Reporting requirement (SL-24).** Every E2 and E3 table and figure the floor affects reports both of these, or states in its caption which one it shows:
+
+- all markets;
+- the *paper-feasible subset*: markets where the floor does not bind.
+
+### 5.2 E2 design
+
+| Item | Decision |
+|---|---|
+| Sensitivity | The 24 A17 levels E2 uses, run over α in the agent-aware regime without organic variation (120 configurations) |
+| H2a part 3 | The model and version levels, run in the human-optimised regime (15 configurations) |
+| H2a part 1 | Below the §5 floor of A12 (31–39 screen-passing markets per configuration), so recorded as inconclusive by rule, with no extra markets. The screen pass rate (288 of 1,600, 18.0%) is reported as an exploratory finding: with the stipulated label penalties, `prop:rents`(c)'s zero-payment prediction applies to a minority of markets. |
+| H2a presentation (new, for SL-24) | Figures of agent payments under agent-aware policies split markets that pass the A1 §E5 screen from those that fail it, and include the δ = 0 level. |
+
+### 5.3 E3 Part B
+
+| Item | Decision |
+|---|---|
+| Products | 10. The two leaders are set to the mean of the two largest of 10 $N(0,1)$ draws; the others are redrawn below $z_L-0.5$. |
+| Scores | $v=z$ (ρ_v = 1 in Part B), so the state is the only source of disagreement between leaders. |
+| Other settings | K = 4; n = 1000; σ = 0.3; 2 equally likely states shifting the leaders by ±0.5 |
+| Exact limit | The H3a exact part and $\Theta_j$ use the exact σ → 0 limit; every other Part B metric is at σ = 0.3. |
+| Size | 16 configurations (aligned or not × the baseline and 7 sensitivity levels), 200 markets each |
+| H3c | Not-aligned baseline markets with $K^s=1$, 6 advertisers, θ ~ U[0, 1], δ = −0.5; M3 against M4 with quadratic cost λ = 0.5, ω = 0.5; the §5.1 floor |
+
+### 5.4 E4
+
+| Item | Decision |
+|---|---|
+| H4a targets | The subsets of the top 5 products with 2–4 members. Choices are taken in the deterministic limit, state by state. |
+| H4b check | Uses 8 cells fixed before the run. |
+| H4c and H4d | A menu of 16 seeded mixtures over 4 competitor-varying cells; 4 advertisers drawn uniformly; report grid [0, 2] in steps of 0.005 |
+| Recovery analysis | Estimation restarts at a version change after period 50 of 100. |

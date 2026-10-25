@@ -235,3 +235,75 @@ SL-17 sizes the main design within budget. It may raise these floors, never lowe
 | E4 | R = 200 replications per cell (tickets SL-21); the H4b I-check uses 10,000 |
 
 Note on H1d: the illustrative E1 design in tickets.md has about 10 tasks, which is below the floor. Unless SL-17 raises the task count to at least 20, H1d will be labelled inconclusive by rule, and the set-level change share in §3.2 becomes the main descriptive evidence for E3.
+
+---
+
+## 6. Amendment 1 (owner, 2026-10-25)
+
+This amendment is made before the E1 registration, as §1 allows. It is based on the SL-15 validation study and on the pre-E1 dry runs SL-19S to SL-21S. It does not change any threshold that E1 data could have informed, because no E1 data exists. SL-24 implements it in the claims register, `decide.py` and the pre-registration drafts.
+
+### 6.1 Equivalence margins for H1a and for H1c heterogeneity
+
+Without a margin, these tests could come out supported or inconclusive, but never not supported. That meant the paper's reading "if H1a fails, separable approximations suffice" could never be triggered. Both now use a smallest effect of interest of **0.25 on the logit scale**, matching the H1c minimum effect (§4).
+
+**H1a: size of the IIA violation per primary cell.**
+
+- For each informative triple $t$, let $\Delta_t$ be the Haldane-corrected log odds-ratio change and $s_t^2$ its delta-method variance.
+- The effect is the bias-corrected root-mean-square shift:
+  $$\eta=\sqrt{\max\big(0,\ \overline{\Delta_t^2-s_t^2}\big)}.$$
+- Interval: cluster bootstrap over candidate sets, Holm over cells.
+
+| Label | Condition |
+|---|---|
+| supported | lower bound of η > 0.25 |
+| not supported | upper bound of η < 0.25 |
+| inconclusive | otherwise |
+
+The triple-odds Monte Carlo test (§6.4) is still computed and reported. It detects violations of any size, but it no longer decides the label.
+
+**H1c heterogeneity (claim level).**
+
+- Statistic: the range of $\delta_m/\sigma_m$ across models.
+- Supported if the 95% bootstrap lower bound of the range is > 0.25; not supported if the upper bound is < 0.25; inconclusive otherwise.
+- The Wald χ² test of equal $\delta/\sigma$ is reported.
+
+**Power.** SL-17 reports power for H1a at η = 0.5, twice the margin. If that power is below 0.5 within budget, the E1 registration states in advance that H1a is expected to be inconclusive. (SL-15 found the IIA tests have low power in the pilot shape.)
+
+### 6.2 Tolerances net of Monte Carlo error
+
+This is a general rule. It generalises the SL-15 AC-1 waiver.
+
+**Scope.** Every simulation check whose criterion is a tolerance on a quantity estimated from R Monte Carlo replications: bias, coverage, size, power, or a slope estimated from simulated data. It does not apply to exact computations (solver outputs and closed forms), where the stated numeric tolerance stands.
+
+**Rule.** With $m$ checks in one criterion, let $z=z_{1-0.05/m}$ (Bonferroni). A check fails only if the estimate exceeds its tolerance significantly at familywise 5%:
+
+| Check | Passes if |
+|---|---|
+| A tolerance τ on $\lvert x\rvert$ | $\lvert\hat x\rvert\le\tau+z\,\widehat{\mathrm{SE}}_{\mathrm{MC}}$ |
+| A band $[a,b]$ around a rate | $a-z\,\widehat{\mathrm{SE}}_{\mathrm{MC}}\le\hat c\le b+z\,\widehat{\mathrm{SE}}_{\mathrm{MC}}$ |
+
+Reports state both the raw tolerance and the Monte Carlo-adjusted bound.
+
+### 6.3 H4b slope rule
+
+This replaces the H4b row of §4. A12 originally required the 95% interval of the log–log RMSE slope on h to lie inside [−0.55, −0.45]. At R = 200 under positive state variance, that interval is 0.06–0.10 wide, so the rule tested the precision of the simulation rather than the claim (SL-21S: 20 of 32 cells passed, but every interval contained −½). H4b is an exact (I-type) claim. Per cell, with Bonferroni over cells:
+
+| Outcome | Condition |
+|---|---|
+| passes | the interval contains −½ and its half-width is ≤ 0.05 |
+| precision too low | the interval contains −½ but its half-width is > 0.05. The cell is rerun once with 4R replications; if it is still too wide, it is labelled inconclusive. |
+| implementation error | the interval excludes −½. This blocks the report. |
+
+The comparison against the closed form in $n_0$ (A1 §E3) is unchanged.
+
+### 6.4 SL-15 test substitutions, recorded as owner decisions
+
+These were made during SL-15 under the §2 rule that a test failing its size requirement is replaced before registration. They are recorded here so the register's provenance lies with the owner, not only with the implementer.
+
+| Item | Decision | Evidence |
+|---|---|---|
+| Triple-odds test | Monte Carlo p-value under the fitted conditional logit (B = 999) replaces the set-level permutation version | The permutation version is anti-conservative: size 0.105 against 0.048 for the Monte Carlo version. |
+| Hausman–McFadden | Reported only, on $\delta/\sigma$ with 1 df | The joint δ and β version had size 0.21–0.25. |
+| Separation | Detected exactly by a linear program. Estimated with Firth's penalised likelihood and profile penalised-likelihood intervals | — |
+
+Evidence is in `docs/analysis_validation.md` at the SL-15 approval (b9f8449).
