@@ -16,7 +16,10 @@
 **Registered statistics** (A12 §4, H4b and H4d as corrected in A1 §E2–§E3) are computed as
 written and labelled exploratory; no confirmatory label is recorded (A17 §0). Intervals are
 percentile bootstraps over replications (B = 2,000) with seeds from the master seed;
-Clopper–Pearson intervals for H4c's violation share.
+Clopper–Pearson intervals for H4c's violation share. Register amendment 1 (SL-24) adds the
+A12 §6.3 reading of the H4b slopes (Bonferroni intervals over the cells: an interval that
+excludes −½ blocks the report) and the A12 §6.2 Monte Carlo-adjusted bound of the check's
+variance tolerance.
 """
 from __future__ import annotations
 
@@ -24,6 +27,7 @@ import argparse
 import csv
 import io
 import json
+import math
 from pathlib import Path
 
 import numpy as np
@@ -43,7 +47,9 @@ B = 2000
 FIGURE_NAMES = ("1_identification_vs_inclusion", "2_rmse", "3_misreport_gain", "4_cumulative_loss")
 DESIGN_NAMES = {"leader_inclusive": "leader-inclusive", "competitor_varying": "competitor-varying",
                 "random": "random (matched)"}
-SLOPE_RANGE = (-0.55, -0.45)  # A12 §4, H4b
+SLOPE_RANGE = (-0.55, -0.45)  # A12 §4, H4b (replaced by §6.3, reported for comparison)
+SLOPE_VALUE, SLOPE_HALF_WIDTH, SLOPE_ALPHA, RERUN_FACTOR = -0.5, 0.05, 0.05, 4  # A12 §6.3
+MC_ALPHA = 0.05  # A12 §6.2
 VIOLATION_LIMIT = 3 * e4r.RHO  # A12 §4, H4c
 EXPONENT_LIMIT = 0.6  # A12 §4, H4d (A1 §E2)
 
@@ -144,7 +150,7 @@ def _matrix(rows: list[dict], field: str) -> np.ndarray:
 
 def h4b_h4c_h4d(data: dict) -> tuple[dict, dict, dict]:
     logh = np.log(np.array(e4r.HS, dtype=float))
-    b_out, c_out, d_out = {}, {}, {}
+    b_out, c_out, d_out, slope_draws = {}, {}, {}, {}
     for cell, rows in data["learning"].items():
         key = "N_x=%d/f=%g/n0=%d" % cell
         draws = _draws(e4r.REPLICATIONS, "h4b", *cell)
@@ -152,7 +158,8 @@ def h4b_h4c_h4d(data: dict) -> tuple[dict, dict, dict]:
         sse, closed_sum = _matrix(rows, "sse"), _matrix(rows, "closed_variance_sum")  # (reps, h)
         rmse, closed = np.sqrt(sse.mean(axis=0) / count), np.sqrt(closed_sum.mean(axis=0) / count)
         slope = _slope(logh, np.log(rmse))
-        ci = interval(_slopes(logh, np.log(np.sqrt(sse[draws].mean(axis=1) / count))))
+        slope_draws[key] = _slopes(logh, np.log(np.sqrt(sse[draws].mean(axis=1) / count)))
+        ci = interval(slope_draws[key])
         b_out[key] = {"rmse": rmse.tolist(), "rmse_closed_form": closed.tolist(), "ratio": (rmse / closed).tolist(),
                       "slope": slope, "ci95": ci, "within_registered_range": bool(SLOPE_RANGE[0] <= ci[0]
                                                                                  and ci[1] <= SLOPE_RANGE[1])}
@@ -187,8 +194,28 @@ def h4b_h4c_h4d(data: dict) -> tuple[dict, dict, dict]:
         else:
             entry.update(slope=None, ci95=None, note="mean cumulative loss is 0 at some h: bounded loss")
         d_out[key] = entry
+    level = 1 - SLOPE_ALPHA / len(b_out)  # A12 §6.3: Bonferroni over the slope cells
+    for key, v in b_out.items():
+        lo, hi = interval(slope_draws[key], level)
+        half = (hi - lo) / 2
+        v["amendment_1"] = {"level": level, "ci": [lo, hi], "half_width": half,
+                            "outcome": "implementation_error" if not lo <= SLOPE_VALUE <= hi else
+                            "passes" if half <= SLOPE_HALF_WIDTH else "precision_too_low"}
     return ({"label": "exploratory", "cells": b_out}, {"label": "exploratory", "cells": c_out},
             {"label": "exploratory", "cells": d_out})
+
+
+def monte_carlo_bound(check: list[dict]) -> dict:
+    """A12 §6.2 for the check's variance tolerance: |ratio − 1| ≤ 0.05 + z SE, z = z_{1−0.05/m}
+    over the m checked cells. The check files keep no fourth moment, so SE is the
+    normal-theory SE of a sample variance, ratio · √(2 / (R − 1)) (an approximation)."""
+    z = float(stats.norm.ppf(1 - MC_ALPHA / len(check)))
+    rows = [(abs(r["variance_ratio"] - 1), r["variance_ratio"] * math.sqrt(2 / (r["replications"] - 1)))
+            for r in check]
+    worst = max(rows, key=lambda x: x[0] - z * x[1])
+    return {"m": len(check), "z": z, "raw_tolerance": 0.05, "max_deviation": max(d for d, _ in rows),
+            "adjusted_bound_at_worst": 0.05 + z * worst[1], "passes": all(d <= 0.05 + z * se for d, se in rows),
+            "se": "normal theory, ratio x sqrt(2 / (R - 1))"}
 
 
 def recovery(data: dict) -> dict:
@@ -206,13 +233,14 @@ def recovery(data: dict) -> dict:
 def statistics(data: dict, g: dict) -> dict:
     b, c, d = h4b_h4c_h4d(data)
     b["implementation_check"] = g["h4b_check"]
+    b["implementation_check_monte_carlo"] = monte_carlo_bound(g["h4b_check"]["cells"])
     return {"H4a": h4a(data), "H4b": b, "H4c": c, "H4d": d, "recovery": recovery(data)}
 
 
 # -------------------------------------------------------------------- figures
 def figures(data: dict, s: dict) -> list[str]:
     paths = []
-    fig, axes = figure(1, 2, 8.0, 3.4)
+    fig, axes = figure(1, 2, 8.0, 3.8)
     rows = []
     colours = {"leader_inclusive": "#C44E52", "competitor_varying": "#4C72B0", "random": "#55A868"}
     for ax, n in zip(axes[0], e4r.N_XS):
@@ -231,12 +259,11 @@ def figures(data: dict, s: dict) -> list[str]:
         ax.set_xlabel("mean inclusion frequency of the top 5 products")
         ax.set_ylabel("identified share of target sets")
         ax.set_ylim(0, 1.05)
-        ax.legend(loc="lower right")
     paths += save(fig, "sl21s", FIGURE_NAMES[0], ["n_x", "design", "f", "inclusion_top5", "inclusion_leader", "share",
                                                   "ci_low", "ci_high"], rows,
-                  "H4a: identification share by design against inclusion frequency")
+                  "H4a: identification share by design against inclusion frequency", legend=3)
 
-    fig, axes = figure(1, 2, 8.0, 3.4)
+    fig, axes = figure(1, 2, 8.0, 3.8)
     rows = []
     ax = axes[0][0]
     hs = np.array(e4r.HS, dtype=float)
@@ -251,26 +278,24 @@ def figures(data: dict, s: dict) -> list[str]:
     ax.set_xlabel("audit periods h")
     ax.set_ylabel("RMSE of q̂")
     ax.set_title("against h (N_x = 10, n₀ = 10)")
-    ax.legend(loc="lower left")
     ax = axes[0][1]
     n0s = np.array(e4r.N0S, dtype=float)
     k = e4r.HS.index(20)
     for f in e4r.FACTORS:
         emp = [s["H4b"]["cells"]["N_x=10/f=%g/n0=%d" % (f, n0)]["rmse"][k] for n0 in e4r.N0S]
         closed = [s["H4b"]["cells"]["N_x=10/f=%g/n0=%d" % (f, n0)]["rmse_closed_form"][k] for n0 in e4r.N0S]
-        line, = ax.plot(n0s, closed, linewidth=1.0, label="f = %g (closed form)" % f)
+        line, = ax.plot(n0s, closed, linewidth=1.0, label="f = %g" % f)
         ax.scatter(n0s, emp, s=14, color=line.get_color())
         rows += [("rmse_vs_n0", 10, f, int(n0), 20, e, c) for n0, e, c in zip(n0s, emp, closed)]
     ax.set_xscale("log")
     ax.set_yscale("log")
     ax.set_xlabel("audit requests per cell and period n₀")
     ax.set_ylabel("RMSE of q̂")
-    ax.set_title("against n₀ (N_x = 10, h = 20; points: simulated)")
-    ax.legend(loc="lower left")
+    ax.set_title("against n₀ (N_x = 10, h = 20;\nlines: closed form; points: simulated)")
     paths += save(fig, "sl21s", FIGURE_NAMES[1], ["panel", "n_x", "f", "n0", "h", "rmse", "rmse_closed_form"], rows,
-                  "H4b: estimation error against h and n₀ (Prop learning(a))")
+                  "H4b: estimation error against h and n₀ (Prop learning(a))", legend=5)
 
-    fig, axes = figure(1, 2, 8.0, 3.4)
+    fig, axes = figure(1, 2, 8.0, 3.8)
     rows = []
     for ax, n in zip(axes[0], e4r.N_XS):
         for f in e4r.FACTORS:
@@ -285,12 +310,11 @@ def figures(data: dict, s: dict) -> list[str]:
         ax.set_xlabel("audit periods h")
         ax.set_ylabel("misreport gain (effective-choice value)")
         ax.set_title("N_x = %d, n₀ = 10" % n)
-        ax.legend(loc="center right")
     paths += save(fig, "sl21s", FIGURE_NAMES[2], ["n_x", "f", "n0", "h", "mean_max_gain", "mean_bound",
                                                   "violation_share"], rows,
-                  "H4c: largest misreport gain against the bound of Prop learning(d)")
+                  "H4c: largest misreport gain against the bound of Prop learning(d)", legend=5)
 
-    fig, axes = figure(1, 2, 8.0, 3.4)
+    fig, axes = figure(1, 2, 8.0, 3.8)
     rows = []
     for ax, n in zip(axes[0], e4r.N_XS):
         for f in e4r.FACTORS:
@@ -301,9 +325,8 @@ def figures(data: dict, s: dict) -> list[str]:
         ax.set_xlabel("periods h")
         ax.set_ylabel("mean cumulative loss (W units)")
         ax.set_title("N_x = %d, n₀ = 10" % n)
-        ax.legend(loc="upper left")
     paths += save(fig, "sl21s", FIGURE_NAMES[3], ["n_x", "f", "n0", "h", "mean_cumulative_loss"], rows,
-                  "H4d: cumulative loss of the plug-in mechanism against h")
+                  "H4d: cumulative loss of the plug-in mechanism against h", legend=4)
     return [p.relative_to(REPO).as_posix() for p in paths]
 
 
@@ -345,8 +368,9 @@ def markdown(summary: dict) -> str:
         "**%s.** Results of `python -m features.storelab.analysis.e4_run` (master seed %d), regenerated by "
         "`python -m features.storelab.analysis.e4_report`. The state variance is a stand-in (A17 §4), not an estimate; "
         "no confirmatory label is recorded." % (LABEL, e4r.MASTER_SEED), "",
-        "**Review status.** SL-21S has not been independently reviewed: the owner accepts the pre-E1 tickets after "
-        "SL-19S without an independent review (2026-10-24).", "",
+        "**Review status.** SL-21S was accepted by the owner without an independent review (2026-10-24); SL-24 is "
+        "its independent audit, which also added the A12 §6.3 reading of H4b and the §6.2 Monte Carlo-adjusted bound "
+        "(register amendment 1).", "",
         "## Design", "",
         "- A17 §4: one context, one model, σ = 0.3, v_j ~ N(0, 1), outside score −1, K = 4; two equally likely states, "
         "state 2 adds τ η_j with τ = 0.5 √f, f ∈ {0, 0.5, 1, 2}; N_x ∈ {10, 30}; h ∈ {5, 10, 20, 50, 100}; "
@@ -373,6 +397,12 @@ def markdown(summary: dict) -> str:
     for r in g["h4b_check"]["cells"]:
         lines.append("| %d | %d | %g | %.4f | %.2f | %.4f | %s |" % (r["h"], r["n0"], r["f"], r["q_bar"], r["bias_in_se"],
                                                                   r["variance_ratio"], "yes" if r["passed"] else "NO"))
+    mc = s["H4b"]["implementation_check_monte_carlo"]
+    lines += ["", "Variance tolerance net of Monte Carlo error (A12 §6.2, register amendment 1): raw tolerance ±%.2f, "
+              "largest deviation %.4f; Monte Carlo-adjusted bound %.4f at the worst cell (z = %.3f, m = %d; SE from "
+              "normal theory, ratio × √(2/(R − 1)), since the check files keep no fourth moment): %s." % (
+                  mc["raw_tolerance"], mc["max_deviation"], mc["adjusted_bound_at_worst"], mc["z"], mc["m"],
+                  "passes" if mc["passes"] else "FAILS")]
     lines += ["", "All checks pass; every cell has R = %d completed replications." % e4r.REPLICATIONS
               if g["passed"] else "**A CHECK FAILED: the report is blocked.**", "",
               "## Registered statistics (exploratory, no confirmatory label)", "", "*%s.*" % LABEL, "",
@@ -394,7 +424,8 @@ def markdown(summary: dict) -> str:
                   len(s["H4a"]["cells"]),
                   sum(c["competitor_varying - random"]["lower_bound_above_0"] for c in s["H4a"]["cells"].values()),
                   len(s["H4a"]["cells"])), "",
-              "**H4b** (log–log slope of RMSE on h, registered: 95%% interval within [−0.55, −0.45]; the closed-form "
+              "**H4b** (log–log slope of RMSE on h, A12 §4 as first registered: 95%% interval within [−0.55, −0.45]; "
+              "the closed-form "
               "slope is exactly −½). Within the range in %d of %d (N_x, f, n₀) cells; simulated RMSE over the closed "
               "form, across all cells and h: %.3f–%.3f." % (
                   sum(v["within_registered_range"] for v in s["H4b"]["cells"].values()), len(s["H4b"]["cells"]),
@@ -415,11 +446,30 @@ def markdown(summary: dict) -> str:
                   ", all in cells with f > 0, where the state term dominates the error" if all(
                       "/f=0/" not in k for k, v in s["H4b"]["cells"].items() if not v["within_registered_range"]) else ""),
               "",
-              "| Cell | Slope | 95% interval | In range | RMSE at h = 5 … 100 |", "|---|---:|---|---|---|"]
+              ""]
+    amended = [v["amendment_1"] for v in s["H4b"]["cells"].values()]
+    lines += ["**H4b under register amendment 1 (A12 §6.3)**, which replaces the range rule above (it tested the "
+              "precision of the simulation, not the claim). Per cell, the bootstrap interval at level 1 − 0.05/%d = "
+              "%.5f (Bonferroni over the cells) must contain −½: it does in %d of %d cells, so no cell is an "
+              "implementation error. Half-width ≤ 0.05 (passes) in %d cells; wider (precision too low) in %d, "
+              "half-widths %.3f–%.3f. A12 §6.3 reruns each too-wide cell once with 4R = %d replications and labels it "
+              "inconclusive if still too wide; this dry run does not run those reruns (SL-24 adds no simulations), so "
+              "those cells stand at R = %d. The Bonferroni bounds rest on the 0.08%% tails of B = %d draws." % (
+                  len(amended), amended[0]["level"], sum(a["outcome"] != "implementation_error" for a in amended),
+                  len(amended), sum(a["outcome"] == "passes" for a in amended),
+                  sum(a["outcome"] == "precision_too_low" for a in amended),
+                  min((a["half_width"] for a in amended if a["outcome"] == "precision_too_low"), default=0.0),
+                  max((a["half_width"] for a in amended if a["outcome"] == "precision_too_low"), default=0.0),
+                  RERUN_FACTOR * e4r.REPLICATIONS, e4r.REPLICATIONS, B), "",
+              "| Cell | Slope | 95% interval | In range (A12 §4) | Bonferroni interval | Half-width | A12 §6.3 | "
+              "RMSE at h = 5 … 100 |", "|---|---:|---|---|---|---:|---|---|"]
+    outcome_names = {"passes": "passes", "precision_too_low": "precision too low (4R rerun not run)",
+                     "implementation_error": "IMPLEMENTATION ERROR"}
     for key, v in s["H4b"]["cells"].items():
-        lines.append("| %s | %.3f | %s | %s | %s |" % (key, v["slope"], _ci(v["ci95"]),
-                                                       "yes" if v["within_registered_range"] else "no",
-                                                       ", ".join("%.4f" % x for x in v["rmse"])))
+        a = v["amendment_1"]
+        lines.append("| %s | %.3f | %s | %s | %s | %.3f | %s | %s |" % (
+            key, v["slope"], _ci(v["ci95"]), "yes" if v["within_registered_range"] else "no", _ci(a["ci"]),
+            a["half_width"], outcome_names[a["outcome"]], ", ".join("%.4f" % x for x in v["rmse"])))
     c = s["H4c"]["cells"]
     worst = max(x["clopper_pearson_upper"] for v in c.values() for x in v["by_h"])
     lines += ["", "Dependence on n₀ is compared with the closed form (A1 §E3), not with \"flat\": see the RMSE ratios "
@@ -475,11 +525,15 @@ def main(argv: list[str] | None = None) -> int:
         print("a gate failed: no report is written")
         return 1
     s = statistics(data, g)
+    errors = [k for k, v in s["H4b"]["cells"].items() if v["amendment_1"]["outcome"] == "implementation_error"]
+    if errors:  # A12 §6.3: an H4b interval that excludes −½ blocks the report
+        print("H4b implementation error (interval excludes -1/2) in %s: no report is written" % errors)
+        return 1
     tables(s)
     paths = figures(data, s)
     check = e4r.RESULTS / "rerun_check.json"
     summary = {"label": LABEL, "master_seed": e4r.MASTER_SEED, "gates": g, "statistics": s, "figures": paths,
-               "review_status": "not independently reviewed",
+               "review_status": "accepted by the owner without independent review (2026-10-24); independent audit: SL-24",
                "rerun_identical": json.loads(check.read_text(encoding="utf-8"))["identical"] if check.exists() else None}
     SUMMARY.write_text(json.dumps(summary, indent=1, sort_keys=True, default=float) + "\n", encoding="utf-8")
     REPORT.write_text(markdown(summary), encoding="utf-8")

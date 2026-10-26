@@ -1,4 +1,4 @@
-# E3 Part A: implementation check of prop:threshold (closed forms; no stipulated parameters)
+# Stipulated parameters (A17), pre-E1, exploratory
 case,series,omega,delta,y
 quadratic,closed form,0.3,0.0,0.0
 quadratic,closed form,0.3,0.01,0.003003003003003003

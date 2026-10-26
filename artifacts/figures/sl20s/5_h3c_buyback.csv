@@ -1,8 +1,14 @@
 # Stipulated parameters (A17), pre-E1, exploratory
-series,mechanism,value,ci_low,ci_high
-buyback_share,M3,0.771551724137931,0.7258047502381925,0.8141673006847395
-buyback_share,M4,0.5086206896551724,0.44897305075876504,0.5688888888888889
-exposure_organic,M3,0.011876507944850014,,
-exposure_organic,M4,0.011876507944850014,,
-exposure_star,M3,0.0816450432901705,,
-exposure_star,M4,0.029044060701917295,,
+series,subset,mechanism,value,ci_low,ci_high,markets
+buyback_share,all markets,M3,0.771551724137931,0.7258047502381925,0.8141673006847395,166
+buyback_share,all markets,M4,0.5086206896551724,0.44897305075876504,0.5688888888888889,166
+buyback_share,paper-feasible subset,M3,0.8068181818181818,0.7415730337078652,0.8795180722891566,65
+buyback_share,paper-feasible subset,M4,0.5681818181818182,0.4658892706131078,0.6746987951807228,65
+exposure_organic,all markets,M3,0.011876507944850014,,,166
+exposure_organic,all markets,M4,0.011876507944850014,,,166
+exposure_star,all markets,M3,0.0816450432901705,,,166
+exposure_star,all markets,M4,0.029044060701917295,,,166
+exposure_organic,paper-feasible subset,M3,0.0070989394182922935,,,65
+exposure_organic,paper-feasible subset,M4,0.0070989394182922935,,,65
+exposure_star,paper-feasible subset,M3,0.07941064865384045,,,65
+exposure_star,paper-feasible subset,M4,0.025330484417343705,,,65

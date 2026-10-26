@@ -126,9 +126,9 @@
  },
  "label": "Stipulated parameters (A17), pre-E1, exploratory",
  "master_seed": 2026102320,
- "part_a_label": "E3 Part A: implementation check of prop:threshold (closed forms; no stipulated parameters)",
+ "part_a_label": "Stipulated parameters (A17), pre-E1, exploratory \u00b7 E3 Part A: implementation check of prop:threshold (closed forms; no stipulated parameters)",
  "rerun_identical": true,
- "review_status": "not independently reviewed",
+ "review_status": "accepted by the owner without independent review (2026-10-24); independent audit: SL-24",
  "statistics": {
   "H3a": {
    "exact_part": {
@@ -535,7 +535,61 @@
    "excluded_markets": 0,
    "label": "exploratory",
    "markets": 200,
-   "no_leader_advertiser": 34
+   "no_leader_advertiser": 34,
+   "paper_feasible": {
+    "M3": {
+     "buyback_share": 0.8068181818181818,
+     "buyback_share_ci95": [
+      0.7415730337078652,
+      0.8795180722891566
+     ],
+     "coincidence": 0.7714285714285715,
+     "coincidence_ci95": [
+      0.6666666666666666,
+      0.8695652173913043
+     ],
+     "exposure_organic": 0.0070989394182922935,
+     "exposure_star": 0.07941064865384045,
+     "exposure_star_buyback_pairs": 0.08839465061032352,
+     "floor_binds_markets": 0,
+     "indifferent": 18,
+     "markets": 65,
+     "max_margin_check": 1.4210854715202004e-13,
+     "mean_buyback_probability": 0.8048230606482772,
+     "only_if_failures": 1,
+     "only_if_failures_at_zero_bid": 1,
+     "only_if_share": 0.9886363636363636,
+     "pairs": 88,
+     "pairs_decided": 70,
+     "registered_rule_met": true
+    },
+    "M4": {
+     "buyback_share": 0.5681818181818182,
+     "buyback_share_ci95": [
+      0.4658892706131078,
+      0.6746987951807228
+     ],
+     "coincidence": 0.625,
+     "coincidence_ci95": [
+      0.5189873417721519,
+      0.7237171052631577
+     ],
+     "exposure_organic": 0.0070989394182922935,
+     "exposure_star": 0.025330484417343705,
+     "exposure_star_buyback_pairs": 0.03306166019444188,
+     "floor_binds_markets": 0,
+     "indifferent": 8,
+     "markets": 65,
+     "max_margin_check": 3.268496584496461e-13,
+     "mean_buyback_probability": 0.2644338004603392,
+     "only_if_failures": 0,
+     "only_if_failures_at_zero_bid": 0,
+     "only_if_share": 1.0,
+     "pairs": 88,
+     "pairs_decided": 80,
+     "registered_rule_met": false
+    }
+   }
   }
  }
 }

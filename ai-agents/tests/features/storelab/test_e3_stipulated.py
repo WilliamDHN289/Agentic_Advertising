@@ -243,13 +243,13 @@ class ResultsTest(unittest.TestCase):
     def test_tables_and_figures_carry_their_labels(self):
         report = e3_report.REPORT.read_text(encoding="utf-8")
         self.assertIn(LABEL, report)
-        self.assertIn("not been independently reviewed", report)
+        self.assertIn("without an independent review", report)
         self.assertNotRegex(report, r"\b(Supported|Not supported)\b")
-        for k, name in enumerate(e3_report.FIGURE_NAMES):
-            label = e3_report.PART_A_LABEL if k < 2 else LABEL
+        for name in e3_report.FIGURE_NAMES:  # SL-24: every output keeps the A17 label, Part A included
             for suffix in (".pdf", ".png", ".csv"):
                 self.assertTrue((FIGURES / "sl20s" / (name + suffix)).exists(), name + suffix)
-            self.assertTrue((FIGURES / "sl20s" / (name + ".csv")).read_text(encoding="utf-8").startswith("# " + label))
+            self.assertTrue((FIGURES / "sl20s" / (name + ".csv")).read_text(encoding="utf-8").startswith("# " + LABEL))
+        self.assertTrue((e3_report.TABLES / "part_a.csv").read_text(encoding="utf-8").startswith("# " + LABEL))
         for name in ("part_b_means.csv", "part_b_paired_differences.csv"):
             self.assertTrue((e3_report.TABLES / name).read_text(encoding="utf-8").startswith("# " + LABEL))
 

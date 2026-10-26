@@ -5,7 +5,7 @@
 One command regenerates everything from ``artifacts/results/sl19s/`` (written by
 ``e2_run``):
 - ``docs/e2_stipulated_results.md`` and ``.json``;
-- the six figures in ``artifacts/figures/sl19s/`` (PDF, PNG and a CSV of the plotted data);
+- the seven figures in ``artifacts/figures/sl19s/`` (PDF, PNG and a CSV of the plotted data);
 - the full tables as CSVs in ``artifacts/results/sl19s/tables/``.
 
 Every table and figure is labelled "Stipulated parameters (A17), pre-E1, exploratory".
@@ -47,7 +47,9 @@ TABLES = er.RESULTS / "tables"
 B = 2000
 MECHANISMS = ("M1", "M2", "M3_set_blind", "M3", "M4", "profit_rule")
 FIGURE_NAMES = ("1_payments_by_traffic_type", "2_profit_and_match_quality", "3_decomposition", "4_setblind_gap",
-                "5_gating_gain", "6_agent_payments_vs_excess")
+                "5_gating_gain", "6_agent_payments_vs_excess", "7_agent_payments_by_screen")
+SUBSETS = ("all", "paper_feasible")  # A17 §5.1: all markets, and those where the guardrail floor does not bind
+SUBSET_NAMES = {"all": "all markets", "paper_feasible": "paper-feasible subset"}
 GAP_TOL, GATING_TOL, MC_SE = 1e-6, 1e-6, 3.0
 MARGIN = 0.01
 FLOOR = 200  # A12 §5: valid markets per configuration (SL-19); H2a part 1 counts screen-passing ones
@@ -79,6 +81,17 @@ def load() -> tuple[dict, dict]:
     gating = {name: [{k: _num(v) for k, v in r.items()} for r in er.read_rows(er.result_path(er.RESULTS, name))]
               for name in er.gating_tasks(1)}
     return markets, gating
+
+
+def paper_feasible(markets: dict) -> dict:
+    """The paper-feasible subset (A17 §5.1): markets where the guardrail floor does not bind."""
+    return {cid: [r for r in rows if not r["floor_binds"]] for cid, rows in markets.items()}
+
+
+def floor_share(markets: dict, config: str) -> float:
+    """Share of valid markets where the floor binds, over ``config % α`` for every α."""
+    rows = [r for a in em.ALPHAS for r in _valid(markets[config % a], "M3")]
+    return sum(r["floor_binds"] for r in rows) / len(rows)
 
 
 def by_market(rows: list[dict]) -> dict[int, dict[str, dict]]:
@@ -199,7 +212,8 @@ def psi_tot(r: dict) -> float:
     return r["revenue"] / (1000 * r["theta_bar"])
 
 
-def statistics(markets: dict, gating: dict) -> dict:
+def statistics(markets: dict, gating: dict, prefix: str = "") -> dict:
+    """The registered statistics; ``prefix`` keys the bootstrap streams of a subset."""
     core = {k: v for k, v in markets.items() if k.startswith("core/")}
     h2a = {"label": "exploratory", "part1": {}, "part2": {}, "part3": {}}
     # part 1: zero agent payments under agent-aware lists (screen-passing, aware-feasible markets), Holm
@@ -212,7 +226,7 @@ def statistics(markets: dict, gating: dict) -> dict:
                 h2a["part1"][cid] = {"n": len(rows), "insufficient": True}
                 continue
             values = np.array([psi_a(r) for r in rows])
-            t = tost(boot_mean(values, cid + "/psi_a"))
+            t = tost(boot_mean(values, prefix + cid + "/psi_a"))
             h2a["part1"][cid] = {"n": len(rows), "mean_psi_a": float(values.mean()), **t,
                                  "below_registered_floor": len(rows) < FLOOR}
             if len(rows) < FLOOR:
@@ -235,16 +249,16 @@ def statistics(markets: dict, gating: dict) -> dict:
     x = np.array([r["alpha"] for r in rows])
     y = np.array([psi_tot(r) for r in rows])
     strata = np.array([r["config_id"] for r in rows])
-    slope, intercept, draws = boot_slope(x, y, strata, "h2a/part2")
+    slope, intercept, draws = boot_slope(x, y, strata, prefix + "h2a/part2")
     at1 = np.array([psi_tot(r) for r in rows if r["alpha"] == 1.0])
     h2a["part2"] = {"n": len(rows), "slope": slope, "slope_bound": bound(draws[:, 0], 0.0, "below"),
-                    "psi_tot_at_alpha_1": float(at1.mean()), "psi_tot_at_alpha_1_tost": tost(boot_mean(at1, "h2a/at1"))}
+                    "psi_tot_at_alpha_1": float(at1.mean()), "psi_tot_at_alpha_1_tost": tost(boot_mean(at1, prefix + "h2a/at1"))}
     # part 3: agent payments against the excess, human-optimised (core none + part3 levels)
     rows = [r for cid, v in markets.items() if ("/human_optimised/none" in cid or cid.startswith("part3/"))
             for r in _valid(v, "M3") if r["alpha"] > 0]
     x = np.array([r["excess"] for r in rows], dtype=float)
     y = np.array([psi_a(r) for r in rows])
-    slope, intercept, draws = boot_slope(x, y, np.array([r["config_id"] for r in rows]), "h2a/part3")
+    slope, intercept, draws = boot_slope(x, y, np.array([r["config_id"] for r in rows]), prefix + "h2a/part3")
     h2a["part3"] = {"n": len(rows), "excess_values": sorted({int(v) for v in x}), "slope": slope,
                     "slope_bound": bound(draws[:, 0], 0.0, "above")}
     # H2b: Conj gating increments
@@ -256,7 +270,7 @@ def statistics(markets: dict, gating: dict) -> dict:
     increments, ps, pa = [], [], []
     for a, b in zip(em.ALPHAS, em.ALPHAS[1:]):
         diff = delta[b] - delta[a]
-        t = bound(boot_mean(diff, "h2b/%g-%g" % (a, b)), -tau, "above")
+        t = bound(boot_mean(diff, prefix + "h2b/%g-%g" % (a, b)), -tau, "above")
         increments.append({"from": a, "to": b, "mean": float(diff.mean()), **t})
         ps.append(t["p_support"])
         pa.append(t["p_against"])
@@ -268,7 +282,7 @@ def statistics(markets: dict, gating: dict) -> dict:
     rows = [r for v in core.values() for r in _valid(v, "M2")]
     x = np.array([1 - r["alpha"] for r in rows])
     y = np.array([psi_tot(r) for r in rows])
-    slope, intercept, draws = boot_slope(x, y, np.array([r["config_id"] for r in rows]), "h2c/m2")
+    slope, intercept, draws = boot_slope(x, y, np.array([r["config_id"] for r in rows]), prefix + "h2c/m2")
     m2 = {"n": len(rows), "slope": slope, "intercept": intercept, "slope_bound": bound(draws[:, 0], 0.0, "above"),
           "intercept_tost": tost(draws[:, 1])}
     chi_configs = {0.5: ["core/alpha=%g/agent_aware/none" % a for a in em.ALPHAS],
@@ -278,13 +292,13 @@ def statistics(markets: dict, gating: dict) -> dict:
             if r["payment_per_choice"] == r["payment_per_choice"]]
     x = np.array([r["alpha"] * chi for chi, r in rows])
     y = np.array([r["payment_per_choice"] / r["theta_bar"] for _, r in rows])
-    slope, intercept, draws = boot_slope(x, y, np.array([r["config_id"] for _, r in rows]), "h2c/m1")
+    slope, intercept, draws = boot_slope(x, y, np.array([r["config_id"] for _, r in rows]), prefix + "h2c/m1")
     m1 = {"n": len(rows), "slope": slope, "slope_bound": bound(draws[:, 0], 0.0, "above")}
     rows = [r for v in core.values() for r in _valid(v, "M3")]
     blind = {(r["config_id"], r["index"]): r for v in core.values() for r in _valid(v, "M3_set_blind")}
     x = np.array([r["variation"] == "randomised" for r in rows], dtype=float)
     y = np.array([(r["welfare"] - blind[(r["config_id"], r["index"])]["welfare"]) / r["welfare"] for r in rows])
-    slope, intercept, draws = boot_slope(x, y, np.array([r["config_id"] for r in rows]), "h2c/gap")
+    slope, intercept, draws = boot_slope(x, y, np.array([r["config_id"] for r in rows]), prefix + "h2c/gap")
     gap = {"n": len(rows), "slope_on_variation": slope, "slope_bound": bound(draws[:, 0], 0.0, "above")}
     return {"H2a": h2a, "H2b": h2b, "H2c": {"label": "exploratory", "m2_proportional": m2,
                                              "m1_rises_with_alpha_chi": m1, "setblind_gap_grows": gap}}
@@ -292,144 +306,212 @@ def statistics(markets: dict, gating: dict) -> dict:
 
 # ------------------------------------------------------------- tables, figs
 def means_table(markets: dict) -> list[dict]:
+    """Means by configuration and mechanism, for all markets and the paper-feasible subset."""
     out = []
-    for cid, rows in markets.items():
-        for mech in MECHANISMS:
-            v = _valid(rows, mech)
-            if not v:
-                continue
-            row = {"config_id": cid, "mechanism": mech, "markets": len(v)}
-            for metric in ("revenue", "revenue_human", "revenue_agent", "contribution", "cost", "match", "slack",
-                           "profit"):
-                values = np.array([r[metric] for r in v]) / 1000
-                draws = boot_mean(values, "%s/%s/%s" % (cid, mech, metric))
-                row[metric] = float(values.mean())
-                row[metric + "_ci"] = interval(draws)
-            out.append(row)
+    for subset, data in zip(SUBSETS, (markets, paper_feasible(markets))):
+        prefix = "" if subset == "all" else subset + "/"
+        for cid, rows in data.items():
+            for mech in MECHANISMS:
+                v = _valid(rows, mech)
+                if v:
+                    out.append(_means_row(cid, subset, mech, v, prefix))
     return out
 
 
+def _means_row(cid: str, subset: str, mech: str, v: list[dict], prefix: str) -> dict:
+    row = {"config_id": cid, "subset": subset, "mechanism": mech, "markets": len(v)}
+    for metric in ("revenue", "revenue_human", "revenue_agent", "contribution", "cost", "match", "slack", "profit"):
+        values = np.array([r[metric] for r in v]) / 1000
+        draws = boot_mean(values, prefix + "%s/%s/%s" % (cid, mech, metric))
+        row[metric] = float(values.mean())
+        row[metric + "_ci"] = interval(draws)
+    return row
+
+
 def paired_table(markets: dict) -> list[dict]:
+    """Paired differences between adjacent mechanisms, for all markets and the paper-feasible subset."""
     out = []
     chain = ("M1", "M2", "M3_set_blind", "M3", "M4")
-    for cid, rows in markets.items():
-        if not cid.startswith("core/"):
-            continue
-        idx = {i: m for i, m in by_market(rows).items() if not m["M1"]["excluded"]}
-        for a, b in zip(chain, chain[1:]):
-            for metric in ("profit", "revenue", "match"):
-                diff = np.array([m[b][metric] - m[a][metric] for m in idx.values()]) / 1000
-                out.append({"config_id": cid, "from": a, "to": b, "metric": metric, "mean": float(diff.mean()),
-                            "ci95": interval(boot_mean(diff, "%s/%s-%s/%s" % (cid, a, b, metric)))})
+    for subset in SUBSETS:
+        prefix = "" if subset == "all" else subset + "/"
+        for cid, rows in markets.items():
+            if not cid.startswith("core/"):
+                continue
+            idx = {i: m for i, m in by_market(rows).items() if not m["M1"]["excluded"]
+                   and (subset == "all" or not m["M1"]["floor_binds"])}
+            if not idx:
+                continue
+            for a, b in zip(chain, chain[1:]):
+                for metric in ("profit", "revenue", "match"):
+                    diff = np.array([m[b][metric] - m[a][metric] for m in idx.values()]) / 1000
+                    out.append({"config_id": cid, "subset": subset, "from": a, "to": b, "metric": metric,
+                                "markets": len(idx), "mean": float(diff.mean()),
+                                "ci95": interval(boot_mean(diff, prefix + "%s/%s-%s/%s" % (cid, a, b, metric)))})
     return out
 
 
 def figures(markets: dict, gating: dict, means: list[dict], stats: dict) -> list[str]:
     paths = []
-    lookup = {(r["config_id"], r["mechanism"]): r for r in means}
+    lookup = {(r["config_id"], r["subset"], r["mechanism"]): r for r in means}
     styles = {"M1": "C0", "M2": "C1", "M3_set_blind": "C2", "M3": "C3", "M4": "C4", "profit_rule": "C5"}
+    binds = {regime: floor_share(markets, "core/alpha=%%g/%s/none" % regime) for regime in em.REGIMES}
+
+    def panel_title(regime: str, text: str) -> str:
+        return "%s, %s\n(floor binds in %.0f%% of markets)" % (regime.replace("_", "-"), text, 100 * binds[regime])
+
+    def plot_mechanisms(ax, config, metric, rows, tag):
+        for mech in MECHANISMS:
+            ys = [lookup[(config % a, "all", mech)][metric] for a in em.ALPHAS]
+            ax.plot(em.ALPHAS, ys, marker="o", ms=3, color=styles[mech], label=mech.replace("M3_set_blind", "set-blind M3"),
+                    linestyle="--" if mech == "M3_set_blind" else "-", zorder=3 if mech == "M3_set_blind" else 2)
+            rows += [(*tag, mech, a, y) for a, y in zip(em.ALPHAS, ys)]
+
+    all_note = ("All valid markets, including those where the guardrail floor binds (A17 §5.1); the paper-feasible "
+                "subset is in tables/means.csv.\nSet-blind M3 (dashed) equals M3 without organic variation.")
     # 1 payments by traffic type
-    fig, axes = figure(2, 3, 9.0, 5.0)
+    fig, axes = figure(2, 3, 9.0, 5.6)
     rows = []
     for col, regime in enumerate(em.REGIMES):
         for row_k, (metric, name) in enumerate((("revenue_agent", "agent"), ("revenue_human", "human"))):
             ax = axes[row_k][col]
-            for mech in MECHANISMS:
-                ys = [lookup[("core/alpha=%g/%s/none" % (a, regime), mech)][metric] for a in em.ALPHAS]
-                ax.plot(em.ALPHAS, ys, marker="o", ms=3, color=styles[mech], label=mech,
-                        linestyle="--" if mech == "M3_set_blind" else "-")
-                rows += [(regime, name, mech, a, y) for a, y in zip(em.ALPHAS, ys)]
-            ax.set_title("%s, %s payments" % (regime.replace("_", "-"), name))
+            if regime == "agent_aware" and name == "agent":  # split by the A1 §E5 screen in figure 7 (A17 §5.2)
+                ax.axis("off")
+                ax.text(0.5, 0.5, "agent-aware, agent payments:\nsee figure 7, split by the\nA1 §E5 screen, with the "
+                        "δ = 0 level", ha="center", va="center", transform=ax.transAxes, fontsize=8)
+                continue
+            plot_mechanisms(ax, "core/alpha=%%g/%s/none" % regime, metric, rows, (regime, name))
+            ax.set_title(panel_title(regime, "%s payments" % name))
             ax.set_xlabel("agent share α")
             ax.set_ylabel("payments per request")
-    axes[0][0].legend(ncol=2)
     paths += save(fig, "sl19s", FIGURE_NAMES[0], ["regime", "traffic", "mechanism", "alpha", "payment_per_request"],
-                  rows, "Payments by traffic type against α (no organic variation)")
+                  rows, "Payments by traffic type against α (no organic variation; all markets)", legend=6,
+                  note=all_note)
     # 2 profit and match quality
-    fig, axes = figure(2, 3, 9.0, 5.0)
+    fig, axes = figure(2, 3, 9.0, 5.6)
     rows = []
     for col, regime in enumerate(em.REGIMES):
         for row_k, metric in enumerate(("profit", "match")):
             ax = axes[row_k][col]
-            for mech in MECHANISMS:
-                ys = [lookup[("core/alpha=%g/%s/none" % (a, regime), mech)][metric] for a in em.ALPHAS]
-                ax.plot(em.ALPHAS, ys, marker="o", ms=3, color=styles[mech], label=mech,
-                        linestyle="--" if mech == "M3_set_blind" else "-")
-                rows += [(regime, metric, mech, a, y) for a, y in zip(em.ALPHAS, ys)]
-            ax.set_title("%s: %s" % (regime.replace("_", "-"), "profit" if metric == "profit" else "match quality"))
+            plot_mechanisms(ax, "core/alpha=%%g/%s/none" % regime, metric, rows, (regime, metric))
+            ax.set_title(panel_title(regime, "profit" if metric == "profit" else "match quality"))
             ax.set_xlabel("agent share α")
             ax.set_ylabel("per request")
-    axes[0][0].legend(ncol=2)
     paths += save(fig, "sl19s", FIGURE_NAMES[1], ["regime", "metric", "mechanism", "alpha", "value_per_request"], rows,
-                  "Profit and match quality against α (no organic variation)")
+                  "Profit and match quality against α (no organic variation; all markets)", legend=6, note=all_note)
     # 3 decomposition
     chain = ("M1", "M2", "M3_set_blind", "M3", "M4")
-    fig, axes = figure(1, 3, 9.0, 3.2)
+    fig, axes = figure(1, 3, 9.0, 3.8)
     rows = []
     for col, regime in enumerate(em.REGIMES):
         ax = axes[0][col]
         for a in em.ALPHAS:
-            ys = [lookup[("core/alpha=%g/%s/none" % (a, regime), m)]["profit"] for m in chain]
+            ys = [lookup[("core/alpha=%g/%s/none" % (a, regime), "all", m)]["profit"] for m in chain]
             ax.plot(range(len(chain)), ys, marker="o", ms=3, label="α = %g" % a)
             rows += [(regime, a, m, y) for m, y in zip(chain, ys)]
         ax.set_xticks(range(len(chain)), [m.replace("M3_set_blind", "set-blind M3") for m in chain], rotation=30)
-        ax.set_title(regime.replace("_", "-"))
+        ax.set_title(panel_title(regime, "profit"))
         ax.set_ylabel("profit per request")
-    axes[0][0].legend()
     paths += save(fig, "sl19s", FIGURE_NAMES[2], ["regime", "alpha", "mechanism", "profit_per_request"], rows,
-                  "Decomposition M1 → M2 → set-blind M3 → M3 → M4 (profit, no organic variation)")
-    # 4 set-blind gap
-    fig, axes = figure(1, 1, 5.0, 3.2)
+                  "Decomposition M1 → M2 → set-blind M3 → M3 → M4 (profit, no organic variation; all markets)",
+                  legend=5, note="All valid markets, including those where the guardrail floor binds (A17 §5.1); "
+                                 "the paper-feasible subset is in tables/means.csv.")
+    # 4 set-blind gap, all markets and the paper-feasible subset
+    fig, axes = figure(1, 1, 5.6, 3.8)
     ax = axes[0][0]
     rows = []
     for k, regime in enumerate(em.REGIMES):
         for v, variation in enumerate(em.VARIATIONS):
-            values = []
-            for a in em.ALPHAS:
-                cid = "core/alpha=%g/%s/%s" % (a, regime, variation)
-                idx = {i: m for i, m in by_market(markets[cid]).items() if not m["M3"]["excluded"]}
-                values += [(m["M3"]["welfare"] - m["M3_set_blind"]["welfare"]) / m["M3"]["welfare"] for m in idx.values()]
-            values = np.array(values)
-            ci = interval(boot_mean(values, "fig4/%s/%s" % (regime, variation)))
-            ax.errorbar(v + 0.1 * (k - 1), values.mean(), yerr=_yerr([values.mean()], [ci]),
-                        fmt="o", color="C%d" % k, label=regime.replace("_", "-") if v == 0 else None, capsize=3)
-            rows.append((regime, variation, float(values.mean()), ci[0], ci[1], len(values)))
+            for s, subset in enumerate(SUBSETS):
+                values = []
+                for a in em.ALPHAS:
+                    cid = "core/alpha=%g/%s/%s" % (a, regime, variation)
+                    idx = {i: m for i, m in by_market(markets[cid]).items() if not m["M3"]["excluded"]
+                           and (subset == "all" or not m["M3"]["floor_binds"])}
+                    values += [(m["M3"]["welfare"] - m["M3_set_blind"]["welfare"]) / m["M3"]["welfare"]
+                               for m in idx.values()]
+                values = np.array(values)
+                key = "fig4/%s/%s" % (regime, variation) + ("" if subset == "all" else "/" + subset)
+                ci = interval(boot_mean(values, key))
+                ax.errorbar(v + 0.12 * (k - 1) + 0.04 * (2 * s - 1), values.mean(), yerr=_yerr([values.mean()], [ci]),
+                            fmt="o" if subset == "all" else "s", mfc="C%d" % k if subset == "all" else "white",
+                            color="C%d" % k, capsize=2, ms=4,
+                            label="%s, %s" % (regime.replace("_", "-"), SUBSET_NAMES[subset]) if v == 0 else None)
+                rows.append((regime, variation, subset, float(values.mean()), ci[0], ci[1], len(values)))
     ax.set_xticks([0, 1], ["none (deterministic)", "randomised"])
     ax.set_xlabel("organic variation")
     ax.set_ylabel("(V^aw − V^bl) / V^aw")
-    ax.legend()
-    paths += save(fig, "sl19s", FIGURE_NAMES[3], ["regime", "variation", "mean_relative_gap", "ci_low", "ci_high",
-                                                 "markets"], rows, "Set-awareness gap against organic variation")
-    # 5 gating gain against alpha
-    fig, axes = figure(1, 1, 5.0, 3.2)
+    paths += save(fig, "sl19s", FIGURE_NAMES[3], ["regime", "variation", "subset", "mean_relative_gap", "ci_low",
+                                                 "ci_high", "markets"], rows,
+                  "Set-awareness gap against organic variation", legend=2,
+                  note="Filled: all markets; open: the paper-feasible subset, where the floor does not bind (A17 §5.1).")
+    # 5 gating gain against alpha, on the markets valid at every α (the H2b sample)
+    fig, axes = figure(1, 1, 5.0, 3.4)
     ax = axes[0][0]
     h2b = stats["H2b"]
+    conj = {a: {r["index"]: r for r in gating["gating/conj/alpha=%g" % a] if not r["excluded"]} for a in em.ALPHAS}
+    common = sorted(set.intersection(*[set(v) for v in conj.values()]))
     means = [h2b["mean_gain"]["%g" % a] / 1000 for a in em.ALPHAS]
-    cis = []
-    for a in em.ALPHAS:
-        values = np.array([r["gain"] for r in gating["gating/conj/alpha=%g" % a] if not r["excluded"]]) / 1000
-        cis.append(interval(boot_mean(values, "fig5/%g" % a)))
+    cis = [interval(boot_mean(np.array([conj[a][i]["gain"] for i in common]) / 1000, "fig5/%g" % a)) for a in em.ALPHAS]
     ax.errorbar(em.ALPHAS, means, yerr=_yerr(means, cis), fmt="o-", capsize=3)
     ax.set_xlabel("agent share α")
     ax.set_ylabel("ΔΠ(α) = Π_gated − Π_aware, per request")
-    paths += save(fig, "sl19s", FIGURE_NAMES[4], ["alpha", "mean_gain_per_request", "ci_low", "ci_high"],
-                  [(a, m, c[0], c[1]) for a, m, c in zip(em.ALPHAS, means, cis)],
-                  "Gating gain against α (Conj gating, κ = %g)" % em.CONJ_KAPPA)
-    # 6 agent payments against excess
-    fig, axes = figure(1, 1, 5.0, 3.2)
+    paths += save(fig, "sl19s", FIGURE_NAMES[4], ["alpha", "mean_gain_per_request", "ci_low", "ci_high", "markets"],
+                  [(a, m, c[0], c[1], len(common)) for a, m, c in zip(em.ALPHAS, means, cis)],
+                  "Gating gain against α (Conj gating, κ = %g)" % em.CONJ_KAPPA,
+                  note="The %d markets valid at every α; the paper's guardrail (the floor does not apply)." % len(common))
+    # 6 agent payments against excess, all markets and the paper-feasible subset
+    fig, axes = figure(1, 1, 5.0, 3.6)
     ax = axes[0][0]
     rows = [r for cid, v in markets.items() if ("/human_optimised/none" in cid or cid.startswith("part3/"))
             for r in _valid(v, "M3") if r["alpha"] > 0]
     table = []
-    for e in sorted({r["excess"] for r in rows}):
-        values = np.array([psi_a(r) for r in rows if r["excess"] == e])
-        ci = interval(boot_mean(values, "fig6/%d" % e))
-        ax.errorbar(e, values.mean(), yerr=_yerr([values.mean()], [ci]), fmt="o", capsize=3, color="C3")
-        table.append((int(e), float(values.mean()), ci[0], ci[1], len(values)))
+    for s, subset in enumerate(SUBSETS):
+        for e in sorted({r["excess"] for r in rows}):
+            values = np.array([psi_a(r) for r in rows if r["excess"] == e and (subset == "all" or not r["floor_binds"])])
+            ci = interval(boot_mean(values, "fig6/%d" % e + ("" if subset == "all" else "/" + subset)))
+            ax.errorbar(e + 0.08 * (2 * s - 1), values.mean(), yerr=_yerr([values.mean()], [ci]),
+                        fmt="o" if subset == "all" else "s", mfc="C3" if subset == "all" else "white", capsize=3,
+                        color="C3", label=SUBSET_NAMES[subset] if e == min(r["excess"] for r in rows) else None)
+            table.append((subset, int(e), float(values.mean()), ci[0], ci[1], len(values)))
     ax.set_xlabel("e(x) = |F(x)| − (K − K^s)")
     ax.set_ylabel("ψ_A under M3")
-    paths += save(fig, "sl19s", FIGURE_NAMES[5], ["excess", "mean_psi_a", "ci_low", "ci_high", "markets"], table,
-                  "Agent payments against excess favourites (human-optimised lists)")
+    paths += save(fig, "sl19s", FIGURE_NAMES[5], ["subset", "excess", "mean_psi_a", "ci_low", "ci_high", "markets"],
+                  table, "Agent payments against excess favourites (human-optimised lists)", legend=2)
+    # 7 agent payments under agent-aware lists by the A1 §E5 screen, with the δ = 0 level (A17 §5.2)
+    fig, axes = figure(2, 3, 10.4, 6.2)
+    rows = []
+    alphas = em.ALPHAS[1:]
+    columns = (("screen_pass", "passes the A1 §E5 screen", "core/alpha=%g/agent_aware/none", True),
+               ("screen_fail", "fails the screen", "core/alpha=%g/agent_aware/none", False),
+               ("delta_0", "δ = 0 level (all pass)", "sensitivity/delta=0/alpha=%g", None))
+    for row_k, subset in enumerate(SUBSETS):
+        for col, (group, text, config, screen) in enumerate(columns):
+            ax = axes[row_k][col]
+            ax.axhspan(-MARGIN, MARGIN, color="0.88", zorder=0, label="H2a margin ±0.01")
+            for mech in MECHANISMS:
+                ys, cis, ns = [], [], []
+                for a in alphas:
+                    values = np.array([psi_a(r) for r in _valid(markets[config % a], mech, feasible=True)
+                                       if (screen is None or bool(r["screen"]) == screen)
+                                       and (subset == "all" or not r["floor_binds"])])
+                    ns.append(len(values))
+                    ys.append(float(values.mean()) if len(values) else float("nan"))
+                    cis.append(interval(boot_mean(values, "fig7/%s/%s/%s/%g" % (subset, group, mech, a)))
+                               if len(values) > 1 else [float("nan")] * 2)
+                ax.plot(alphas, ys, marker="o", ms=3, color=styles[mech], zorder=3 if mech == "M3_set_blind" else 2,
+                        linestyle="--" if mech == "M3_set_blind" else "-",
+                        label=mech.replace("M3_set_blind", "set-blind M3"))
+                rows += [(subset, group, mech, a, y, c[0], c[1], n) for a, y, c, n in zip(alphas, ys, cis, ns)]
+            ax.set_title("%s\n%s; markets per α: %s" % (text, SUBSET_NAMES[subset], "/".join(str(n) for n in ns)),
+                         fontsize=8)
+            ax.set_xlabel("agent share α")
+            ax.set_ylabel("ψ_A")
+    paths += save(fig, "sl19s", FIGURE_NAMES[6], ["subset", "group", "mechanism", "alpha", "mean_psi_a", "ci_low",
+                                                 "ci_high", "markets"], rows,
+                  "Agent payments under agent-aware lists, by the A1 §E5 screen (no organic variation)", legend=7,
+                  note="ψ_A: agent payments in θ̄ per agent request, under each mechanism; aware-feasible markets. Top "
+                       "row: all markets;\nbottom row: the paper-feasible subset, where the guardrail floor does not "
+                       "bind (A17 §5.1). 95% intervals are in the CSV.")
     return [str(p.relative_to(REPO)) for p in paths]
 
 
@@ -461,14 +543,20 @@ def markdown(summary: dict, means: list[dict], paired: list[dict]) -> str:
              "`python -m features.storelab.analysis.e2_report`. These are stand-ins (A17), not estimates of any "
              "agent, and no confirmatory label is recorded. The one label recorded is H2a part 1's *inconclusive*, which "
              "the A12 floor rule fixes whatever the data (owner decision 2026-10-24). Review status: accepted by the "
-             "owner without independent review (2026-10-24)." % (LABEL, em.MASTER_SEED), "",
+             "owner without independent review (2026-10-24); SL-24 is its independent audit, which also added the "
+             "screen split, the δ = 0 level and the paper-feasible subset (A17 §5)." % (LABEL, em.MASTER_SEED), "",
              "## Design", "",
              "- %d configurations, %d markets, six mechanisms each (SL-16 solvers). Core: α × organic regime × organic "
              "variation at the A17 baseline (30). Sensitivity: the 24 A17 levels E2 uses, over α in the agent-aware regime "
              "without organic variation (120). Part 3 of H2a: the model and version levels in the human-optimised regime "
              "(15). Owner decisions 2026-10-23." % (len(c), total),
-             "- Guardrail floor (owner decision 2026-10-23): M(Q) ≥ min{(1 − κ) M^ref, M(Q^o, ∅) − 1e-8 n}; it binds in "
-             "%d of %d markets." % (sum(v["floor_binds"] for v in c.values()), sum(v["valid"] for v in c.values())),
+             "- Guardrail floor (owner decision 2026-10-23, A17 §5.1): M(Q) ≥ min{(1 − κ) M^ref, M(Q^o, ∅) − 1e-8 n}; "
+             "it binds in %d of %d markets (core, no organic variation: %s). Where it binds, gated-regime results "
+             "describe the floor, not the paper's mechanism, so every table and figure it affects reports the "
+             "*paper-feasible subset* (markets where it does not bind) next to all markets, or states which one it "
+             "shows." % (sum(v["floor_binds"] for v in c.values()), sum(v["valid"] for v in c.values()),
+                         ", ".join("%s %.0f%%" % (k.replace("_", "-"), 100 * v)
+                                   for k, v in summary["floor_share"].items())),
              "- Prop gating and Conj gating use the paper's guardrail: 200 markets per κ ∈ {0.05, 0.2}, and Conj "
              "gating at κ = 0.05 over α on the %d markets whose gated design meets the paper's guardrail at every α "
              "(drawn until at least 200; at α = 0 and 0.25 the gated list often cannot meet it)." % (
@@ -535,20 +623,73 @@ def markdown(summary: dict, means: list[dict], paired: list[dict]) -> str:
                   h2c["m2_proportional"]["intercept"], *h2c["m2_proportional"]["intercept_tost"]["ci90"],
                   h2c["m1_rises_with_alpha_chi"]["slope"], *h2c["m1_rises_with_alpha_chi"]["slope_bound"]["ci95"],
                   h2c["setblind_gap_grows"]["slope_on_variation"], *h2c["setblind_gap_grows"]["slope_bound"]["ci95"]),
-              "", "## Core means by mechanism (per request, no organic variation)", "", "*%s.*" % LABEL, "",
-              "| α | Regime | Mechanism | Payments | Agent | Human | Profit | Match quality | Guardrail slack |",
-              "|---:|---|---|---:|---:|---:|---:|---:|---:|"]
+              ""]
+    lines += paper_feasible_section(s, summary["statistics_paper_feasible"])
+    lines += ["", "## Core means by mechanism (per request, no organic variation)", "", "*%s.*" % LABEL, "",
+              "All markets, and (last four columns) the paper-feasible subset, where the guardrail floor does not bind "
+              "(A17 §5.1).", "",
+              "| α | Regime | Mechanism | Payments | Agent | Human | Profit | Match quality | Guardrail slack "
+              "| Paper-feasible markets | Agent | Profit | Match quality |",
+              "|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
+    feasible = {(r["config_id"], r["mechanism"]): r for r in means if r["subset"] == "paper_feasible"}
     for r in means:
-        if not (r["config_id"].startswith("core/") and r["config_id"].endswith("/none")):
+        if r["subset"] != "all" or not (r["config_id"].startswith("core/") and r["config_id"].endswith("/none")):
             continue
         _, a, regime, _ = r["config_id"].split("/")
-        lines.append("| %s | %s | %s | %.4f | %.4f | %.4f | %.4f | %.4f | %.4f |" % (
+        f = feasible.get((r["config_id"], r["mechanism"]))
+        tail = "| %d | %.4f | %.4f | %.4f |" % (f["markets"], f["revenue_agent"], f["profit"], f["match"]) if f else \
+            "| 0 | — | — | — |"
+        lines.append("| %s | %s | %s | %.4f | %.4f | %.4f | %.4f | %.4f | %.4f %s" % (
             a.split("=")[1], regime, r["mechanism"], r["revenue"], r["revenue_agent"], r["revenue_human"], r["profit"],
-            r["match"], r["slack"]))
-    lines += ["", "Full tables (every configuration, with 95% intervals; paired differences between adjacent mechanisms): "
-              "`artifacts/results/sl19s/tables/`.", "", "## Figures", "", "*%s.*" % LABEL, ""]
-    lines += ["- `%s`" % p for p in summary["figures"] if p.endswith(".pdf")]
+            r["match"], r["slack"], tail))
+    lines += ["", "Full tables (every configuration and both subsets, with 95% intervals; paired differences between "
+              "adjacent mechanisms): `artifacts/results/sl19s/tables/`.", "", "## Figures", "", "*%s.*" % LABEL, ""]
+    pdfs = [p for p in summary["figures"] if p.endswith(".pdf")]
+    lines += ["- `%s`: %s" % (p, FIGURE_CAPTIONS[Path(p).stem]) for p in pdfs]
     return "\n".join(lines) + "\n"
+
+
+FIGURE_CAPTIONS = {
+    "1_payments_by_traffic_type": "all markets (the share where the floor binds is in each panel title); agent-aware "
+                                  "agent payments are in figure 7",
+    "2_profit_and_match_quality": "all markets (the share where the floor binds is in each panel title)",
+    "3_decomposition": "all markets (the share where the floor binds is in each panel title)",
+    "4_setblind_gap": "all markets and the paper-feasible subset",
+    "5_gating_gain": "the Conj gating markets valid at every α, under the paper's guardrail (the floor does not apply)",
+    "6_agent_payments_vs_excess": "all markets and the paper-feasible subset",
+    "7_agent_payments_by_screen": "agent-aware lists: screen-passing and screen-failing markets separately, with the "
+                                  "δ = 0 level (A17 §5.2); all markets and the paper-feasible subset",
+}
+
+
+def paper_feasible_section(s: dict, f: dict) -> list[str]:
+    """The registered statistics on all markets and on the paper-feasible subset (A17 §5.1)."""
+    def ci(v):
+        return "%.4f [%.4f, %.4f]" % (v["slope"], *v["slope_bound"]["ci95"])
+
+    rows = [("H2a part 2: slope of ψ_tot on α", ci(s["H2a"]["part2"]), s["H2a"]["part2"]["n"], ci(f["H2a"]["part2"]),
+             f["H2a"]["part2"]["n"]),
+            ("H2a part 3: slope of ψ_A on e(x)", ci(s["H2a"]["part3"]), s["H2a"]["part3"]["n"], ci(f["H2a"]["part3"]),
+             f["H2a"]["part3"]["n"]),
+            ("H2c: M2 revenue on E[1 − α]", ci(s["H2c"]["m2_proportional"]), s["H2c"]["m2_proportional"]["n"],
+             ci(f["H2c"]["m2_proportional"]), f["H2c"]["m2_proportional"]["n"]),
+            ("H2c: M1 payment per effective choice on αχ̄", ci(s["H2c"]["m1_rises_with_alpha_chi"]),
+             s["H2c"]["m1_rises_with_alpha_chi"]["n"], ci(f["H2c"]["m1_rises_with_alpha_chi"]),
+             f["H2c"]["m1_rises_with_alpha_chi"]["n"])]
+    gap_all, gap_f = s["H2c"]["setblind_gap_grows"], f["H2c"]["setblind_gap_grows"]
+    rows.append(("H2c: set-awareness gap on organic variation",
+                 "%.4f [%.4f, %.4f]" % (gap_all["slope_on_variation"], *gap_all["slope_bound"]["ci95"]), gap_all["n"],
+                 "%.4f [%.4f, %.4f]" % (gap_f["slope_on_variation"], *gap_f["slope_bound"]["ci95"]), gap_f["n"]))
+    out = ["**Paper-feasible subset (A17 §5.1).** The statistics above use all markets. The same statistics on the "
+           "markets where the guardrail floor does not bind (H2a part 1 there: %s screen-passing, aware-feasible "
+           "markets per configuration, all below the floor of %d). H2b uses the paper's guardrail, so the floor does "
+           "not apply to it." % ("–".join(str(x) for x in (
+               min(v["n"] for v in f["H2a"]["part1"].values()), max(v["n"] for v in f["H2a"]["part1"].values()))),
+               FLOOR), "",
+           "| Statistic | All markets: estimate [95% interval] | n | Paper-feasible: estimate [95% interval] | n |",
+           "|---|---|---:|---|---:|"]
+    out += ["| %s | %s | %d | %s | %d |" % row for row in rows]
+    return out
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -559,6 +700,8 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(summary["gates"], indent=1))
         raise GateFailure("an implementation gate failed; no report is written (SL-19S AC-3)")
     summary["statistics"] = statistics(markets, gating)
+    summary["statistics_paper_feasible"] = statistics(paper_feasible(markets), gating, "paper_feasible/")
+    summary["floor_share"] = {regime: floor_share(markets, "core/alpha=%%g/%s/none" % regime) for regime in em.REGIMES}
     means, paired = means_table(markets), paired_table(markets)
     _write_csv(TABLES / "means.csv", means)
     _write_csv(TABLES / "paired_differences.csv", paired)

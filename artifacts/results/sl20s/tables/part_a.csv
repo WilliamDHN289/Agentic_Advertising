@@ -1,4 +1,4 @@
-# E3 Part A: implementation check of prop:threshold (closed forms; no stipulated parameters)
+# Stipulated parameters (A17), pre-E1, exploratory · E3 Part A: implementation check of prop:threshold (closed forms; no stipulated parameters)
 case,n,omega,lambda,delta,y,y13,y23,y_star,y_error,objective,closed_form,relative_error,gap,bound,finite_objective,uniform_gap,approximation_error,y_bound,y_within_bound,passed
 quadratic,10,0.3,0.25,0.05,0.06666666721396207,0.46666666639301896,0.46666666639301896,0.06666666666666667,5.472954034413391e-10,-0.2033333333333333,-0.2033333333333333,0.0,,,,,0.0,,,1
 quadratic,10,0.3,0.25,0.1,0.13333333373796993,0.433333333131015,0.433333333131015,0.13333333333333333,4.046366020027392e-10,-0.1758333333333333,-0.1758333333333333,0.0,,,,,0.0,,,1

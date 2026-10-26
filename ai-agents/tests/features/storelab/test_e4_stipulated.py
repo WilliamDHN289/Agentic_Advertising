@@ -217,7 +217,7 @@ class ResultsTest(unittest.TestCase):
     def test_tables_and_figures_carry_the_label(self):
         report = e4_report.REPORT.read_text(encoding="utf-8")
         self.assertIn(LABEL, report)
-        self.assertIn("not been independently reviewed", report)
+        self.assertIn("without an independent review", report)
         self.assertNotRegex(report, r"\b(Supported|Not supported)\b")
         for name in e4_report.FIGURE_NAMES:
             for suffix in (".pdf", ".png", ".csv"):

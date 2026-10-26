@@ -44,7 +44,10 @@ REPORT = DOCS / "e3_stipulated_results.md"
 SUMMARY = DOCS / "e3_stipulated_results.json"
 TABLES = e3r.RESULTS / "tables"
 B = 2000
-PART_A_LABEL = "E3 Part A: implementation check of prop:threshold (closed forms; no stipulated parameters)"
+PART_A_NOTE = "E3 Part A: implementation check of prop:threshold (closed forms; no stipulated parameters)"
+PART_A_LABEL = "%s · %s" % (LABEL, PART_A_NOTE)  # tables; figures carry LABEL with PART_A_NOTE beneath (SL-24)
+N_COLORS = {10: "C0", 100: "C1", 1000: "C2", 10000: "C3"}
+OMEGA_MARKERS = {0.3: ("o", 70), 0.5: ("s", 44), 0.8: ("^", 26), 1.0: ("D", 10)}  # nested: all visible where equal
 FIGURE_NAMES = ("1_numeric_vs_closed_form", "2_y_star_vs_delta", "3_variance_decomposition", "4_cost_match_tradeoff",
                 "5_h3c_buyback")
 POLICY_NAMES = {"original": "original", "separated": "separated", "composition_blind": "composition-blind",
@@ -174,8 +177,21 @@ def statistics(data: dict, g: dict) -> dict:
         h3a_pr[cid] = {"markets": len(r), "mean_ratio": _mean_ci(r, cid + "/ratio"),
                        "share_ratio_at_least_half": _mean_ci(share, cid + "/share"),
                        "registered_rule_met": bool(share.mean() >= RATIO_SHARE), "mean_ratio_det": float(r_det.mean())}
-    h3c = {}
     pairs = [r for r in data["h3c"] if not r["excluded"] and r.get("leader") not in (None, "")]
+    h3c = h3c_statistics(pairs, "")
+    h3c["markets"] = len({r["index"] for r in data["h3c"]})
+    h3c["excluded_markets"] = len({r["index"] for r in data["h3c"] if r["excluded"]})
+    h3c["no_leader_advertiser"] = len({r["index"] for r in data["h3c"] if r.get("status") == "no_leader_advertiser"})
+    # A17 §5.1: the paper-feasible subset, markets where the guardrail floor does not bind
+    h3c["paper_feasible"] = h3c_statistics([r for r in pairs if not r["floor_binds"]], "paper_feasible/")
+    return {"H3a": {"label": "exploratory", "exact_part": g["separation_exact"], "pr_part": h3a_pr},
+            "H3b": {"label": "exploratory", "part_a": g["part_a"]},
+            "H3c": {"label": "exploratory", **h3c}}
+
+
+def h3c_statistics(pairs: list[dict], prefix: str) -> dict:
+    """H3c under M3 and M4 on (market, leader) pairs; ``prefix`` keys a subset's bootstrap."""
+    h3c = {}
     for mechanism in ("M3", "M4"):
         rows = [r for r in pairs if r["mechanism"] == mechanism]
         per_market = {}
@@ -185,7 +201,7 @@ def statistics(data: dict, g: dict) -> dict:
         bought = {m: float(sum(r["buyback"] for r in v)) for m, v in per_market.items()}
         stats_ = {"pairs": len(rows), "markets": len(per_market),
                   "buyback_share": sum(bought.values()) / len(rows),
-                  "buyback_share_ci95": interval(boot_ratio(bought, count, mechanism + "/buyback")),
+                  "buyback_share_ci95": interval(boot_ratio(bought, count, prefix + mechanism + "/buyback")),
                   "mean_buyback_probability": float(np.mean([r["buyback_share"] for r in rows])),
                   "exposure_organic": float(np.mean([r["var_p_organic"] for r in rows])),
                   "exposure_star": float(np.mean([r["var_p_star"] for r in rows])),
@@ -205,18 +221,13 @@ def statistics(data: dict, g: dict) -> dict:
             agree[r["index"]] = agree.get(r["index"], 0.0) + float(r["buyback"] == r["bid_exceeds_congestion"])
         stats_.update(pairs_decided=len(decided), indifferent=len(rows) - len(decided),
                       coincidence=sum(agree.values()) / max(len(decided), 1),
-                      coincidence_ci95=interval(boot_ratio(agree, decided_count, mechanism + "/coincide")))
+                      coincidence_ci95=interval(boot_ratio(agree, decided_count, prefix + mechanism + "/coincide")))
         if mechanism == "M3":
             stats_["registered_rule_met"] = bool(stats_["buyback_share_ci95"][0] > 0)
         else:
             stats_["registered_rule_met"] = bool(stats_["coincidence"] >= COINCIDENCE)
         h3c[mechanism] = stats_
-    h3c["markets"] = len({r["index"] for r in data["h3c"]})
-    h3c["excluded_markets"] = len({r["index"] for r in data["h3c"] if r["excluded"]})
-    h3c["no_leader_advertiser"] = len({r["index"] for r in data["h3c"] if r.get("status") == "no_leader_advertiser"})
-    return {"H3a": {"label": "exploratory", "exact_part": g["separation_exact"], "pr_part": h3a_pr},
-            "H3b": {"label": "exploratory", "part_a": g["part_a"]},
-            "H3c": {"label": "exploratory", **h3c}}
+    return h3c
 
 
 def means_table(data: dict) -> list[dict]:
@@ -255,7 +266,7 @@ def paired_table(data: dict) -> list[dict]:
 def figures(data: dict, stats_: dict, means: list[dict]) -> list[str]:
     paths = []
     a = data["part_a"]
-    fig, axes = figure(1, 3, 9.0, 3.2)
+    fig, axes = figure(1, 3, 9.0, 3.6)
     rows = []
     for ax, (case, title) in zip(axes[0], (("quadratic", "quadratic cost (450 points)"),
                                            ("overflow_limit", "overflow, limit objective (150)"),
@@ -263,39 +274,53 @@ def figures(data: dict, stats_: dict, means: list[dict]) -> list[str]:
         pts = [r for r in a if r["case"] == case]
         for n in sorted({r["n"] for r in pts}):
             sub = [r for r in pts if r["n"] == n]
-            ax.scatter([r["y_star"] for r in sub], [r["y"] for r in sub], s=10, alpha=0.6, label="n = %d" % n)
+            ax.scatter([r["y_star"] for r in sub], [r["y"] for r in sub], s=10, alpha=0.6, color=N_COLORS[n],
+                       label="n = %d" % n)
             rows += [(case, n, r["omega"], r["lambda"], r["delta"], r["y_star"], r["y"]) for r in sub]
-        ax.plot([0, 1], [0, 1], color="0.5", linewidth=0.8, linestyle="--")
+        ax.plot([0, 1], [0, 1], color="0.5", linewidth=0.8, linestyle="--", label="y = y*")
         ax.set_title(title)
         ax.set_xlabel("closed-form y*")
         ax.set_ylabel("numeric y")
-        ax.legend(loc="upper left")
     paths += save(fig, "sl20s", FIGURE_NAMES[0], ["case", "n", "omega", "lambda", "delta", "y_star", "y"], rows,
-                  "Numeric optimum against the closed form of prop:threshold", label=PART_A_LABEL)
+                  "Numeric optimum against the closed form of prop:threshold", legend=5, note=PART_A_NOTE)
 
-    fig, axes = figure(1, 2, 8.0, 3.2)
+    fig, axes = figure(1, 2, 8.4, 3.8)
     rows = []
     deltas = np.linspace(0.0, 1.7, 171)
+    omegas = tuple(OMEGA_MARKERS)
     for ax, case in zip(axes[0], ("quadratic", "overflow_limit")):
-        for omega in (0.3, 0.5, 0.8, 1.0):
+        for k, omega in enumerate(omegas):
             if case == "quadratic":
                 line = [e3.y_star_quadratic(1000, omega, 1.0, d) for d in deltas]
             else:
                 line = [e3.y_star_overflow(omega, 1.0, d) if 0 < d != 1.0 else math.nan for d in deltas]
-            ax.plot(deltas, line, linewidth=1.0, label="ω = %g" % omega)
+            color = "C%d" % k
+            # Below 1 each ω has its own line; where y* = 1 the lines coincide, so they are drawn with interleaved
+            # dashes (every ω stays visible) and the numeric points are nested markers.
+            ax.plot(deltas, [y if y < 1 else math.nan for y in line], linewidth=1.0, color=color, label="ω = %g" % omega)
+            capped = [1.0 if y >= 1 else math.nan for y in line]
+            ax.plot(deltas, capped, linewidth=1.6, color=color, linestyle=(2.5 * k, (2.5, 2.5 * (len(omegas) - 1))))
             rows += [(case, "closed form", omega, float(d), y) for d, y in zip(deltas, line)]
             pts = [r for r in a if r["case"] == case and r["n"] == 1000 and r["lambda"] == 1.0 and r["omega"] == omega]
-            ax.scatter([r["delta"] for r in pts], [r["y"] for r in pts], s=14, color=ax.lines[-1].get_color())
+            marker, size = OMEGA_MARKERS[omega]
+            ax.scatter([r["delta"] for r in pts], [r["y"] for r in pts], s=size, marker=marker, facecolors="none",
+                       edgecolors=color, linewidths=1.0, zorder=3)
             rows += [(case, "numeric", omega, r["delta"], r["y"]) for r in pts]
+        ax.axvline(1.0, color="0.75", linewidth=0.8, zorder=0)
+        if case == "overflow_limit":
+            ax.text(1.35, 0.9, "Δ > λ: y* = 1\nfor every ω", ha="center", va="top", fontsize=7, color="0.3")
+            ax.text(0.5, 0.9, "Δ < λ: y* = |2ω − 1|", ha="center", va="top", fontsize=7, color="0.3")
+        ax.set_ylim(-0.05, 1.08)
         ax.set_title("%s cost, λ = 1, n = 1000" % ("quadratic" if case == "quadratic" else "overflow (limit)"))
         ax.set_xlabel("Δ (value of the state's better match)")
         ax.set_ylabel("head-to-head share y*")
-        ax.legend(loc="lower right")
     paths += save(fig, "sl20s", FIGURE_NAMES[1], ["case", "series", "omega", "delta", "y"], rows,
-                  "Optimal head-to-head share against Δ (lines: closed form; points: numeric)", label=PART_A_LABEL)
+                  "Optimal head-to-head share against Δ (lines: closed form; open markers: numeric)", legend=4,
+                  note=PART_A_NOTE + ". Grey line: Δ = λ (knife-edge, excluded).")
 
+    no_floor = "Organic policies only: no sponsorship, so the guardrail floor does not apply (A17 §5.1)."
     table = {(m["config_id"], m["policy"]): m for m in means}
-    fig, axes = figure(1, 2, 8.0, 3.2)
+    fig, axes = figure(1, 2, 8.0, 3.6)
     rows = []
     for ax, alignment in zip(axes[0], e3r.ALIGNMENTS):
         cid = "part_b/%s/baseline" % alignment
@@ -307,12 +332,11 @@ def figures(data: dict, stats_: dict, means: list[dict]) -> list[str]:
         ax.set_xticks(x, [POLICY_NAMES[p] for p in e3r.POLICIES], rotation=15)
         ax.set_title("%s, baseline (σ = 0.3)" % alignment.replace("_", " "))
         ax.set_ylabel("Var(D_L1), choices²")
-        ax.legend(loc="upper right")
         rows += [(alignment, p, w, c) for p, w, c in zip(e3r.POLICIES, within, across)]
     paths += save(fig, "sl20s", FIGURE_NAMES[2], ["alignment", "policy", "within", "across"], rows,
-                  "Variance of the leader's load by policy (Lemma load)")
+                  "Variance of the leader's load by policy (Lemma load)", legend=2, note=no_floor)
 
-    fig, axes = figure(2, 2, 8.0, 6.0)
+    fig, axes = figure(2, 2, 8.0, 6.4)
     rows = []
     for col, alignment in enumerate(e3r.ALIGNMENTS):
         cid = "part_b/%s/baseline" % alignment
@@ -328,37 +352,47 @@ def figures(data: dict, stats_: dict, means: list[dict]) -> list[str]:
             ax.set_title("%s, %s cost, λ = 0.5" % (alignment.replace("_", " "), kind))
             ax.set_xlabel("expected cost per request (ω = 1 → 0.3)")
             ax.set_ylabel("match quality per request")
-            ax.legend(loc="lower right")
     paths += save(fig, "sl20s", FIGURE_NAMES[3], ["alignment", "cost_kind", "policy", "omega", "cost", "match"], rows,
-                  "Cost and match quality by policy across capacity shares ω")
+                  "Cost and match quality by policy across capacity shares ω", legend=4, note=no_floor)
 
     h = stats_["H3c"]
-    fig, axes = figure(1, 2, 8.0, 3.2)
+    subsets = (("all markets", h), ("paper-feasible subset", h["paper_feasible"]))
+    fig, axes = figure(1, 2, 8.4, 3.8)
     rows = []
     ax = axes[0][0]
-    shares = [h[m]["buyback_share"] for m in ("M3", "M4")]
-    cis = [h[m]["buyback_share_ci95"] for m in ("M3", "M4")]
-    yerr = [[max(s - c[0], 0.0) for s, c in zip(shares, cis)], [max(c[1] - s, 0.0) for s, c in zip(shares, cis)]]
-    ax.bar([0, 1], shares, yerr=yerr, color=["#4C72B0", "#C44E52"], capsize=4)
+    width = 0.36
+    for k, (name, v) in enumerate(subsets):
+        shares = [v[m]["buyback_share"] for m in ("M3", "M4")]
+        cis = [v[m]["buyback_share_ci95"] for m in ("M3", "M4")]
+        yerr = [[max(s - c[0], 0.0) for s, c in zip(shares, cis)], [max(c[1] - s, 0.0) for s, c in zip(shares, cis)]]
+        ax.bar(np.arange(2) + width * (k - 0.5), shares, width=width, yerr=yerr, capsize=3,
+               color=["#4C72B0", "#C44E52"], alpha=1.0 if k == 0 else 0.45, edgecolor="0.2",
+               hatch=None if k == 0 else "//")
+        rows += [("buyback_share", name, m, s, c[0], c[1], v[m]["markets"]) for m, s, c in zip(("M3", "M4"), shares, cis)]
     ax.set_xticks([0, 1], ["M3 (C ≡ 0)", "M4 (congestion priced)"])
-    ax.set_ylabel("share of (market, leader) pairs with buy-back")
+    ax.set_ylabel("pairs with buy-back (share)")
     ax.set_ylim(0, 1)
-    ax.set_title("buy-back of sponsored inclusion")
-    rows += [("buyback_share", m, s, c[0], c[1]) for m, s, c in zip(("M3", "M4"), shares, cis)]
+    ax.set_title("buy-back of sponsored inclusion\n(solid: all %d markets; hatched: %d paper-feasible)" % (
+        h["M3"]["markets"], h["paper_feasible"]["M3"]["markets"]), fontsize=8)
     ax = axes[0][1]
-    x = np.arange(2)
-    organic = [h[m]["exposure_organic"] for m in ("M3", "M4")]
-    star = [h[m]["exposure_star"] for m in ("M3", "M4")]
-    ax.bar(x - 0.18, organic, width=0.36, color="0.6", label="organic (separated)")
-    ax.bar(x + 0.18, star, width=0.36, color="#DD8452", label="with sponsorship Q*(b)")
-    ax.set_xticks(x, ["M3", "M4"])
+    for k, (name, v) in enumerate(subsets):
+        organic = [v[m]["exposure_organic"] for m in ("M3", "M4")]
+        star = [v[m]["exposure_star"] for m in ("M3", "M4")]
+        offset = 0.4 * (k - 0.5)
+        ax.bar(np.arange(2) + offset - 0.09, organic, width=0.18, color="0.6", edgecolor="0.2",
+               hatch=None if k == 0 else "//", label="organic (separated)" if k == 0 else None)
+        ax.bar(np.arange(2) + offset + 0.09, star, width=0.18, color="#DD8452", edgecolor="0.2",
+               hatch=None if k == 0 else "//", label="with sponsorship Q*(b)" if k == 0 else None)
+        rows += [("exposure_organic", name, m, x, None, None, v[m]["markets"]) for m, x in zip(("M3", "M4"), organic)]
+        rows += [("exposure_star", name, m, x, None, None, v[m]["markets"]) for m, x in zip(("M3", "M4"), star)]
+    ax.set_xticks([0, 1], ["M3", "M4"])
     ax.set_ylabel("leader exposure Var_Λ(p_j)")
-    ax.set_title("common-shock exposure")
-    ax.legend(loc="upper right")
-    rows += [("exposure_organic", m, v, None, None) for m, v in zip(("M3", "M4"), organic)]
-    rows += [("exposure_star", m, v, None, None) for m, v in zip(("M3", "M4"), star)]
-    paths += save(fig, "sl20s", FIGURE_NAMES[4], ["series", "mechanism", "value", "ci_low", "ci_high"], rows,
-                  "H3c: leaders buy back sponsored inclusion under M3 and M4")
+    ax.set_title("common-shock exposure\n(left pair: all markets; right, hatched: paper-feasible)", fontsize=8)
+    paths += save(fig, "sl20s", FIGURE_NAMES[4], ["series", "subset", "mechanism", "value", "ci_low", "ci_high",
+                                                 "markets"], rows,
+                  "H3c: leaders buy back sponsored inclusion under M3 and M4", legend=2,
+                  note="All markets use the guardrail floor; in the paper-feasible subset it does not bind, so the "
+                       "paper's guardrail holds there (A17 §5.1).")
     return [p.relative_to(REPO).as_posix() for p in paths]
 
 
@@ -387,9 +421,9 @@ def markdown(summary: dict, means: list[dict]) -> str:
         "# SL-20S E3: Part A implementation check and Part B on stipulated states", "",
         "Results of `python -m features.storelab.analysis.e3_run` (master seed %d), regenerated by "
         "`python -m features.storelab.analysis.e3_report`." % e3r.MASTER_SEED, "",
-        "**Review status.** SL-20S has not been independently reviewed: after SL-19S the owner accepts the pre-E1 "
-        "tickets without an independent review (2026-10-24). Part A is therefore **not final**: SL-20 must have it "
-        "reviewed before carrying it over unchanged.", "",
+        "**Review status.** SL-20S was accepted by the owner without an independent review (2026-10-24); SL-24 is "
+        "its independent audit, which also added the paper-feasible subset of H3c and the overflow panel fix "
+        "(A17 §5). Part A is **not final**: SL-20 must have it reviewed before carrying it over unchanged.", "",
         "**Part B is labelled: %s.** Its states are stand-ins (A17 §3.2), not estimates of any agent, and no "
         "confirmatory label is recorded. Part A uses no stipulated parameters." % LABEL, "",
         "## Design", "",
@@ -475,19 +509,26 @@ def markdown(summary: dict, means: list[dict]) -> str:
               "| Mechanism | Pairs | Buy-back share | 95% interval | Mean buy-back probability | Exposure organic → Q* | "
               "Buy-back iff bid term > congestion term | 95% interval | A1 reading (buy-back only if bid term > "
               "remaining terms) |", "|---|---:|---:|---|---:|---|---:|---|---:|"]
-    for m in ("M3", "M4"):
-        v = h[m]
-        lines.append("| %s | %d | %.3f | %s | %.3f | %.4f → %.4f | %.3f (%d decided, %d indifferent) | %s | %.3f |" % (
-            m, v["pairs"], v["buyback_share"], _ci(v["buyback_share_ci95"]), v["mean_buyback_probability"],
-            v["exposure_organic"], v["exposure_star"], v["coincidence"], v["pairs_decided"], v["indifferent"],
-            _ci(v["coincidence_ci95"]), v["only_if_share"]))
+    for subset, data_ in (("all markets", h), ("paper-feasible subset", h["paper_feasible"])):
+        for m in ("M3", "M4"):
+            v = data_[m]
+            lines.append("| %s, %s (%d markets) | %d | %.3f | %s | %.3f | %.4f → %.4f | %.3f (%d decided, %d "
+                         "indifferent) | %s | %.3f |" % (
+                             m, subset, v["markets"], v["pairs"], v["buyback_share"], _ci(v["buyback_share_ci95"]),
+                             v["mean_buyback_probability"], v["exposure_organic"], v["exposure_star"], v["coincidence"],
+                             v["pairs_decided"], v["indifferent"], _ci(v["coincidence_ci95"]), v["only_if_share"]))
     lines += ["", "Registered rules (A12 §4), read as exploratory: under M3 the buy-back share's 95%% lower bound is "
               "%s 0; under M4 buy-back coincides with \"bid term > congestion term\" in %.1f%% of decided pairs "
               "(registered: ≥ 95%%). The congestion term is the last sum of `cor:congestion` with Q^{−j} = "
               "Q^{s*}(0, b_{−j}); pairs within 1e-6 per request of indifference are excluded. The margin identity "
-              "n[V_b(Q*) − V_b(Q^{−j})] = bid term − remaining terms holds to %.1e. The floor binds in %d markets." % (
+              "n[V_b(Q*) − V_b(Q^{−j})] = bid term − remaining terms holds to %.1e. The floor binds in %d markets; in the paper-feasible subset (A17 §5.1: the %d markets "
+              "where it does not bind, so the paper's guardrail holds) the M3 lower bound is %s 0 and the M4 "
+              "coincidence is %.1f%%." % (
                   "above" if h["M3"]["registered_rule_met"] else "not above", 100 * h["M4"]["coincidence"],
-                  max(h["M3"]["max_margin_check"], h["M4"]["max_margin_check"]), h["M4"]["floor_binds_markets"]),
+                  max(h["M3"]["max_margin_check"], h["M4"]["max_margin_check"]), h["M4"]["floor_binds_markets"],
+                  h["paper_feasible"]["M4"]["markets"],
+                  "above" if h["paper_feasible"]["M3"]["registered_rule_met"] else "not above",
+                  100 * h["paper_feasible"]["M4"]["coincidence"]),
               "", "The coincidence column is registered for M4 only; under M3 the congestion term is not in the "
               "objective and the column is descriptive. Buy-back pairs where Q^{−j} buys the leader back too (a zero "
               "bid gives the same allocation, so both sides of the A1 reading are 0; the η M tie-break prefers the "
@@ -505,8 +546,13 @@ def markdown(summary: dict, means: list[dict]) -> str:
             m["match"], m[BASE_COST], m["overflow_prob_w0.5"]))
     lines += ["", "Every configuration, cost setting and paired difference (separated − original, composition-blind − "
               "original, quota − separated) with 95% intervals: `artifacts/results/sl20s/tables/`.", "",
-              "## Figures", "", "Part A figures carry \"%s\"; Part B figures carry \"%s\"." % (PART_A_LABEL, LABEL), ""]
-    lines += ["- `%s`" % p for p in summary["figures"] if p.endswith(".pdf")]
+              "## Figures", "", "Every figure carries \"%s\"; the Part A figures add \"%s\" beneath it." % (
+                  LABEL, PART_A_NOTE), ""]
+    captions = {"1_numeric_vs_closed_form": "Part A", "2_y_star_vs_delta": "Part A; for Δ > λ the overflow optimum is "
+                "y* = 1 at every ω", "3_variance_decomposition": "Part B; organic policies, the floor does not apply",
+                "4_cost_match_tradeoff": "Part B; organic policies, the floor does not apply",
+                "5_h3c_buyback": "H3c; all markets and the paper-feasible subset"}
+    lines += ["- `%s`: %s" % (p, captions[Path(p).stem]) for p in summary["figures"] if p.endswith(".pdf")]
     return "\n".join(lines) + "\n"
 
 
@@ -527,7 +573,7 @@ def main(argv: list[str] | None = None) -> int:
     paths = figures(data, s, means)
     check = e3r.RESULTS / "rerun_check.json"
     summary = {"label": LABEL, "part_a_label": PART_A_LABEL, "master_seed": e3r.MASTER_SEED, "gates": g,
-               "statistics": s, "figures": paths, "review_status": "not independently reviewed",
+               "statistics": s, "figures": paths, "review_status": "accepted by the owner without independent review (2026-10-24); independent audit: SL-24",
                "rerun_identical": json.loads(check.read_text(encoding="utf-8"))["identical"] if check.exists() else None}
     SUMMARY.write_text(json.dumps(summary, indent=1, sort_keys=True, default=float) + "\n", encoding="utf-8")
     REPORT.write_text(markdown(summary, means), encoding="utf-8")

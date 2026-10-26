@@ -1,8 +1,14 @@
 # Stipulated parameters (A17), pre-E1, exploratory
-regime,variation,mean_relative_gap,ci_low,ci_high,markets
-human_optimised,none,0.0,0.0,0.0,1000
-human_optimised,randomised,0.033458374646271834,0.03017347374498095,0.03684079660852665,1000
-agent_aware,none,0.0,0.0,0.0,1000
-agent_aware,randomised,0.024013779916508986,0.02116891674840649,0.027238187364228332,1000
-gated,none,0.0,0.0,0.0,1000
-gated,randomised,0.01620349183831742,0.013948847756066956,0.018610914780116044,1000
+regime,variation,subset,mean_relative_gap,ci_low,ci_high,markets
+human_optimised,none,all,0.0,0.0,0.0,1000
+human_optimised,none,paper_feasible,0.0,0.0,0.0,854
+human_optimised,randomised,all,0.033458374646271834,0.03017347374498095,0.03684079660852665,1000
+human_optimised,randomised,paper_feasible,0.026725919628170707,0.02305772694047267,0.030591499781307104,328
+agent_aware,none,all,0.0,0.0,0.0,1000
+agent_aware,none,paper_feasible,0.0,0.0,0.0,743
+agent_aware,randomised,all,0.024013779916508986,0.02116891674840649,0.027238187364228332,1000
+agent_aware,randomised,paper_feasible,0.01916936742462076,0.016286950567946476,0.02220478325681105,472
+gated,none,all,0.0,0.0,0.0,1000
+gated,none,paper_feasible,0.0,0.0,0.0,80
+gated,randomised,all,0.01620349183831742,0.013948847756066956,0.018610914780116044,1000
+gated,randomised,paper_feasible,0.014130984455749724,0.005965115484603885,0.025303718922526808,40
