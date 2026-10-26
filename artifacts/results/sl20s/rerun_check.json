@@ -3,8 +3,8 @@
   "diversify.csv.gz": true,
   "h3c.csv.gz": true,
   "part_a.csv.gz": true,
-  "part_b/aligned/models-2_independent.csv.gz": true,
-  "part_b/not_aligned/baseline.csv.gz": true
+  "part_b/aligned/baseline.csv.gz": true,
+  "part_b/not_aligned/states-3.csv.gz": true
  },
  "identical": true,
  "workers": 8

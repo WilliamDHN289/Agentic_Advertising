@@ -1,14 +1,14 @@
 {
  "configs": {
-  "core/alpha-0/human_optimised/none.csv.gz": true,
+  "core/alpha-0.5/gated/randomised.csv.gz": true,
   "gating/conj/alpha-0.25.csv.gz": true,
   "gating/conj/alpha-0.5.csv.gz": true,
   "gating/conj/alpha-0.75.csv.gz": true,
   "gating/conj/alpha-0.csv.gz": true,
   "gating/conj/alpha-1.csv.gz": true,
-  "gating/i_part/kappa-0.05.csv.gz": true,
-  "part3/models-1/alpha-1.csv.gz": true,
-  "sensitivity/delta--1.5/alpha-1.csv.gz": true
+  "gating/i_part/kappa-0.2.csv.gz": true,
+  "part3/versions-2/alpha-0.5.csv.gz": true,
+  "sensitivity/delta-0/alpha-0.5.csv.gz": true
  },
  "identical": true,
  "workers": 8
