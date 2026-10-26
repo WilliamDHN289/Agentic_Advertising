@@ -16,7 +16,13 @@ Nothing is decided by hand: ``decide`` applies the registered rules
 3. a test is supported when adjusted ``p_support`` ≤ ``alpha_support`` (< for a
    strict threshold), not supported when adjusted ``p_against`` < ``alpha_against``;
    ``rejects_null`` is never "not supported"; a failed ``implementation_check`` is
-   inconclusive and flags an implementation error;
+   inconclusive and flags an implementation error. A ``monte_carlo`` check (A12 §6.2)
+   fails only if an estimate is beyond its bound by more than z·SE_MC, z = z_{1-0.05/m}
+   over the test's m Monte Carlo estimates. A ``contains`` test (A12 §6.3) needs each
+   cell's Bonferroni interval, at level 1 - alpha/m over the m cells, to contain the
+   exact value: too wide, it needs the one rerun at ``rerun_factor`` times the
+   replications and is inconclusive if still too wide; excluding the value is an
+   implementation error;
 4. a cell is supported if all its tests are, not supported if any is not; a cell
    with 10–25% missing (or differential missingness) keeps its label only if the
    sensitivity analysis gives the same one;
@@ -42,11 +48,12 @@ from typing import Annotated, Literal
 
 from pydantic import Field, NonNegativeInt, ValidationError
 
-from .register import (CLAIM_IDS, REGISTER_PATH, BoundTest, Claim, Group, ImplementationCheck, Name,
-                       Register, RejectsNullTest, ShareAtLeast, Strict, load_register, register_sha256)
+from .register import (CLAIM_IDS, REGISTER_PATH, BoundTest, Claim, ContainsTest, Group, ImplementationCheck,
+                       Name, Register, RejectsNullTest, ShareAtLeast, Strict, load_register, register_sha256)
 
 RESULTS_VERSION = 1
 MISSING_FLAG, MISSING_EXCLUDE = 0.10, 0.25  # A12 §3.4
+MC_ALPHA = 0.05  # A12 §6.2: familywise level of the Monte Carlo tolerances of one criterion
 Probability = Annotated[float, Field(ge=0.0, le=1.0)]
 
 
@@ -61,18 +68,36 @@ class CredibleChange(Strict):
     higher_u: bool | None
 
 
+class McEstimate(Strict):
+    """One Monte Carlo estimate of a ``monte_carlo`` check, with its Monte Carlo SE."""
+
+    estimate: float
+    se: Annotated[float, Field(ge=0.0)]
+
+
+class Rerun(Strict):
+    """The one rerun of a ``contains`` cell whose interval was too wide (A12 §6.3)."""
+
+    n: Annotated[int, Field(gt=0)]  # replications
+    ci: tuple[float, float]
+    ci_level: Annotated[float, Field(gt=0.0, lt=1.0)]
+
+
 class StatResult(Strict):
     p_support: Probability | None = None
     p_against: Probability | None = None
     p_value: Probability | None = None
-    n: NonNegativeInt | None = None  # trials of a count rule
+    n: NonNegativeInt | None = None  # trials of a count rule; replications behind a contains interval
     counts: dict[Name, NonNegativeInt] = {}
     metrics: dict[Name, float] = {}
+    monte_carlo: dict[Name, list[McEstimate]] = {}  # the estimates of a monte_carlo check
     share: Probability | None = None
     changes: list[CredibleChange] = []  # a first_credible_change rule's input
     threshold: float | None = None  # the value of a registered threshold_rule
     estimate: float | None = None  # reported only
-    ci: tuple[float, float] | None = None  # reported only
+    ci: tuple[float, float] | None = None  # reported only, except by a contains test
+    ci_level: Annotated[float, Field(gt=0.0, lt=1.0)] | None = None  # a contains test's interval level
+    rerun: Rerun | None = None  # a contains test's rerun
 
 
 class CellResult(Strict):
@@ -137,6 +162,15 @@ def binom_sf(k: int, n: int, p: float) -> float:
 
 def norm_sf(z: float) -> float:
     return 0.5 * math.erfc(z / math.sqrt(2.0))
+
+
+def norm_ppf(q: float) -> float:
+    """The q quantile of N(0, 1), by bisection on ``norm_sf`` (0 < q < 1)."""
+    lo, hi = -40.0, 40.0
+    for _ in range(200):
+        mid = (lo + hi) / 2
+        lo, hi = (mid, hi) if norm_sf(mid) > 1.0 - q else (lo, mid)
+    return (lo + hi) / 2
 
 
 def count_p_values(test: BoundTest, result: StatResult, where: str) -> tuple[float, float]:
@@ -210,21 +244,94 @@ def _check(op: str, value: float, bound: float) -> bool:
     return value <= bound if op == "<=" else value >= bound if op == ">=" else value == bound
 
 
+def _implementation_check(test: ImplementationCheck, result: StatResult, where: str) -> dict:
+    """Every check of one cell; ``monte_carlo`` checks net of Monte Carlo error (A12 §6.2),
+    reported with the raw tolerance and the adjusted bound."""
+    failed, adjusted = [], {}
+    monte_carlo = [c for c in test.checks if c.monte_carlo]
+    for check in monte_carlo:
+        if not result.monte_carlo.get(check.metric):
+            raise ValueError("%s: Monte Carlo estimates of %s missing" % (where, check.metric))
+    m = sum(len(result.monte_carlo[c.metric]) for c in monte_carlo)
+    z = norm_ppf(1.0 - MC_ALPHA / m) if m else None
+    for check in test.checks:
+        if not check.monte_carlo:
+            if check.metric not in result.metrics:
+                raise ValueError("%s: metric %s missing" % (where, check.metric))
+            if not _check(check.op, result.metrics[check.metric], check.bound):
+                failed.append("%s = %g, not %s %g" % (check.metric, result.metrics[check.metric], check.op,
+                                                     check.bound))
+            continue
+        sign = 1.0 if check.op == "<=" else -1.0
+        estimates = result.monte_carlo[check.metric]
+        worst = max(estimates, key=lambda e: sign * (e.estimate - check.bound) - z * e.se)
+        bound = check.bound + sign * z * worst.se
+        adjusted[check.metric] = {"raw_bound": check.bound, "z": z, "m": m,
+                                  "raw_pass": all(_check(check.op, e.estimate, check.bound) for e in estimates),
+                                  "worst_estimate": worst.estimate, "worst_se": worst.se, "adjusted_bound": bound}
+        if not _check(check.op, worst.estimate, bound):
+            failed.append("%s = %g, not %s %g + %s %.3f x %g (Monte Carlo-adjusted)" % (
+                check.metric, worst.estimate, check.op, check.bound, "+" if sign > 0 else "-", z, worst.se))
+    entry = {"label": "inconclusive" if failed else "supported", "implementation_error": bool(failed),
+             "failed_checks": failed}
+    if adjusted:
+        entry["monte_carlo"] = adjusted
+    return entry
+
+
+def _contains(test: ContainsTest, result: StatResult, level: float, where: str) -> dict:
+    """A12 §6.3 for one cell: the Bonferroni interval must contain ``test.value``."""
+    def read(ci, ci_level, what):
+        if ci is None or ci_level is None:
+            raise ValueError("%s: needs the %s interval and its level" % (where, what))
+        if abs(ci_level - level) > 1e-9:
+            raise ValueError("%s: the %s interval has level %g; Bonferroni over the cells needs %g"
+                             % (where, what, ci_level, level))
+        lo, hi = ci
+        if lo > hi:
+            raise ValueError("%s: the %s interval is reversed" % (where, what))
+        return lo <= test.value <= hi, (hi - lo) / 2
+
+    if result.n is None or result.n == 0:
+        raise ValueError("%s: needs n, the replications behind the interval" % where)
+    contains, half = read(result.ci, result.ci_level, "first")
+    entry = {"ci": list(result.ci), "ci_level": level, "half_width": half, "rerun": None}
+    if contains and half > test.max_half_width:
+        rerun = result.rerun
+        if rerun is None:
+            raise ValueError("%s: half-width %g > %g; needs the rerun with %d x %d replications"
+                             % (where, half, test.max_half_width, test.rerun_factor, result.n))
+        if rerun.n != test.rerun_factor * result.n:
+            raise ValueError("%s: the rerun has %d replications, not %d x %d" % (where, rerun.n, test.rerun_factor,
+                                                                                result.n))
+        contains, half = read(rerun.ci, rerun.ci_level, "rerun")
+        entry["rerun"] = {"n": rerun.n, "ci": list(rerun.ci), "half_width": half}
+    elif result.rerun is not None:
+        raise ValueError("%s: a rerun is only run when the first interval contains %g and is too wide"
+                         % (where, test.value))
+    if not contains:
+        entry.update(label="inconclusive", implementation_error=True,
+                     failed_checks=["the interval excludes %g" % test.value])
+    elif half > test.max_half_width:
+        entry.update(label="inconclusive", implementation_error=False,
+                     reason="precision too low: half-width %g > %g after the rerun" % (half, test.max_half_width))
+    else:
+        entry.update(label="supported", implementation_error=False)
+    return entry
+
+
 def _test_labels(group: Group, test, cells: list[tuple[str, StatResult]], claim_id: str) -> dict[str, dict]:
-    """Label of one test in every eligible cell, with Holm across the cells."""
+    """Label of one test in every eligible cell, with Holm (or, for a contains test,
+    Bonferroni) across the cells."""
     out: dict[str, dict] = {}
     if isinstance(test, ImplementationCheck):
         for cell, result in cells:
-            failed = []
-            for check in test.checks:
-                if check.metric not in result.metrics:
-                    raise ValueError("%s/%s/%s/%s: metric %s missing" % (claim_id, group.name, cell, test.name,
-                                                                         check.metric))
-                if not _check(check.op, result.metrics[check.metric], check.bound):
-                    failed.append("%s = %g, not %s %g" % (check.metric, result.metrics[check.metric], check.op,
-                                                         check.bound))
-            out[cell] = {"label": "inconclusive" if failed else "supported", "implementation_error": bool(failed),
-                         "failed_checks": failed}
+            out[cell] = _implementation_check(test, result, "%s/%s/%s/%s" % (claim_id, group.name, cell, test.name))
+        return out
+    if isinstance(test, ContainsTest):
+        level = 1.0 - test.alpha / len(cells)
+        for cell, result in cells:
+            out[cell] = _contains(test, result, level, "%s/%s/%s/%s" % (claim_id, group.name, cell, test.name))
         return out
     if isinstance(test, ShareAtLeast):
         for cell, result in cells:

@@ -131,6 +131,65 @@
       "title": "CredibleChange",
       "type": "object"
     },
+    "McEstimate": {
+      "additionalProperties": false,
+      "description": "One Monte Carlo estimate of a ``monte_carlo`` check, with its Monte Carlo SE.",
+      "properties": {
+        "estimate": {
+          "title": "Estimate",
+          "type": "number"
+        },
+        "se": {
+          "minimum": 0.0,
+          "title": "Se",
+          "type": "number"
+        }
+      },
+      "required": [
+        "estimate",
+        "se"
+      ],
+      "title": "McEstimate",
+      "type": "object"
+    },
+    "Rerun": {
+      "additionalProperties": false,
+      "description": "The one rerun of a ``contains`` cell whose interval was too wide (A12 §6.3).",
+      "properties": {
+        "ci": {
+          "maxItems": 2,
+          "minItems": 2,
+          "prefixItems": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Ci",
+          "type": "array"
+        },
+        "ci_level": {
+          "exclusiveMaximum": 1.0,
+          "exclusiveMinimum": 0.0,
+          "title": "Ci Level",
+          "type": "number"
+        },
+        "n": {
+          "exclusiveMinimum": 0,
+          "title": "N",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "n",
+        "ci",
+        "ci_level"
+      ],
+      "title": "Rerun",
+      "type": "object"
+    },
     "StatResult": {
       "additionalProperties": false,
       "properties": {
@@ -164,6 +223,20 @@
           "default": null,
           "title": "Ci"
         },
+        "ci_level": {
+          "anyOf": [
+            {
+              "exclusiveMaximum": 1.0,
+              "exclusiveMinimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ci Level"
+        },
         "counts": {
           "default": {},
           "patternProperties": {
@@ -195,6 +268,19 @@
             }
           },
           "title": "Metrics",
+          "type": "object"
+        },
+        "monte_carlo": {
+          "default": {},
+          "patternProperties": {
+            "^[a-z0-9][a-z0-9_]*$": {
+              "items": {
+                "$ref": "#/$defs/McEstimate"
+              },
+              "type": "array"
+            }
+          },
+          "title": "Monte Carlo",
           "type": "object"
         },
         "n": {
@@ -251,6 +337,17 @@
           ],
           "default": null,
           "title": "P Value"
+        },
+        "rerun": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Rerun"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "share": {
           "anyOf": [

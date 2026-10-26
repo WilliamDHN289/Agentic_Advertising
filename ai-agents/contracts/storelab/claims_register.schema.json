@@ -136,6 +136,7 @@
     },
     "Check": {
       "additionalProperties": false,
+      "description": "``metric op bound``. A ``monte_carlo`` check (A12 §6.2) is a tolerance on a quantity\nestimated from Monte Carlo replications: the results give each estimate with its\nMonte Carlo SE, and an estimate fails only if it is beyond the bound by more than\nz·SE, z = z_{1-0.05/m} over the m Monte Carlo estimates of the test.",
       "properties": {
         "bound": {
           "title": "Bound",
@@ -145,6 +146,11 @@
           "pattern": "^[a-z0-9][a-z0-9_]*$",
           "title": "Metric",
           "type": "string"
+        },
+        "monte_carlo": {
+          "default": false,
+          "title": "Monte Carlo",
+          "type": "boolean"
         },
         "op": {
           "enum": [
@@ -349,6 +355,52 @@
       "title": "Claim",
       "type": "object"
     },
+    "ContainsTest": {
+      "additionalProperties": false,
+      "description": "An exact (I-type) value checked by an interval (A12 §6.3, H4b): per cell, the\nBonferroni interval at level 1 - ``alpha``/m (m cells) must contain ``value``.\nSupported if it does and its half-width is ≤ ``max_half_width``; if it does but is\nwider, the cell is rerun once with ``rerun_factor`` times the replications and is\ninconclusive if still too wide; an interval that excludes ``value`` is an\nimplementation error. Never 'not supported'.",
+      "properties": {
+        "alpha": {
+          "exclusiveMaximum": 0.5,
+          "exclusiveMinimum": 0.0,
+          "title": "Alpha",
+          "type": "number"
+        },
+        "kind": {
+          "const": "contains",
+          "title": "Kind",
+          "type": "string"
+        },
+        "max_half_width": {
+          "exclusiveMinimum": 0,
+          "title": "Max Half Width",
+          "type": "number"
+        },
+        "name": {
+          "pattern": "^[a-z0-9][a-z0-9_]*$",
+          "title": "Name",
+          "type": "string"
+        },
+        "rerun_factor": {
+          "minimum": 2,
+          "title": "Rerun Factor",
+          "type": "integer"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "kind",
+        "name",
+        "value",
+        "max_half_width",
+        "rerun_factor",
+        "alpha"
+      ],
+      "title": "ContainsTest",
+      "type": "object"
+    },
     "Decision": {
       "additionalProperties": false,
       "properties": {
@@ -518,6 +570,7 @@
           "default": "holm",
           "enum": [
             "holm",
+            "bonferroni",
             "none"
           ],
           "title": "Multiplicity",
@@ -542,6 +595,7 @@
             "discriminator": {
               "mapping": {
                 "bound": "#/$defs/BoundTest",
+                "contains": "#/$defs/ContainsTest",
                 "equivalence": "#/$defs/EquivalenceTest",
                 "implementation_check": "#/$defs/ImplementationCheck",
                 "rejects_null": "#/$defs/RejectsNullTest",
@@ -561,6 +615,9 @@
               },
               {
                 "$ref": "#/$defs/ImplementationCheck"
+              },
+              {
+                "$ref": "#/$defs/ContainsTest"
               },
               {
                 "$ref": "#/$defs/ShareAtLeast"

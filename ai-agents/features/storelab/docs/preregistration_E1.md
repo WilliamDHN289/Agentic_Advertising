@@ -19,9 +19,10 @@ this text and the register differ, the register governs. The register follows
 
 | File | sha256 |
 |---|---|
-| `features/storelab/docs/claims_register.yaml` | `5414e6ab5265041e7d5031b4320f98085c5666867c850a9d4da728fba2028571` |
+| `features/storelab/docs/claims_register.yaml` | `4ae71145c6a07da7a0ef3cb52e00cc9bd2713f4e84a92baae635190e24b9e0bc` |
 | `requirements/A1_formal_statements.md` | `be45dbfa81b0694693435f5cd2a32eedbf9370ccd24418c11250102b5dd278b5` |
-| `requirements/A12_thresholds.md` | `82217db6d087b78799db59aa680f0be70bfb26040d7acc06bbd533e9c3813f9d` |
+| `requirements/A12_thresholds.md` | `801640ec726d0abc2efd81400fdf3562c0fdeb96c718ad9134e97c9c679600f8` |
+| `requirements/A17_stipulated_parameters.md` | `c8b863e4866dd75679828def51b8aef628d0398c0c364791e0247f8d2c559e3c` |
 | `requirements/paper.tex` | `e4bcf05266b5c835d8dc827e829a86d1856f23bb3f295766aae899c154d63295` |
 
 At filing, the following are added: the analysis code commit, the E1 main config with its
@@ -67,7 +68,7 @@ inconclusive by rule.
 
 | Claim | Floor |
 |---|---|
-| H1a | ≥ 20 informative triples per primary cell |
+| H1a | ≥ 20 informative triples per primary cell. SL-17 reports power for H1a at η = 0.5, twice the margin (A12 §6.1); if that power is below 0.5 within budget, this registration states in advance that H1a is expected to be inconclusive |
 | H1b | ≥ 30 eligible sets per primary cell (a set needs ≥ 8 valid repeats of 10) |
 | H1c | 80% power at δ/σ = −0.25 (SL-17 sizes for 80% power at max(0.25, \|pilot estimate\|)) |
 | H1d | ≥ 20 tasks per provider version pair; alignment needs ≥ 10 credible changes, each (provider version pair, task) counted once |
@@ -121,8 +122,11 @@ descriptive evidence for E3.
   entirely on the other side, or entirely outside the margin. Otherwise it is *inconclusive*.
 - **Below a floor or excluded for missingness.** A cell below its minimum N, or excluded for
   missingness, is *inconclusive*.
-- **Rejection tests.** A test with no registered margin (H1a, H1c heterogeneity) is never *not
-  supported*: a non-rejection is *inconclusive*.
+- **Rejection tests.** A test with no registered margin is never *not supported*: a non-rejection
+  is *inconclusive*. Since amendment 1 (A12 §6.1) no claim label rests on one. H1a is decided by
+  the size of the violation, η, and the H1c heterogeneity part by the range of δ/σ across models,
+  each against a smallest effect of interest of 0.25 logit. The triple odds test, Hausman–McFadden
+  and the Wald χ² test of equal δ/σ are reported beside the labels.
 - **Multiplicity.** Holm–Bonferroni applies within each family: the cell-level tests of one
   hypothesis and test. There is no correction across hypotheses.
 - **One-sided p-values.** `decide.py` applies the interval rules through their dual one-sided
@@ -137,14 +141,44 @@ descriptive evidence for E3.
 - **Exact results.** A failed implementation check of an exact (I-type) result is never a finding.
   The claim is *inconclusive*, flagged, and its reporting is blocked until the failure is
   root-caused.
+- **Tolerances net of Monte Carlo error (A12 §6.2).** A simulation check whose criterion is a
+  tolerance on a quantity estimated from Monte Carlo replications (bias, coverage, size, power,
+  or a slope from simulated data) fails only if the estimate exceeds the tolerance significantly
+  at familywise 5%. With m checks in one criterion and z = z_{1−0.05/m} (Bonferroni), a tolerance τ
+  on |x| passes if |x̂| ≤ τ + z·SE_MC, and a band [a, b] around a rate passes if
+  a − z·SE_MC ≤ ĉ ≤ b + z·SE_MC. Exact computations (solver outputs, closed forms) keep their
+  numeric tolerances. Reports give the raw tolerance and the adjusted bound.
+- **H4b slope (A12 §6.3).** H4b is exact. Per cell, the interval of the log–log RMSE slope on h
+  at level 1 − 0.05/m (Bonferroni over the m cells) must contain −½. The cell passes if its
+  half-width is ≤ 0.05. If it is wider, the cell is rerun once with 4R replications and is
+  inconclusive if still too wide. An interval that excludes −½ is an implementation error and
+  blocks the report.
 
 **Operating characteristics.** Every confirmatory test must have empirical size in [0.03, 0.07] at
-α = 0.05 over 1,000 Monte Carlo null replications (SL-15, SL-22). A test that fails is replaced by
-its permutation version before this registration is filed.
+α = 0.05 over 1,000 Monte Carlo null replications (SL-15, SL-22), judged net of Monte Carlo error
+(A12 §6.2). A test that fails is replaced before this registration is filed (A12 §2). The SL-15
+replacements are owner decisions recorded in A12 §6.4:
+- the triple odds test uses a Monte Carlo p-value under the fitted conditional logit (B = 999),
+  because the set-level permutation version is anti-conservative (size 0.105 against 0.048);
+- Hausman–McFadden is reported only, on δ/σ with 1 df (the joint δ and β version had size
+  0.21–0.25);
+- separation is detected exactly by a linear program, and every cell is estimated with Firth's
+  penalised likelihood and profile penalised-likelihood intervals.
+
+Evidence is in `features/storelab/docs/analysis_validation.md` at the SL-15 approval (b9f8449).
 
 **Deviations.** Deviations are logged as dated amendments with reasons. Thresholds, margins and
 decision rules change only through a dated owner amendment made before registration, and every
 amendment is listed here. Any analysis not in this document is labelled exploratory.
+
+**Amendment 1 (owner, 2026-10-25; A12 §6).** Made before this registration is filed and before any
+E1 data exists, on the evidence of the SL-15 validation study and the pre-E1 dry runs SL-19S to
+SL-21S. It changes no threshold that E1 data could have informed:
+- §6.1: equivalence margins of 0.25 logit for H1a (η rule) and for H1c heterogeneity (range rule),
+  and the SL-17 power requirement for H1a;
+- §6.2: tolerances net of Monte Carlo error;
+- §6.3: the H4b slope rule;
+- §6.4: the SL-15 test substitutions, recorded as owner decisions.
 
 **Resampling.** The bootstrap clusters over candidate sets (E1) and over markets or replications
 (E2–E4), with B = 2,000 and percentile intervals. Seeds come from the master seed.
@@ -160,7 +194,7 @@ amendment is listed here. Any analysis not in this document is labelled explorat
 
 ### H1a
 
-The odds of choosing i over j change when a product preferred to both is added or removed (an IIA violation).
+The odds of choosing i over j change when a product preferred to both is added or removed (an IIA violation), by more than 0.25 on the logit scale (bias-corrected RMS shift eta).
 
 | | |
 |---|---|
@@ -168,19 +202,20 @@ The odds of choosing i over j change when a product preferred to both is added o
 | Sources | `premise` |
 | Experiment and mode | E1, sandbox |
 | Unit of analysis | informative triple (i, j, k) within an E1 primary cell: sets containing i and j with and without k, where k is chosen over both |
-| Metric | log odds ratio of i over j with versus without k (Haldane-corrected) |
-| Estimator | T = sum of squared Haldane-corrected log odds-ratio differences over the cell's informative triples, compared within one task and set size; Hausman-McFadden from the cell's conditional logit with and without each task's top-scored product |
-| Test | triple odds test with a Monte Carlo p-value under the fitted conditional logit, B = 999 (primary, decides the label); Hausman-McFadden test of delta/sigma, 1 df (reported) |
+| Metric | eta = sqrt(max(0, mean over the cell's informative triples t of (Delta_t^2 - s_t^2))): the bias-corrected root-mean-square shift, where Delta_t is the Haldane-corrected log odds-ratio change of i over j with versus without k and s_t^2 its delta-method variance |
+| Estimator | eta per primary cell with a cluster bootstrap over candidate sets (95% percentile interval); reported: T = sum of squared Haldane-corrected log odds-ratio differences (triple odds test) within one task and set size, and Hausman-McFadden from the cell's conditional logit with and without each task's top-scored product |
+| Test | eta: two-sided 95% bootstrap interval against 0.25, Holm over primary cells (decides the label); reported: triple odds test with a Monte Carlo p-value under the fitted conditional logit, B = 999 (Holm over cells), and Hausman-McFadden test of delta/sigma, 1 df |
 | alpha / CI level | 0.05 / 0.95 |
-| Multiplicity family | H1a: the triple odds tests of all E1 primary cells (Holm) |
-| Tolerance or margin | none: a rejection test (no equivalence margin is registered) |
-| Minimum N | 20 informative triples per primary cell |
-| Decision rule | Cell: supported if the Holm-adjusted p-value of the triple odds Monte Carlo test is <= 0.05 (IIA rejected); otherwise inconclusive, since a non-rejection without a registered margin is not evidence for IIA. Claim: two-thirds aggregation over primary cells. |
-| Amendment | Owner decision 2026-10-22 under A12 §2 (a test that fails its size is replaced before registration): the set-level permutation version of the triple odds test is anti-conservative (rejection rate 0.102 in 400 null replications: sets with k have fewer i-or-j choices, and pairs share sets), so its p-value is a Monte Carlo test under the fitted logit; A12 §4 had named the permutation version |
-| Amendment | Owner decision 2026-10-22: Hausman-McFadden compares delta/sigma only (1 df); the joint delta and beta version rejected 0.21-0.25 under the null because the design informs positions 5-8 only through K = 8 sets |
-| If supported | Agents are set-dependent as the model assumes: separable approximations do not suffice for this traffic, and the gaps of Section 4 apply. |
-| If not supported | Not reachable by this rule (no equivalence margin is registered); see inconclusive. |
-| If inconclusive | If H1a and H1b fail for a model or interface, separable approximations suffice for that traffic and the Section 4 gaps should shrink; E2 then reports results by interface (paper E1 Interpretation). |
+| Multiplicity family | H1a: the eta bounds of all E1 primary cells (Holm); the reported triple odds tests of all E1 primary cells (Holm, separately) |
+| Tolerance or margin | smallest effect of interest eta = 0.25 (logit scale; matches the H1c minimum effect, A12 §6.1) |
+| Minimum N | 20 informative triples per primary cell. Power (A12 §6.1): SL-17 reports power for H1a at eta = 0.5, twice the margin; if that power is below 0.5 within budget, the E1 registration states in advance that H1a is expected to be inconclusive |
+| Decision rule | Cell: supported if the Holm-adjusted lower bound of eta is > 0.25; not supported if the Holm-adjusted upper bound is < 0.25; inconclusive otherwise. Claim: two-thirds aggregation over primary cells. The triple odds Monte Carlo test is computed and reported per cell (secondary: IIA rejected or not), but does not decide the label. |
+| Amendment | Owner decision 2026-10-22 under A12 §2, recorded in A12 §6.4 (a test that fails its size is replaced before registration): the set-level permutation version of the triple odds test is anti-conservative (size 0.105 against 0.048 for the Monte Carlo version), so its p-value is a Monte Carlo test under the fitted conditional logit, B = 999; A12 §4 had named the permutation version |
+| Amendment | Owner decision 2026-10-22, recorded in A12 §6.4: Hausman-McFadden compares delta/sigma only (1 df); the joint delta and beta version had size 0.21-0.25 under the null because the design informs positions 5-8 only through K = 8 sets |
+| Amendment | A12 §6.1 (amendment 1, 2026-10-25): the label is decided by the size of the violation, eta against a smallest effect of interest of 0.25 logit, so 'not supported' is reachable; the triple odds test detects violations of any size and is reported, no longer deciding the label. SL-17 reports power for H1a at eta = 0.5 |
+| If supported | Agents are set-dependent as the model assumes, by more than 0.25 logit: separable approximations do not suffice for this traffic, and the gaps of Section 4 apply. |
+| If not supported | IIA violations are smaller than 0.25 logit: separable approximations suffice for that traffic and the Section 4 gaps should shrink; E2 then reports results by interface (paper E1 Interpretation: 'if H1a fails'). |
+| If inconclusive | The data cannot place the size of the IIA violation relative to 0.25 logit (expected in advance if SL-17's power at eta = 0.5 is below 0.5); E2 reports results by interface, and the triple odds test is the descriptive evidence. |
 
 ### H1b
 
@@ -206,7 +241,7 @@ Repeated identical presentations give the same choice in most trials (mean modal
 
 ### H1c
 
-The label effect delta_m / sigma_m is negative, and it differs across models.
+The label effect delta_m / sigma_m is negative, and it differs across models by more than 0.25 (range of delta_m / sigma_m across models).
 
 | | |
 |---|---|
@@ -215,15 +250,16 @@ The label effect delta_m / sigma_m is negative, and it differs across models.
 | Experiment and mode | E1, sandbox |
 | Unit of analysis | E1 primary cell (sign); model (heterogeneity) |
 | Metric | delta_m / sigma_m from the conditional logit with product fixed effects, label and position effects |
-| Estimator | Firth-penalised conditional logit (conventions.separation), cluster bootstrap over sets |
-| Test | sign: one-sided Wald test of delta/sigma < 0 per primary cell; heterogeneity: Wald chi-square test of equal delta/sigma across models |
+| Estimator | Firth-penalised conditional logit (conventions.separation), cluster bootstrap over sets; heterogeneity: range max_m - min_m of delta_m / sigma_m across models, cluster bootstrap over sets |
+| Test | sign: one-sided Wald test of delta/sigma < 0 per primary cell; heterogeneity: 95% bootstrap interval of the range against 0.25 (decides); reported: Wald chi-square test of equal delta/sigma across models |
 | alpha / CI level | 0.05 / 0.95 |
-| Multiplicity family | H1c sign: all primary cells (Holm); heterogeneity: one claim-level test |
-| Tolerance or margin | threshold 0 (sign); minimum effect of interest for power delta/sigma = -0.25 (SL-17 sizes for 80% power at max(0.25, \|pilot estimate\|)) |
+| Multiplicity family | H1c sign: all primary cells (Holm); heterogeneity: one claim-level interval |
+| Tolerance or margin | threshold 0 (sign); minimum effect of interest for power delta/sigma = -0.25 (SL-17 sizes for 80% power at max(0.25, \|pilot estimate\|)); heterogeneity margin 0.25 on the range of delta/sigma (A12 §6.1) |
 | Minimum N | 80% power at the minimum effect of interest, per primary cell |
-| Decision rule | Sign cell: supported if the Holm-adjusted one-sided 95% upper bound is < 0; not supported if the lower bound is > 0; two-thirds aggregation. Heterogeneity: supported if equality is rejected at 0.05, else inconclusive. Claim: supported if both parts are supported; not supported if either is. |
+| Decision rule | Sign cell: supported if the Holm-adjusted one-sided 95% upper bound is < 0; not supported if the lower bound is > 0; two-thirds aggregation. Heterogeneity: supported if the 95% bootstrap lower bound of the range of delta_m / sigma_m is > 0.25; not supported if the upper bound is < 0.25; inconclusive otherwise; the Wald chi-square test of equality is reported (secondary). Claim: supported if both parts are supported; not supported if either is. |
+| Amendment | A12 §6.1 (amendment 1, 2026-10-25): the heterogeneity part is decided by the range of delta_m / sigma_m across models against a smallest effect of interest of 0.25, so 'not supported' is reachable; the Wald chi-square test of equality is reported, no longer deciding the label |
 | If supported | Labels penalise sponsored products and the penalty is model-specific, so E2 uses model-specific delta_m/sigma_m and the labelled-favourite screen of A1 §E5 matters. |
-| If not supported | Labels do not lower agents' choice odds (or raise them): position-rent arguments that rely on a label penalty do not apply to that traffic. |
+| If not supported | Labels do not lower agents' choice odds (or raise them), so position-rent arguments that rely on a label penalty do not apply to that traffic; or the penalty is the same across models within 0.25, so E2 may use a common delta/sigma. |
 | If inconclusive | E2 uses the estimated delta_m/sigma_m with its uncertainty and reports both the estimate and a zero-penalty arm. |
 
 ### H1d
@@ -442,27 +478,30 @@ The identified share of target sets is determined by reachability in G_A, not by
 
 ### H4b
 
-Estimation error falls like h^(-1/2) (log-log RMSE slope in [-0.55, -0.45]); in n_0 it follows the closed form RMSE(n_0)/RMSE(inf) = sqrt(1 + E[q(1-q)] / (n_0 Var_Lambda q)), falling to a floor when Var_Lambda(q) > 0.
+Estimation error falls like h^(-1/2) (the Bonferroni interval of the log-log RMSE slope on h contains -1/2, with half-width <= 0.05); in n_0 it follows the closed form RMSE(n_0)/RMSE(inf) = sqrt(1 + E[q(1-q)] / (n_0 Var_Lambda q)), falling to a floor when Var_Lambda(q) > 0.
 
 | | |
 |---|---|
-| Kind | I/Pr |
+| Kind | I |
 | Sources | `prop:learning(a)` |
 | Experiment and mode | E4, offline |
 | Unit of analysis | cell (h, n_0, state variance, N_x), replications |
 | Metric | bias and variance of q-hat against the closed form; log-log slope of RMSE on h |
-| Estimator | Monte Carlo over replications (10,000 per checked cell for the I-check) |
-| Test | I: \|bias\| <= 3 MC SE and variance ratio within +-5%; Pr: 95% interval of the slope within [-0.55, -0.45] |
+| Estimator | Monte Carlo over replications (10,000 per checked cell for the closed-form check); OLS slope of log RMSE on log h with a bootstrap over replications |
+| Test | closed form: \|bias\| <= 3 MC SE and the variance ratio within +-5% net of Monte Carlo error (A12 §6.2); slope: per cell, the bootstrap interval at level 1 - 0.05/m (Bonferroni over the m slope cells) against -1/2 and the half-width 0.05 |
 | alpha / CI level | 0.05 / 0.95 |
-| Multiplicity family | none (one slope) |
-| Tolerance or margin | I: 3 MC SE, +-5% variance ratio; slope margin 0.05 around -0.5 |
-| Minimum N | 10,000 replications per checked cell (I-check); R = 200 replications per cell (slope) |
-| Decision rule | I-part passes or is an implementation error. Slope: supported if the 95% interval lies within [-0.55, -0.45]; not supported if it lies entirely outside; inconclusive otherwise. |
+| Multiplicity family | slope: Bonferroni over the slope cells (each interval at level 1 - 0.05/m); closed form: Bonferroni over the Monte Carlo variance-ratio estimates (A12 §6.2) |
+| Tolerance or margin | closed form: 3 MC SE (bias), +-5% variance ratio + z SE_MC; slope: the interval must contain -1/2, half-width <= 0.05 |
+| Minimum N | 10,000 replications per checked cell (closed form); R = 200 replications per slope cell, 4R = 800 in the one rerun of a cell whose interval is too wide |
+| Decision rule | Closed form: passes or is an implementation error. Slope, per cell: supported (passes) if the Bonferroni interval contains -1/2 and its half-width is <= 0.05; if it contains -1/2 but is wider, the cell is rerun once with 4R replications and is inconclusive (precision too low) if still too wide; if an interval excludes -1/2 the cell is an implementation error, which blocks the report. H4b is never 'not supported'. Claim: supported if the closed-form check passes and every slope cell passes; an implementation error makes it inconclusive and blocks reporting; inconclusive otherwise. |
 | Closed form | Var q-hat_j(c) = (1/h) {Var_Lambda q_j(c \| Lambda) + (1/n_0) E_Lambda[q_j (1 - q_j)]}; RMSE = sqrt(Var) since q-hat is unbiased |
+| Closed form | RMSE proportional to h^(-1/2): the log-log slope of RMSE on h is exactly -1/2 |
 | Amendment | A1 §E3: RMSE in n_0 is not flat; 'flat beyond small values' means within 5% of the floor, which holds once n_0 >= 10 E[q(1-q)] / Var_Lambda q; H4b is checked against the closed form, not against 'flat' |
+| Amendment | A12 §6.3 (amendment 1, 2026-10-25): H4b is an exact (I-type) claim. The slope rule 'the 95% interval lies within [-0.55, -0.45]' is replaced: at R = 200 under positive state variance that interval is 0.06-0.10 wide, so it tested the precision of the simulation rather than the claim (SL-21S: 20 of 32 cells passed, every interval contained -1/2). Per cell, with Bonferroni over cells: passes if the interval contains -1/2 with half-width <= 0.05; contains -1/2 but wider: rerun once with 4R replications, inconclusive if still too wide; excludes -1/2: implementation error, which blocks the report |
+| Amendment | A12 §6.2: the variance-ratio tolerance of the closed-form check is judged net of Monte Carlo error |
 | If supported | Learning is limited by periods, not requests: more audit requests per period do not help beyond the floor when states vary. |
-| If not supported | A failure in the direction of errors that keep falling with n_0 when Var_Lambda(q) > 0 would indicate that the calibrated states are less persistent than assumed (paper E4 Interpretation). |
-| If inconclusive | The slope cannot be placed within the margin; or the closed-form check failed (implementation error). |
+| If not supported | Not reachable: an exact result failing is an implementation error (A12 §6.3). The paper's E4 reading of a failure (errors that keep falling with n_0 when Var_Lambda(q) > 0 would mean the states are less persistent than assumed) concerns the specification of the calibrated states, which the simulation fixes. |
+| If inconclusive | The slope intervals are too wide to confirm the rate after the 4R rerun (precision too low); or the closed-form check or a slope interval failed (implementation error), which blocks reporting until root-caused. |
 
 ### H4c
 

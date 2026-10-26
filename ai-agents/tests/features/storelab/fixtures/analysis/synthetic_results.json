@@ -2,7 +2,63 @@
  "results_version": 1,
  "claims": {
   "H1a": {
-   "iia": [
+   "iia_size": [
+    {
+     "cell": "gpt_4o_20240806|text",
+     "n": 34,
+     "missing_rate": 0.04,
+     "sensitivity": {
+      "eta": {
+       "p_support": 0.002,
+       "p_against": 0.998
+      }
+     },
+     "tests": {
+      "eta": {
+       "p_support": 0.001,
+       "p_against": 0.999,
+       "estimate": 0.61
+      }
+     }
+    },
+    {
+     "cell": "gpt_4o_20240806|structured",
+     "n": 12,
+     "missing_rate": 0.02,
+     "sensitivity": {
+      "eta": {
+       "p_support": 0.0002,
+       "p_against": 0.9998
+      }
+     },
+     "tests": {
+      "eta": {
+       "p_support": 0.0001,
+       "p_against": 0.9999,
+       "estimate": 0.9
+      }
+     }
+    },
+    {
+     "cell": "claude_sonnet_45_20250929|text",
+     "n": 40,
+     "missing_rate": 0.05,
+     "sensitivity": {
+      "eta": {
+       "p_support": 0.008,
+       "p_against": 0.992
+      }
+     },
+     "tests": {
+      "eta": {
+       "p_support": 0.004,
+       "p_against": 0.996,
+       "estimate": 0.48
+      }
+     }
+    }
+   ],
+   "iia_rejection": [
     {
      "cell": "gpt_4o_20240806|text",
      "n": 34,
@@ -189,6 +245,18 @@
     }
    ],
    "heterogeneity": [
+    {
+     "cell": "all_models",
+     "tests": {
+      "range_across_models": {
+       "p_support": 0.01,
+       "p_against": 0.99,
+       "estimate": 0.52
+      }
+     }
+    }
+   ],
+   "heterogeneity_wald": [
     {
      "cell": "all_models",
      "tests": {
@@ -668,8 +736,43 @@
      "tests": {
       "bias_and_variance": {
        "metrics": {
-        "max_abs_bias_in_mc_se": 1.1,
-        "max_abs_variance_ratio_minus_one": 0.02
+        "max_abs_bias_in_mc_se": 1.1
+       },
+       "monte_carlo": {
+        "abs_variance_ratio_minus_one": [
+         {
+          "estimate": 0.02,
+          "se": 0.014
+         },
+         {
+          "estimate": 0.01,
+          "se": 0.014
+         },
+         {
+          "estimate": 0.055,
+          "se": 0.014
+         },
+         {
+          "estimate": 0.0,
+          "se": 0.014
+         },
+         {
+          "estimate": 0.03,
+          "se": 0.014
+         },
+         {
+          "estimate": 0.012,
+          "se": 0.014
+         },
+         {
+          "estimate": 0.024,
+          "se": 0.014
+         },
+         {
+          "estimate": 0.008,
+          "se": 0.014
+         }
+        ]
        }
       }
      }
@@ -677,13 +780,63 @@
    ],
    "rate_in_h": [
     {
-     "cell": "slope",
+     "cell": "f=0|n0=2",
      "n": 200,
      "tests": {
       "log_log_slope": {
-       "p_support": 0.3,
-       "p_against": 0.001,
-       "estimate": -0.31
+       "n": 200,
+       "ci": [
+        -0.53,
+        -0.47
+       ],
+       "ci_level": 0.9833333333333333,
+       "estimate": -0.5
+      }
+     }
+    },
+    {
+     "cell": "f=1|n0=2",
+     "n": 200,
+     "tests": {
+      "log_log_slope": {
+       "n": 200,
+       "ci": [
+        -0.56,
+        -0.44
+       ],
+       "ci_level": 0.9833333333333333,
+       "estimate": -0.5,
+       "rerun": {
+        "n": 800,
+        "ci": [
+         -0.53,
+         -0.47
+        ],
+        "ci_level": 0.9833333333333333
+       }
+      }
+     }
+    },
+    {
+     "cell": "f=2|n0=2",
+     "n": 200,
+     "tests": {
+      "log_log_slope": {
+       "n": 200,
+       "ci": [
+        -0.58,
+        -0.42
+       ],
+       "ci_level": 0.9833333333333333,
+       "estimate": -0.5,
+       "rerun": {
+        "n": 800,
+        "ci": [
+         -0.56,
+         -0.44
+        ],
+        "ci_level": 0.9833333333333333
+       }
       }
      }
     }

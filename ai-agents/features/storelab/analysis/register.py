@@ -119,9 +119,21 @@ class RejectsNullTest(Strict):
 
 
 class Check(Strict):
+    """``metric op bound``. A ``monte_carlo`` check (A12 §6.2) is a tolerance on a quantity
+    estimated from Monte Carlo replications: the results give each estimate with its
+    Monte Carlo SE, and an estimate fails only if it is beyond the bound by more than
+    z·SE, z = z_{1-0.05/m} over the m Monte Carlo estimates of the test."""
+
     metric: Name
     op: Literal["<=", ">=", "=="]
     bound: float
+    monte_carlo: bool = False
+
+    @model_validator(mode="after")
+    def _one_sided(self) -> Check:
+        if self.monte_carlo and self.op == "==":
+            raise ValueError("%s: a Monte Carlo tolerance needs <= or >=" % self.metric)
+        return self
 
 
 class ImplementationCheck(Strict):
@@ -133,6 +145,22 @@ class ImplementationCheck(Strict):
     checks: list[Check] = Field(min_length=1)
 
 
+class ContainsTest(Strict):
+    """An exact (I-type) value checked by an interval (A12 §6.3, H4b): per cell, the
+    Bonferroni interval at level 1 - ``alpha``/m (m cells) must contain ``value``.
+    Supported if it does and its half-width is ≤ ``max_half_width``; if it does but is
+    wider, the cell is rerun once with ``rerun_factor`` times the replications and is
+    inconclusive if still too wide; an interval that excludes ``value`` is an
+    implementation error. Never 'not supported'."""
+
+    kind: Literal["contains"]
+    name: Name
+    value: float
+    max_half_width: PositiveFloat
+    rerun_factor: Annotated[int, Field(ge=2)]
+    alpha: Alpha
+
+
 class ShareAtLeast(Strict):
     """A computed (not sampled) share against a threshold: supported if ≥ it, else not."""
 
@@ -141,8 +169,9 @@ class ShareAtLeast(Strict):
     threshold: float
 
 
-TestSpec = Annotated[Union[BoundTest, EquivalenceTest, RejectsNullTest, ImplementationCheck, ShareAtLeast],
-                     Field(discriminator="kind")]
+TestSpec = Annotated[Union[BoundTest, EquivalenceTest, RejectsNullTest, ImplementationCheck, ContainsTest,
+                           ShareAtLeast], Field(discriminator="kind")]
+EXACT_KINDS = ("implementation_check", "contains")  # tests of I-type results
 
 
 class Floor(Strict):
@@ -154,7 +183,7 @@ class Group(Strict):
     name: Name
     role: Literal["primary", "secondary"] = "primary"
     aggregation: Literal["two_thirds", "all", "single"]
-    multiplicity: Literal["holm", "none"] = "holm"
+    multiplicity: Literal["holm", "bonferroni", "none"] = "holm"  # bonferroni: contains tests only
     floor: Floor | None = None
     missingness: bool = False  # E1 cell rules (A12 §3.4): missing_rate, sensitivity
     differential_missingness: bool = False
@@ -168,6 +197,11 @@ class Group(Strict):
             raise ValueError("group %s: duplicate test names" % self.name)
         if self.differential_missingness and not self.missingness:
             raise ValueError("group %s: differential_missingness needs missingness" % self.name)
+        contains = [t.kind == "contains" for t in self.tests]
+        if any(contains) and (not all(contains) or self.multiplicity != "bonferroni"):
+            raise ValueError("group %s: contains tests need their own group with multiplicity bonferroni" % self.name)
+        if self.multiplicity == "bonferroni" and not any(contains):
+            raise ValueError("group %s: multiplicity bonferroni is for contains tests" % self.name)
         return self
 
 
@@ -217,7 +251,7 @@ class Claim(Strict):
 
     @model_validator(mode="after")
     def _closed_forms_for_exact_results(self) -> Claim:
-        exact = any(t.kind == "implementation_check" for g in self.decision.groups for t in g.tests)
+        exact = any(t.kind in EXACT_KINDS for g in self.decision.groups for t in g.tests)
         if exact != ("I" in self.kind.split("/")):
             raise ValueError("%s: kind %s, but implementation checks are %s" % (self.id, self.kind,
                                                                                 "present" if exact else "absent"))

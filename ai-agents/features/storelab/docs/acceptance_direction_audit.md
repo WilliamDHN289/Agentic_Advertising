@@ -11,11 +11,12 @@ data with a known truth do not: they hold or fail whatever the experiments find.
 `tests/features/storelab/test_claims_register.py` checks that this table lists every criterion
 of `tickets.md` verbatim, once.
 
-**Result: 117 criteria, none requires a particular direction.** Four gate on exact identities or
+**Result: 122 criteria, none requires a particular direction.** Four gate on exact identities or
 worked examples (SL-19 AC-3, SL-20 AC-1 to AC-3); they are implementation checks (A1 index:
 I-type) and are listed with their reasons below. The pre-E1 tickets SL-19S, SL-20S and SL-21S
 (15 criteria) gate only on implementation checks, completeness, reproducibility and exploratory
-labels.
+labels. Their audit SL-24 (5 criteria) re-checks those criteria and gates, reproducibility,
+figure presentation and the register amendment; none depends on what a hypothesis finds.
 
 | Ticket | AC | Criterion | Direction required? | Reason |
 |---|---|---|---|---|
@@ -129,6 +130,11 @@ labels.
 | SL-21S | AC-3 | Every cell has R = 200 completed replications, and a seeded rerun is identical. | No | Replication counts and seeded reproducibility. |
 | SL-21S | AC-4 | One command regenerates every table and figure from the committed result files. Every table and figure is labelled "Stipulated parameters (A17), pre-E1, exploratory". | No | Reproducibility and labelling of tables and figures. |
 | SL-21S | AC-5 | H4a–H4d are reported with the registered statistics (H4b and H4d as corrected in A1 §E2–§E3) and labelled exploratory. The recovery analysis is labelled exploratory. | No | Reporting with registered statistics and exploratory labels; no label depends on the outcome. |
+| SL-24 | AC-1 | Every acceptance criterion of SL-19S, SL-20S and SL-21S holds at this ticket's head, with evidence. The implementation gates still pass: | No | Re-verification of inherited engineering criteria and implementation gates (I-type exact identities and checks against closed forms); holds or fails whatever the experiments find. |
+| SL-24 | AC-2 | The stratified seeded rerun reproduces every sampled result file byte for byte, with at least one file from each group listed in Scope. | No | Seeded byte-for-byte reproducibility of result files; independent of any result. |
+| SL-24 | AC-3 | The figures meet Part B. The reviewer confirms this from the PNGs: E2 screen split and δ = 0 level; paper-feasible subset reported or stated; E3 overflow panel; no legend covering data. One command per experiment regenerates every output, and every output keeps the A17 label. | No | Presentation of figures and tables (screen split, paper-feasible subset, overflow panel, legends), regeneration and labelling; no result direction. |
+| SL-24 | AC-4 | The claims register, `decide.py` and the pre-registration drafts implement A12 §6. `decide.py` tests cover supported, not supported and inconclusive for the H1a η rule, the H1c heterogeneity rule and the H4b rule. The register pins the current sha256 of A1, A12, A17 and `paper.tex`. | No | Registration process: the register, decide.py and the drafts implement the owner's amendment; the tests exercise every outcome each rule allows (for H4b, an exact claim, a failed interval is an implementation error, A12 §6.3), so no outcome is preferred. |
+| SL-24 | AC-5 | The full storelab test suite passes, including the acceptance-direction audit with SL-24's rows. | No | Engineering: the test suite and this audit pass. |
 | SL-22 | AC-1 | Permutation-test size at α = 0.05 is in [0.03, 0.07] over 1,000 synthetic datasets; power at the designed effect is within ±5 percentage points of the analytic target. | No | Size and power of the E5 permutation test on synthetic data: operating characteristics, not a result about H5a/H5b. |
 | SL-22 | AC-2 | Schema fixtures validate; a PII field scan finds no email, name or address fields. | No | Operating characteristics of the E5 test on synthetic data, schema checks and a citation. |
 | SL-22 | AC-3 | The E5 pre-registration (SL-01) cites this protocol version. | No | Operating characteristics of the E5 test on synthetic data, schema checks and a citation. |
